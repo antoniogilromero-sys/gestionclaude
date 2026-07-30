@@ -171,6 +171,27 @@ function FichaIndividual({
       .filter((d) => d.valor != null) as { fechaLabel: string; valor: number }[];
   }, [filas, test]);
 
+  // Lo que de verdad quiere saber un director: dónde está su mejor marca,
+  // cuál es la última, y si va mejorando o empeorando.
+  const resumen = useMemo(() => {
+    if (!test || datosGrafico.length === 0) return null;
+    const valores = datosGrafico.map((d) => d.valor);
+    const mejor = test.mejor_es === "menor" ? Math.min(...valores) : Math.max(...valores);
+    const ultima = valores[valores.length - 1];
+    const primera = valores[0];
+    const diferencia = ultima - primera;
+    // "Mejora" no es siempre subir: en tiempos, bajar es mejorar.
+    const mejora = test.mejor_es === "menor" ? -diferencia : diferencia;
+    return {
+      mejor,
+      ultima,
+      esRecord: ultima === mejor,
+      mejora,
+      hayComparacion: datosGrafico.length > 1,
+      marcas: datosGrafico.length,
+    };
+  }, [datosGrafico, test]);
+
   const color = test ? (COLOR_DISC[test.disciplina] ?? COLOR_DEFECTO) : COLOR_DEFECTO;
 
   return (
@@ -215,6 +236,50 @@ function FichaIndividual({
         </div>
       ) : (
         <>
+          {resumen && test && (
+            <div className="grid grid-cols-3 gap-2 mb-3.5">
+              <div className="bg-surf border border-edge rounded-[10px] p-[11px]">
+                <span className="text-[11px] text-mute tracking-[.04em] block mb-0.5">
+                  MEJOR MARCA
+                </span>
+                <b className="font-display text-[22px] block leading-none">
+                  {formatValor(resumen.mejor, test.metrica)}
+                </b>
+              </div>
+              <div className="bg-surf border border-edge rounded-[10px] p-[11px]">
+                <span className="text-[11px] text-mute tracking-[.04em] block mb-0.5">
+                  ÚLTIMA
+                </span>
+                <b className="font-display text-[22px] block leading-none">
+                  {formatValor(resumen.ultima, test.metrica)}
+                </b>
+                {resumen.esRecord && resumen.hayComparacion && (
+                  <span className="text-[11px] text-ok">es su mejor marca</span>
+                )}
+              </div>
+              <div className="bg-surf border border-edge rounded-[10px] p-[11px]">
+                <span className="text-[11px] text-mute tracking-[.04em] block mb-0.5">
+                  DESDE LA 1ª
+                </span>
+                {resumen.hayComparacion ? (
+                  <b
+                    className={`font-display text-[22px] block leading-none ${
+                      resumen.mejora > 0 ? "text-ok" : resumen.mejora < 0 ? "text-run" : ""
+                    }`}
+                  >
+                    {resumen.mejora > 0 ? "▲" : resumen.mejora < 0 ? "▼" : "="}{" "}
+                    {formatValor(Math.abs(resumen.ultima - datosGrafico[0].valor), test.metrica)}
+                  </b>
+                ) : (
+                  <b className="font-display text-[22px] block leading-none text-mute">—</b>
+                )}
+                <span className="text-[11px] text-mute">
+                  {resumen.marcas} {resumen.marcas === 1 ? "marca" : "marcas"}
+                </span>
+              </div>
+            </div>
+          )}
+
           <div style={{ width: "100%", height: 220 }} className="mb-3.5">
             <ResponsiveContainer>
               <LineChart data={datosGrafico} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
