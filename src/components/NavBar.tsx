@@ -24,29 +24,32 @@ export function NavBar({ rol }: { rol: "director" | "entrenador" | "pendiente" }
   const items = rol === "director" ? DIRECTOR_ITEMS : ENTRENADOR_ITEMS;
 
   return (
-    <nav className="flex gap-2 overflow-x-auto bg-surf border-b border-edge px-[18px] py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <Link
-        href="/"
-        className={`shrink-0 font-display text-xs tracking-[.06em] uppercase px-3 py-1.5 rounded-full border ${
-          pathname === "/" ? "bg-signal text-[#160800] border-signal font-semibold" : "text-mute border-edge"
-        }`}
-      >
-        Inicio
-      </Link>
-      {items.map((item) => {
-        const active = pathname.startsWith(item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`shrink-0 font-display text-xs tracking-[.06em] uppercase px-3 py-1.5 rounded-full border ${
-              active ? "bg-signal text-[#160800] border-signal font-semibold" : "text-mute border-edge"
-            }`}
-          >
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <div className="relative bg-surf border-b border-edge">
+      <nav className="flex gap-2 overflow-x-auto px-[18px] py-2">
+        <Link
+          href="/"
+          className={`shrink-0 font-display text-xs tracking-[.06em] uppercase px-3 py-1.5 rounded-full border ${
+            pathname === "/" ? "bg-signal text-[#160800] border-signal font-semibold" : "text-mute border-edge"
+          }`}
+        >
+          Inicio
+        </Link>
+        {items.map((item) => {
+          const active = pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`shrink-0 font-display text-xs tracking-[.06em] uppercase px-3 py-1.5 rounded-full border ${
+                active ? "bg-signal text-[#160800] border-signal font-semibold" : "text-mute border-edge"
+              }`}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surf to-transparent" />
+    </div>
   );
 }
