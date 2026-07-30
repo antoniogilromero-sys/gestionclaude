@@ -20,6 +20,10 @@ export async function publicarSesion(input: {
     throw new Error("Faltan título, contenido o grupos");
   }
 
+  // Se crea primero como borrador y solo se publica cuando los grupos ya
+  // están guardados. Si algo falla por el camino, lo que queda es un
+  // borrador que solo ve el director, no un entrenamiento publicado sin
+  // grupos que aparecería roto a todo el equipo.
   const { data: sesion, error } = await supabase
     .from("sesiones")
     .insert({
@@ -29,7 +33,7 @@ export async function publicarSesion(input: {
       contenido: input.contenido.trim(),
       material: input.material.trim() || null,
       autor_id: user.id,
-      publicada: true,
+      publicada: false,
     })
     .select("id")
     .single();
@@ -42,6 +46,12 @@ export async function publicarSesion(input: {
   }));
   const { error: eGrupos } = await supabase.from("sesion_grupo").insert(filas);
   if (eGrupos) throw new Error(eGrupos.message);
+
+  const { error: ePublicar } = await supabase
+    .from("sesiones")
+    .update({ publicada: true })
+    .eq("id", sesion.id);
+  if (ePublicar) throw new Error(ePublicar.message);
 
   return sesion.id as number;
 }
