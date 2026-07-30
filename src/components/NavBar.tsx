@@ -18,7 +18,13 @@ const ENTRENADOR_ITEMS = [
   { href: "/tests", label: "Registrar test" },
 ];
 
-export function NavBar({ rol }: { rol: "director" | "entrenador" | "pendiente" }) {
+export function NavBar({
+  rol,
+  pendientes = 0,
+}: {
+  rol: "director" | "entrenador" | "pendiente";
+  pendientes?: number;
+}) {
   const pathname = usePathname();
   if (rol === "pendiente") return null;
   const items = rol === "director" ? DIRECTOR_ITEMS : ENTRENADOR_ITEMS;
@@ -36,15 +42,26 @@ export function NavBar({ rol }: { rol: "director" | "entrenador" | "pendiente" }
         </Link>
         {items.map((item) => {
           const active = pathname.startsWith(item.href);
+          const aviso = item.href === "/equipo" ? pendientes : 0;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`shrink-0 font-display text-xs tracking-[.06em] uppercase px-3 py-1.5 rounded-full border ${
+              className={`shrink-0 flex items-center gap-1.5 font-display text-xs tracking-[.06em] uppercase px-3 py-1.5 rounded-full border ${
                 active ? "bg-signal text-[#160800] border-signal font-semibold" : "text-mute border-edge"
               }`}
             >
               {item.label}
+              {aviso > 0 && (
+                <span
+                  className={`rounded-full min-w-[18px] h-[18px] px-1 grid place-items-center text-[11px] font-semibold ${
+                    active ? "bg-[#160800] text-signal" : "bg-signal text-[#160800]"
+                  }`}
+                  title={`${aviso} ${aviso === 1 ? "alta pendiente" : "altas pendientes"} de aprobar`}
+                >
+                  {aviso}
+                </span>
+              )}
             </Link>
           );
         })}

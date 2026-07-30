@@ -102,7 +102,7 @@ export function PublicarForm({ grupos }: { grupos: { id: number; nombre: string 
             type="button"
             onClick={() => toggleGrupo(g.id)}
             aria-pressed={grupoIds.includes(g.id)}
-            className={`px-[13px] py-2 rounded-full border text-[13px] cursor-pointer ${
+            className={`min-h-[44px] px-4 rounded-full border text-[14px] cursor-pointer ${
               grupoIds.includes(g.id)
                 ? "bg-signal text-[#160800] border-signal font-semibold"
                 : "bg-deep text-mute border-edge"

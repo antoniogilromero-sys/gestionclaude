@@ -164,10 +164,28 @@ export function RepartoGrid({
   }
 
   const disciplinas = [...new Set(grupos.map((g) => g.disciplina))];
+  const sinEquipo = entrenadores.length === 0;
 
   return (
     <div>
       <CuadroPersonal entrenadores={entrenadores} />
+
+      {sinEquipo && (
+        <div className="bg-surf border border-signal/40 rounded-[10px] p-3.5 mb-4">
+          <b className="block text-[15px] font-medium mb-1">
+            Todavía no puedes repartir grupos
+          </b>
+          <p className="text-sm text-mute leading-relaxed">
+            No hay ningún entrenador dado de alta en la aplicación. Cada
+            entrenador tiene que entrar una vez con su correo o su cuenta de
+            Google, y luego tú lo apruebas en{" "}
+            <Link href="/equipo" className="text-signal underline">
+              Equipo
+            </Link>
+            . A partir de ahí aparecerán aquí para asignarles grupos.
+          </p>
+        </div>
+      )}
 
       <div className="flex items-center justify-between mb-3">
         <Link
@@ -199,7 +217,7 @@ export function RepartoGrid({
       {avisoCopia && <p className="text-mute text-[13px] -mt-2.5 mb-4">{avisoCopia}</p>}
       {error && <p className="text-run text-[13px] -mt-2.5 mb-4">{error}</p>}
 
-      {(sinEntrenador.length > 0 || solapes.length > 0) && (
+      {!sinEquipo && (sinEntrenador.length > 0 || solapes.length > 0) && (
         <div className="bg-surf border border-run/40 rounded-[10px] p-3 mb-4 space-y-1">
           {sinEntrenador.map((g) => (
             <p key={g.id} className="text-run text-[13px]">
@@ -240,7 +258,7 @@ export function RepartoGrid({
                         key={e.id}
                         onClick={() => toggle(g.id, e.id)}
                         aria-pressed={activo}
-                        className={`px-[13px] py-2 rounded-full border text-[13px] cursor-pointer select-none ${
+                        className={`min-h-[44px] px-4 rounded-full border text-[14px] cursor-pointer select-none ${
                           activo
                             ? "bg-signal text-[#160800] border-signal font-semibold"
                             : "bg-deep text-mute border-edge"
@@ -250,9 +268,6 @@ export function RepartoGrid({
                       </button>
                     );
                   })}
-                  {entrenadores.length === 0 && (
-                    <p className="text-mute text-[13px]">No hay entrenadores aprobados todavía.</p>
-                  )}
                 </div>
               </article>
             ))}

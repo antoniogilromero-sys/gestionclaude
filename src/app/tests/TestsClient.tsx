@@ -65,6 +65,8 @@ export function TestsClient({
   const [fecha, setFecha] = useState(() => toISODateLocal(new Date()));
   const [resultados, setResultados] = useState<Record<number, Resultado>>({});
   const [editing, setEditing] = useState<number | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [soloPendientes, setSoloPendientes] = useState(false);
 
   useEffect(() => {
     if (!testId) return;
@@ -96,15 +98,25 @@ export function TestsClient({
     .filter((g) => misGrupoSet.has(g.id))
     .map((g) => g.nombre);
 
-  const ordenados = [...deportistas].sort((a, b) => {
-    const mA = a.grupo_id != null && misGrupoSet.has(a.grupo_id) ? 0 : 1;
-    const mB = b.grupo_id != null && misGrupoSet.has(b.grupo_id) ? 0 : 1;
-    if (mA !== mB) return mA - mB;
-    return (
-      (a.grupoNombre ?? "").localeCompare(b.grupoNombre ?? "") ||
-      a.nombre.localeCompare(b.nombre)
-    );
-  });
+  const ordenados = [...deportistas]
+    .sort((a, b) => {
+      const mA = a.grupo_id != null && misGrupoSet.has(a.grupo_id) ? 0 : 1;
+      const mB = b.grupo_id != null && misGrupoSet.has(b.grupo_id) ? 0 : 1;
+      if (mA !== mB) return mA - mB;
+      return (
+        (a.grupoNombre ?? "").localeCompare(b.grupoNombre ?? "") ||
+        a.nombre.localeCompare(b.nombre)
+      );
+    })
+    .filter((d) => {
+      if (soloPendientes && resultados[d.id]) return false;
+      const q = busqueda.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        d.nombre.toLowerCase().includes(q) ||
+        (d.grupoNombre ?? "").toLowerCase().includes(q)
+      );
+    });
 
   const hechos = Object.keys(resultados).length;
 
@@ -189,6 +201,28 @@ export function TestsClient({
           : "Todos los deportistas"}
       </h2>
 
+      <div className="flex gap-2 mb-3">
+        <input
+          type="search"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar deportista…"
+          aria-label="Buscar deportista por nombre o grupo"
+          className="flex-1 min-w-0 bg-deep border border-edge text-chalk rounded-lg p-[11px] text-[15px]"
+        />
+        <button
+          onClick={() => setSoloPendientes((v) => !v)}
+          aria-pressed={soloPendientes}
+          className={`shrink-0 px-3.5 rounded-lg border font-display text-xs tracking-[.06em] uppercase cursor-pointer ${
+            soloPendientes
+              ? "bg-signal text-[#160800] border-signal font-semibold"
+              : "bg-deep text-mute border-edge"
+          }`}
+        >
+          Pendientes
+        </button>
+      </div>
+
       {ordenados.map((d, i) => {
         const r = resultados[d.id];
         const done = !!r;
@@ -248,8 +282,32 @@ export function TestsClient({
           </div>
         );
       })}
-      {deportistas.length === 0 && (
-        <div className="text-center py-9 px-5 text-mute text-sm">Sin deportistas.</div>
+      {ordenados.length === 0 && (
+        <div className="text-center py-9 px-5 text-mute text-sm leading-relaxed">
+          {deportistas.length === 0 ? (
+            "Sin deportistas."
+          ) : soloPendientes && !busqueda.trim() ? (
+            <>
+              <b className="block text-chalk text-base mb-[5px] font-medium">
+                Ya están todos
+              </b>
+              No queda nadie por registrar en esta prueba.
+            </>
+          ) : (
+            <>
+              Ningún deportista coincide con la búsqueda.
+              <button
+                onClick={() => {
+                  setBusqueda("");
+                  setSoloPendientes(false);
+                }}
+                className="block mx-auto mt-2 text-signal underline"
+              >
+                Quitar filtros
+              </button>
+            </>
+          )}
+        </div>
       )}
       <p className="text-xs text-mute leading-relaxed mt-3.5 pt-3 border-t border-edge">
         Tus grupos de esta semana salen primero, pero puedes tomar la marca a
@@ -459,13 +517,15 @@ function EntradaView({
       <label className="block font-display text-[13px] tracking-[.1em] uppercase text-mute mt-3 mb-[5px]">
         Percepción del esfuerzo
       </label>
-      <div className="flex flex-wrap gap-[7px] mt-[5px]">
+      {/* 6 por fila: cada botón queda por encima de los 44px que hace falta
+          para acertar con el dedo mojado, sin desbordar en móvil. */}
+      <div className="grid grid-cols-6 gap-[7px] mt-[5px]">
         {Array.from({ length: 11 }, (_, n) => n).map((n) => (
           <button
             key={n}
             onClick={() => setRpe(n)}
             aria-pressed={rpe === n}
-            className={`px-[13px] py-2 rounded-full border text-[13px] cursor-pointer ${
+            className={`min-h-[44px] rounded-full border text-[15px] cursor-pointer ${
               rpe === n
                 ? "bg-signal text-[#160800] border-signal font-semibold"
                 : "bg-deep text-mute border-edge"
