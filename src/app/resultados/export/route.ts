@@ -2,6 +2,26 @@ import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
 import { fmtTiempo } from "@/lib/formato";
 
+type FilaExport = {
+  fecha: string;
+  deportista: string;
+  deportista_id: number;
+  grupo_id: number | null;
+  test: string;
+  disciplina: string;
+  metrica: string;
+  tiempo_s: number | null;
+  distancia_m: number | null;
+  potencia_w: number | null;
+  ritmo_s: number | null;
+  fc_media: number | null;
+  fc_max: number | null;
+  fc_1min: number | null;
+  rpe: number | null;
+  registrado_por: string | null;
+  notas: string | null;
+};
+
 export async function GET(request: Request) {
   const supabase = await createClient();
   const {
@@ -24,27 +44,38 @@ export async function GET(request: Request) {
   const desde = searchParams.get("desde");
   const hasta = searchParams.get("hasta");
 
-  let query = supabase
-    .from("resultados_calc")
-    .select(
-      "fecha, deportista, deportista_id, grupo_id, test, disciplina, metrica, tiempo_s, distancia_m, potencia_w, ritmo_s, fc_media, fc_max, fc_1min, rpe, registrado_por, notas",
-    )
-    .order("fecha", { ascending: false });
+  // Supabase corta en 1000 filas por defecto. Sin paginar, en cuanto el club
+  // acumule varias temporadas el Excel saldría incompleto sin avisar de nada,
+  // que es justo lo que no puede pasar aquí: este fichero es el respaldo.
+  const TAMANO_PAGINA = 1000;
+  const filas: FilaExport[] = [];
+  for (let desdeFila = 0; ; desdeFila += TAMANO_PAGINA) {
+    let query = supabase
+      .from("resultados_calc")
+      .select(
+        "fecha, deportista, deportista_id, grupo_id, test, disciplina, metrica, tiempo_s, distancia_m, potencia_w, ritmo_s, fc_media, fc_max, fc_1min, rpe, registrado_por, notas",
+      )
+      .order("fecha", { ascending: false })
+      .order("deportista_id", { ascending: true })
+      .range(desdeFila, desdeFila + TAMANO_PAGINA - 1);
 
-  if (testId) query = query.eq("tipo_test_id", Number(testId));
-  if (grupoId) query = query.eq("grupo_id", Number(grupoId));
-  if (desde) query = query.gte("fecha", desde);
-  if (hasta) query = query.lte("fecha", hasta);
+    if (testId) query = query.eq("tipo_test_id", Number(testId));
+    if (grupoId) query = query.eq("grupo_id", Number(grupoId));
+    if (desde) query = query.gte("fecha", desde);
+    if (hasta) query = query.lte("fecha", hasta);
 
-  const [{ data: filas, error }, { data: deportistas }, { data: grupos }, { data: perfiles }] =
-    await Promise.all([
-      query,
-      supabase.from("deportistas").select("id, ref, categoria"),
-      supabase.from("grupos").select("id, nombre"),
-      supabase.from("perfiles").select("id, nombre"),
-    ]);
+    const { data, error } = await query;
+    if (error) return new Response(error.message, { status: 500 });
+    if (!data || data.length === 0) break;
+    filas.push(...(data as FilaExport[]));
+    if (data.length < TAMANO_PAGINA) break;
+  }
 
-  if (error) return new Response(error.message, { status: 500 });
+  const [{ data: deportistas }, { data: grupos }, { data: perfiles }] = await Promise.all([
+    supabase.from("deportistas").select("id, ref, categoria"),
+    supabase.from("grupos").select("id, nombre"),
+    supabase.from("perfiles").select("id, nombre"),
+  ]);
 
   const depPorId = new Map((deportistas ?? []).map((d) => [d.id, d]));
   const grupoPorId = new Map((grupos ?? []).map((g) => [g.id, g.nombre]));
@@ -69,7 +100,7 @@ export async function GET(request: Request) {
     { header: "Notas", key: "notas", width: 26 },
   ];
 
-  for (const r of filas ?? []) {
+  for (const r of filas) {
     const dep = depPorId.get(r.deportista_id);
     const marca =
       r.metrica === "potencia"
