@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "gestionclaude-dev",
+      "runtimeExecutable": "C:\\Users\\anton\\Desktop\\gestionclaude\\.claude\\dev.bat",
+      "runtimeArgs": [],
+      "port": 3000
+    }
+  ]
+}

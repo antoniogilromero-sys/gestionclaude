@@ -1,0 +1,366 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --deep:#071C26; --surf:#0E2E3D; --surf2:#123A4C; --edge:#1B4C60;
+    --chalk:#EAF4F6; --mute:#7FA5B0; --signal:#FF6A2B;
+    --swim:#43C6E0; --bike:#A8D84A; --run:#FF9145; --ok:#3DD68C;
+    --r:10px;
+  }
+  #app{
+    font-family:Inter,system-ui,sans-serif; background:var(--deep); color:var(--chalk);
+    min-height:640px; border-radius:14px; overflow:hidden; position:relative;
+    max-width:520px; margin:0 auto; box-shadow:0 20px 60px rgba(0,0,0,.45);
+  }
+  .num{font-family:'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums}
+  /* --- lane motif: the one decorative element, earns its place as a divider --- */
+  .lane{height:3px;background:repeating-linear-gradient(90deg,var(--edge) 0 14px,transparent 14px 22px)}
+  header{padding:14px 18px 12px;background:var(--surf);border-bottom:1px solid var(--edge)}
+  .brand{font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--mute)}
+  .whoami{display:flex;align-items:center;justify-content:space-between;margin-top:3px;gap:10px}
+  .whoami b{font-size:19px;font-weight:600;letter-spacing:-.01em}
+  .role{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.1em;
+    text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--edge);color:var(--chalk)}
+  .role.dir{background:var(--signal);color:#160800}
+  .exit{background:none;border:1px solid var(--edge);color:var(--mute);border-radius:8px;
+    padding:5px 9px;font-size:11px;cursor:pointer;font-family:Inter,sans-serif}
+  .exit:hover{color:var(--chalk);border-color:var(--mute)}
+  nav{display:flex;background:var(--surf);border-bottom:1px solid var(--edge)}
+  nav button{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--mute);
+    padding:11px 4px;font-family:'Barlow Condensed',sans-serif;font-size:15px;letter-spacing:.07em;
+    text-transform:uppercase;cursor:pointer}
+  nav button[aria-selected=true]{color:var(--chalk);border-bottom-color:var(--signal)}
+  nav button:focus-visible,.exit:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+  main{padding:16px 18px 26px}
+  h2{font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--mute);margin:0 0 10px;font-weight:600}
+  .card{background:var(--surf);border:1px solid var(--edge);border-radius:var(--r);padding:14px;margin-bottom:10px}
+  .card h3{font-size:16px;font-weight:600;margin-bottom:3px}
+  .meta{font-size:12px;color:var(--mute);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .tag{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+    padding:2px 7px;border-radius:5px;background:var(--edge)}
+  .tag.natacion{background:rgba(67,198,224,.16);color:var(--swim)}
+  .tag.ciclismo{background:rgba(168,216,74,.16);color:var(--bike)}
+  .tag.carrera{background:rgba(255,145,69,.16);color:var(--run)}
+  .body{white-space:pre-wrap;font-size:14px;line-height:1.55;margin-top:10px;padding-top:10px;
+    border-top:1px solid var(--edge);color:#CFE3E8}
+  label{display:block;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--mute);margin:12px 0 5px}
+  input,select,textarea{width:100%;background:var(--deep);border:1px solid var(--edge);color:var(--chalk);
+    border-radius:8px;padding:11px;font-family:Inter,sans-serif;font-size:15px}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--signal);outline-offset:-1px;border-color:transparent}
+  textarea{min-height:120px;resize:vertical;line-height:1.5}
+  .btn{width:100%;background:var(--signal);color:#160800;border:none;border-radius:9px;padding:14px;
+    font-family:'Barlow Condensed',sans-serif;font-size:17px;letter-spacing:.09em;text-transform:uppercase;
+    font-weight:600;cursor:pointer;margin-top:16px}
+  .btn:hover{filter:brightness(1.08)} .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:none;border:1px solid var(--edge);color:var(--chalk)}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:5px}
+  .chip{padding:8px 13px;border-radius:99px;border:1px solid var(--edge);background:var(--deep);
+    color:var(--mute);font-size:13px;cursor:pointer;user-select:none}
+  .chip[aria-pressed=true]{background:var(--signal);color:#160800;border-color:var(--signal);font-weight:600}
+  /* --- roster: each athlete is a lane that fills when their time is in --- */
+  .row{display:flex;align-items:center;gap:11px;padding:12px 13px;background:var(--surf);
+    border:1px solid var(--edge);border-radius:var(--r);margin-bottom:7px;cursor:pointer;
+    position:relative;overflow:hidden}
+  .row:hover{border-color:var(--mute)}
+  .row.done{border-color:rgba(61,214,140,.4)}
+  .row.done::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ok)}
+  .dorsal{font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--mute);
+    min-width:34px;letter-spacing:.05em}
+  .who{flex:1;min-width:0}
+  .who b{display:block;font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .who span{font-size:12px;color:var(--mute)}
+  .mark{font-family:'Barlow Condensed',sans-serif;font-size:23px;font-weight:600;letter-spacing:.01em}
+  .mark small{font-size:12px;color:var(--mute);display:block;text-align:right;letter-spacing:.06em;font-weight:400}
+  .pend{color:var(--edge);font-size:20px}
+  /* --- signature: the scoreboard --- */
+  .board{background:#04141C;border:1px solid var(--edge);border-radius:var(--r);
+    padding:18px 14px 16px;text-align:center;margin-bottom:6px}
+  .board .val{font-family:'Barlow Condensed',sans-serif;font-size:62px;line-height:.92;font-weight:600;
+    letter-spacing:.02em;color:var(--signal);text-shadow:0 0 26px rgba(255,106,43,.25)}
+  .board .lbl{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--mute);margin-top:7px}
+  .keys{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}
+  .keys button{background:var(--surf);border:1px solid var(--edge);color:var(--chalk);border-radius:9px;
+    padding:15px 0;font-family:'Barlow Condensed',sans-serif;font-size:25px;cursor:pointer}
+  .keys button:hover{background:var(--surf2)}
+  .keys button.wide{grid-column:span 1;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .empty{text-align:center;padding:36px 20px;color:var(--mute);font-size:14px;line-height:1.6}
+  .empty b{display:block;color:var(--chalk);font-size:16px;margin-bottom:5px;font-weight:500}
+  .toast{position:absolute;left:50%;bottom:20px;transform:translate(-50%,80px);background:var(--ok);
+    color:#04231A;padding:11px 20px;border-radius:99px;font-size:14px;font-weight:600;
+    transition:transform .25s cubic-bezier(.2,.9,.3,1.3);z-index:20;pointer-events:none;white-space:nowrap}
+  .toast.on{transform:translate(-50%,0)}
+  .who-list button{width:100%;text-align:left;display:flex;align-items:center;gap:12px;background:var(--surf);
+    border:1px solid var(--edge);border-radius:var(--r);padding:14px;margin-bottom:8px;cursor:pointer;color:var(--chalk)}
+  .who-list button:hover{border-color:var(--signal)}
+  .av{width:38px;height:38px;border-radius:50%;background:var(--edge);display:grid;place-items:center;
+    font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:600;flex:none}
+  .av.dir{background:var(--signal);color:#160800}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--mute);text-align:left;padding:7px 6px;border-bottom:1px solid var(--edge);font-weight:600}
+  td{padding:9px 6px;border-bottom:1px solid rgba(27,76,96,.5)}
+  .stat{background:var(--surf);border:1px solid var(--edge);border-radius:var(--r);padding:11px}
+  .stat b{font-family:'Barlow Condensed',sans-serif;font-size:26px;display:block;line-height:1}
+  .stat span{font-size:11px;color:var(--mute);letter-spacing:.04em}
+  .note{font-size:12px;color:var(--mute);line-height:1.5;margin-top:14px;padding-top:12px;border-top:1px solid var(--edge)}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div id="app">
+  <header>
+    <div class="brand">C.D.E. Triatlón Alpedrete</div>
+    <div class="whoami">
+      <b id="hName">Entrar</b>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="role" id="hRole" hidden></span>
+        <button class="exit" id="hExit" hidden>Salir</button>
+      </div>
+    </div>
+  </header>
+  <div class="lane"></div>
+  <nav id="nav" hidden></nav>
+  <main id="main"></main>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const ATH = [{"id":"D001","n":"Airam Giuseppi Perales Mayta","c":"Infantil","g":"Intermedio"},{"id":"D002","n":"Alba García Palacios","c":"Infantil","g":"Intermedio"},{"id":"D003","n":"Alba Marfil Gómez","c":"Alevin","g":"Peques"},{"id":"D004","n":"Alejandro Martín-Velasco Suárez","c":"Cadete","g":"Intermedio"},{"id":"D005","n":"ALICIA DELGADO HUERTAS","c":"Juvenil","g":"Avanzado"},{"id":"D006","n":"Alonso García Palacios","c":"Benjamin","g":"Escuela jueves"},{"id":"D007","n":"Anaïs Rodriguez Bastiani","c":"Cadete","g":"Intermedio"},{"id":"D008","n":"Bruno Pasamontes alarcon","c":"Alevin","g":"Peques"},{"id":"D009","n":"Carlos Pereda Lostau","c":"Benjamin","g":"Escuela jueves"},{"id":"D010","n":"Celia Pereda Lostau","c":"Alevin","g":"Peques"},{"id":"D011","n":"Cleoma Bonvalet","c":"Cadete","g":"Intermedio"},{"id":"D012","n":"Daniel Bárez Carballo","c":"Cadete","g":"Intermedio"},{"id":"D013","n":"david","c":"Alevin","g":"Peques"},{"id":"D014","n":"Eloy Bárez Carballo","c":"Alevin","g":"Peques"},{"id":"D015","n":"Gorka Hernando Muñoz","c":"Infantil","g":"Intermedio"},{"id":"D016","n":"Guillermo González Serralta","c":"Infantil","g":"Intermedio"},{"id":"D017","n":"Hugo Jiménez Ocaña","c":"Alevin","g":"Peques"},{"id":"D018","n":"Hugo Ramos Gonzalez","c":"Infantil","g":"Intermedio"},{"id":"D019","n":"Hugo Simon Perez","c":"Infantil","g":"Intermedio"},{"id":"D020","n":"Isabel Simpson","c":"Cadete","g":"Intermedio"},{"id":"D021","n":"JAIME CONTRERAS LOPEZ","c":"Cadete","g":"Intermedio"},{"id":"D022","n":"Jara Lahera Sánchez","c":"Infantil","g":"Intermedio"},{"id":"D023","n":"Jorge del Río Serrano","c":"Alevin","g":"Peques"},{"id":"D024","n":"Julia Millo Bretin","c":"Cadete","g":"Intermedio"},{"id":"D025","n":"Lola López Moreno","c":"Benjamin","g":"Escuela jueves"},{"id":"D026","n":"Lucia Simon Perez","c":"Infantil","g":"Intermedio"},{"id":"D027","n":"Luna González Serralta","c":"Benjamin","g":"Escuela jueves"},{"id":"D028","n":"Mario tejero maria","c":"Prebenjamin","g":"Escuela jueves"},{"id":"D029","n":"Martina Pous Ribagorda","c":"Cadete","g":"Intermedio"},{"id":"D030","n":"Martín Arribas del Amo","c":"Alevin","g":"Peques"},{"id":"D031","n":"María Caballero de la Cruz","c":"Cadete","g":"Intermedio"},{"id":"D032","n":"María Simpson","c":"Alevin","g":"Peques"},{"id":"D033","n":"Quique López Moreno","c":"Infantil","g":"Intermedio"},{"id":"D034","n":"Sarasvati Delis Rojas","c":"Infantil","g":"Intermedio"},{"id":"D035","n":"Saul","c":"Infantil","g":"Intermedio"},{"id":"D036","n":"Saúl Niño Negreira","c":"Benjamin","g":"Escuela jueves"},{"id":"D037","n":"TULIO RUIZ DELGADO","c":"Benjamin","g":"Escuela jueves"},{"id":"D038","n":"Vega Delgado de Felix","c":"Alevin","g":"Peques"},{"id":"D039","n":"Alejandro Sanchez","c":"Absoluto","g":"Adultos competición"},{"id":"D040","n":"Andreína Maris","c":"Absoluto","g":"Adultos competición"},{"id":"D041","n":"angel","c":"?","g":"Sin asignar"},{"id":"D042","n":"Angelina","c":"?","g":"Sin asignar"},{"id":"D043","n":"Carolina Sánchez perez","c":"?","g":"Sin asignar"},{"id":"D044","n":"Daniel Caballero","c":"Junior","g":"Avanzado"},{"id":"D045","n":"Daniel Castro Márquez","c":"Absoluto","g":"Adultos competición"},{"id":"D046","n":"Daniel Puche Hontanilla","c":"Veterano","g":"Adultos competición"},{"id":"D047","n":"David del Río Pascual","c":"Veterano","g":"Adultos competición"},{"id":"D048","n":"Diego Gil","c":"Junior","g":"Avanzado"},{"id":"D049","n":"Elena Perez Ruiz","c":"Veterano","g":"Adultos competición"},{"id":"D050","n":"Fernando Niño Martínez","c":"Veterano","g":"Adultos competición"},{"id":"D051","n":"Hermano Rosa","c":"?","g":"Sin asignar"},{"id":"D052","n":"Hugo Martin Rodao","c":"Sub23","g":"Avanzado"},{"id":"D053","n":"isabela","c":"?","g":"Sin asignar"},{"id":"D054","n":"Joaquín Millo Acedo","c":"Veterano","g":"Adultos competición"},{"id":"D055","n":"José Luis Martín-VelascoGutiérrez","c":"Veterano","g":"Adultos competición"},{"id":"D056","n":"José Luis Plaza Canga-Arguelles","c":"Veterano","g":"Adultos competición"},{"id":"D057","n":"Lara de Diego Gustin","c":"Absoluto","g":"Adultos competición"},{"id":"D058","n":"lucas","c":"?","g":"Sin asignar"},{"id":"D059","n":"Luis Cerrillo Arias","c":"Veterano","g":"Adultos competición"},{"id":"D060","n":"Luis Miguel Blázquez Iznaol","c":"Veterano","g":"Adultos competición"},{"id":"D061","n":"Manuel Arenas Mateos","c":"Absoluto","g":"Adultos competición"},{"id":"D062","n":"Marta","c":"?","g":"Sin asignar"},{"id":"D063","n":"Miguel Angel Contreras Contreras","c":"Veterano","g":"Adultos competición"},{"id":"D064","n":"Miguel Ángel Pedrosa Hiruelas","c":"Veterano","g":"Adultos competición"},{"id":"D065","n":"Noa","c":"?","g":"Sin asignar"},{"id":"D066","n":"Noemí de la Cuerda","c":"Veterano","g":"Adultos competición"},{"id":"D067","n":"Paloma Canales Espi","c":"Absoluto","g":"Adultos competición"},{"id":"D068","n":"Paloma Rojas Vaquero","c":"Veterano","g":"Adultos competición"},{"id":"D069","n":"paula","c":"?","g":"Sin asignar"},{"id":"D070","n":"Paula Holguín Segovia","c":"Absoluto","g":"Adultos competición"},{"id":"D071","n":"Peter Simpson","c":"Veterano","g":"Adultos competición"},{"id":"D072","n":"Rafael Caballero de la Cruz","c":"Veterano","g":"Adultos competición"},{"id":"D073","n":"Raquel Gómez García","c":"Veterano","g":"Adultos competición"},{"id":"D074","n":"Rosa","c":"?","g":"Sin asignar"},{"id":"D075","n":"Rosa Negreira Hernandez","c":"Veterano","g":"Adultos competición"},{"id":"D076","n":"Sandra Machado Henares","c":"Veterano","g":"Adultos competición"},{"id":"D077","n":"sergio","c":"?","g":"Sin asignar"},{"id":"D078","n":"Sonia Andres Conde","c":"Veterano","g":"Adultos competición"},{"id":"D079","n":"Teresa Serralta Gely","c":"Absoluto","g":"Adultos competición"},{"id":"D080","n":"youleth","c":"?","g":"Sin asignar"}];
+// Reparto de ESTA semana. Cambia cada domingo.
+const COACHES = [
+  {id:'u0', n:'Dirección técnica', rol:'director', g:[]},
+  {id:'u1', n:'Nacho',   rol:'entrenador', g:['Adultos competición']},
+  {id:'u2', n:'Celia',   rol:'entrenador', g:['Escuela jueves','Peques']},
+  {id:'u3', n:'Toni',    rol:'entrenador', g:['Intermedio']},
+  {id:'u4', n:'Claudia', rol:'entrenador', g:['Escuela jueves']},
+  {id:'u5', n:'Nimai',   rol:'entrenador', g:['Avanzado']},
+  {id:'u6', n:'Héctor',  rol:'entrenador', g:['Intermedio']},
+  {id:'u7', n:'Diego',   rol:'entrenador', g:['Adultos competición']}
+];
+const GROUPS = ['Escuela jueves','Peques','Intermedio','Avanzado','Adultos competición'];
+const TESTS = [
+  {n:'200 m natación', d:'natacion', m:200}, {n:'400 m natación', d:'natacion', m:400},
+  {n:'100 m natación', d:'natacion', m:100}, {n:'1 km carrera',   d:'carrera',  m:1000},
+  {n:'3 km carrera',   d:'carrera',  m:3000},{n:'Test Cooper 12 min', d:'carrera', m:0},
+  {n:'FTP bici 20 min',d:'ciclismo', m:0}
+];
+const SEED = [{
+  id:'s1', fecha:hoy(), titulo:'Series umbral + técnica de viraje', disc:'natacion',
+  grupos:['Intermedio','Avanzado'], autor:'Dirección técnica',
+  mat:'Pull buoy, aletas, cronómetro', pub:true,
+  txt:`CALENTAMIENTO
+400 progresivos + 4x50 técnica (25 punta de dedos / 25 suave)
+
+PRINCIPAL
+8 x 100 al ritmo del test de 200, salida cada 2'00
+Descanso 2' entre bloques
+4 x 50 fuerte con pull buoy, salida cada 1'15
+
+VIRAJES
+6 x 25 entrando a tope al viraje, salir con 3 brazadas sin respirar
+
+VUELTA A LA CALMA
+200 suave alternando espalda y crol
+
+AVISO: a los que vuelven de lesión, quitadles el segundo bloque de 4x50.`
+}];
+
+let U=null, TAB=0, DATA={ses:[...SEED], res:[]}, editing=null, buf='', touched=false;
+const $=(s)=>document.querySelector(s);
+function hoy(){return new Date().toISOString().slice(0,10)}
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function fmt(s){if(s==null||s==='')return '—';const m=Math.floor(s/60),g=Math.round(s%60);return m+"'"+String(g).padStart(2,'0')+'"'}
+function fecha(d){const [y,m,g]=d.split('-');return g+'/'+m}
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2000)}
+
+async function load(){try{const r=await window.storage.get('club-demo',true);if(r&&r.value){const d=JSON.parse(r.value);DATA.ses=d.ses?.length?d.ses:[...SEED];DATA.res=d.res||[]}}catch(e){}}
+async function save(){try{await window.storage.set('club-demo',JSON.stringify(DATA),true)}catch(e){}}
+
+function misGrupos(){return U.rol==='director'?GROUPS:U.g}
+// Todos los entrenadores ven a todos los deportistas. Los de los grupos que
+// llevan esta semana salen primero, que es lo que van a necesitar.
+function misAtletas(){
+  const m=misGrupos();
+  return [...ATH].sort((a,b)=>(m.includes(b.g)?1:0)-(m.includes(a.g)?1:0)
+                            || a.g.localeCompare(b.g) || a.n.localeCompare(b.n));
+}
+
+// ------------------------------------------------------------------ views
+function render(){
+  const m=$('#main'), nv=$('#nav');
+  if(!U){ nv.hidden=true; $('#hRole').hidden=true; $('#hExit').hidden=true; $('#hName').textContent='Entrar';
+    m.innerHTML=`<h2>¿Quién eres?</h2><div class="who-list">`+COACHES.map(c=>
+      `<button data-u="${c.id}"><span class="av ${c.rol==='director'?'dir':''}">${esc(c.n[0])}</span>
+       <span style="flex:1"><b style="display:block;font-size:15px">${esc(c.n)}</b>
+       <span style="font-size:12px;color:var(--mute)">${c.rol==='director'?'Ve y publica todo':'Esta semana: '+c.g.join(', ')}</span></span></button>`
+    ).join('')+`</div><p class="note">Demostración. Todos los entrenadores ven a todos los deportistas y todos los entrenamientos; el histórico de marcas y el análisis solo los ve la dirección técnica. En la aplicación real cada uno entra con su correo, y tú apruebas las altas.</p>`;
+    m.querySelectorAll('[data-u]').forEach(b=>b.onclick=()=>{U=COACHES.find(c=>c.id===b.dataset.u);TAB=0;render()});
+    return;
+  }
+  $('#hName').textContent=U.n;
+  const r=$('#hRole'); r.hidden=false; r.textContent=U.rol==='director'?'Director técnico':'Entrenador';
+  r.className='role'+(U.rol==='director'?' dir':'');
+  $('#hExit').hidden=false;
+  const tabs = U.rol==='director' ? ['Entrenamientos','Publicar','Resultados'] : ['Entrenamientos','Tests'];
+  nv.hidden=false;
+  nv.innerHTML=tabs.map((t,i)=>`<button role="tab" aria-selected="${i===TAB}" data-t="${i}">${t}</button>`).join('');
+  nv.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{TAB=+b.dataset.t;editing=null;render()});
+  if(U.rol==='director'){ [vSesiones,vPublicar,vResultados][TAB](m) } else { [vSesiones,vTests][TAB](m) }
+}
+
+function vSesiones(m){
+  const list=DATA.ses.filter(s=>U.rol==='director'||s.pub)
+                     .sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  if(!list.length){m.innerHTML=`<div class="empty"><b>Todavía no hay nada</b>Cuando la dirección técnica publique el entrenamiento de la semana, aparecerá aquí.</div>`;return}
+  m.innerHTML=`<h2>Entrenamientos</h2>`+list.map(s=>`
+    <article class="card">
+      <div class="meta" style="margin-bottom:6px">
+        <span class="tag ${s.disc}">${esc(s.disc)}</span>
+        <span class="num" style="font-size:14px">${fecha(s.fecha)}</span>
+        <span>· ${s.grupos.map(esc).join(' · ')}</span>
+        ${s.pub?'':'<span class="tag" style="background:var(--signal);color:#160800">borrador</span>'}
+      </div>
+      <h3>${esc(s.titulo)}</h3>
+      <div class="meta">${esc(s.autor)}${s.mat?' · material: '+esc(s.mat):''}</div>
+      <div class="body">${esc(s.txt)}</div>
+    </article>`).join('');
+}
+
+function vPublicar(m){
+  m.innerHTML=`<h2>Publicar entrenamiento</h2>
+    <label for="f1">Título</label><input id="f1" placeholder="Series umbral + técnica de viraje">
+    <div class="grid2"><div><label for="f2">Fecha</label><input id="f2" type="date" value="${hoy()}"></div>
+    <div><label for="f3">Disciplina</label><select id="f3">
+      <option value="natacion">Natación</option><option value="ciclismo">Ciclismo</option>
+      <option value="carrera">Carrera</option><option value="combinado">Combinado</option>
+      <option value="fuerza">Fuerza</option></select></div></div>
+    <label>Grupos que lo hacen</label><div class="chips" id="fg">${GROUPS.map(g=>`<button class="chip" aria-pressed="false" data-g="${g}">${g}</button>`).join('')}</div>
+    <label for="f4">Contenido de la sesión</label><textarea id="f4" placeholder="CALENTAMIENTO&#10;400 progresivos...&#10;&#10;PRINCIPAL&#10;8 x 100 salida cada 2'00"></textarea>
+    <label for="f5">Material necesario</label><input id="f5" placeholder="Pull buoy, aletas, cronómetro">
+    <button class="btn" id="pub">Publicar a los grupos</button>
+    <p class="note">Los entrenadores de los grupos marcados lo verán al entrar. Podrás saber quién lo ha abierto.</p>`;
+  m.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')==='false'));
+  $('#pub').onclick=async()=>{
+    const g=[...m.querySelectorAll('[aria-pressed=true]')].map(b=>b.dataset.g);
+    const t=$('#f1').value.trim(), c=$('#f4').value.trim();
+    if(!t||!c||!g.length){toast('Faltan título, contenido o grupos');return}
+    DATA.ses.unshift({id:'s'+Date.now(),fecha:$('#f2').value,titulo:t,disc:$('#f3').value,grupos:g,
+      autor:U.n,mat:$('#f5').value.trim(),txt:c,pub:true});
+    await save(); toast('Publicado a '+g.length+' grupo'+(g.length>1?'s':'')); TAB=0; render();
+  };
+}
+
+function vTests(m){
+  if(editing) return vEntrada(m);
+  const key=m._k||{t:TESTS[3].n,f:hoy()};m._k=key;
+  const test=TESTS.find(x=>x.n===key.t);
+  const mios=misAtletas();
+  const hechos=DATA.res.filter(r=>r.test===key.t&&r.fecha===key.f);
+  m.innerHTML=`<h2>Registrar test</h2>
+    <label for="t1">Prueba</label><select id="t1">${TESTS.map(t=>`<option ${t.n===key.t?'selected':''}>${t.n}</option>`).join('')}</select>
+    <div class="grid2"><div><label for="t2">Fecha</label><input id="t2" type="date" value="${key.f}"></div>
+    <div><label>Registrados</label><div class="stat" style="padding:9px 11px"><b class="num">${hechos.length}<span style="color:var(--mute);font-size:17px"> / ${mios.length}</span></b></div></div></div>
+    <div class="lane" style="margin:18px 0 14px"></div>
+    <h2>${U.rol==='director'?'Todos':'Esta semana llevas: '+esc(U.g.join(' · '))}</h2>
+    ${mios.map((a,i)=>{
+      const r=hechos.find(x=>x.dep===a.id);
+      const val = r ? (test.d==='ciclismo'&&test.m===0 ? r.pot+' W'
+                     : test.m===0 ? r.dist+' m'
+                     : fmt(r.t)) : '';
+      const rit = r&&test.m>0&&r.t ? (test.d==='natacion'
+                     ? fmt(r.t/(test.m/100))+' /100' : fmt(r.t/(test.m/1000))+' /km') : '';
+      return `<div class="row ${r?'done':''}" data-a="${a.id}" tabindex="0" role="button">
+        <span class="dorsal num">${String(i+1).padStart(2,'0')}</span>
+        <span class="who"><b>${esc(a.n)}</b><span>${esc(a.c)} · ${esc(a.g)}</span></span>
+        ${r?`<span class="mark">${esc(val)}${rit?`<small>${esc(rit)}</small>`:''}</span>`:'<span class="pend">+</span>'}
+      </div>`}).join('')||'<div class="empty"><b>Sin deportistas</b>No tienes grupos asignados.</div>'}
+    <p class="note">Tus grupos de esta semana salen primero, pero puedes tomar la marca a cualquiera si cubres a un compañero. Lo que registres aquí es lo que alimenta la ficha de evolución y la comparativa del grupo.</p>`;
+  $('#t1').onchange=e=>{key.t=e.target.value;render()};
+  $('#t2').onchange=e=>{key.f=e.target.value;render()};
+  m.querySelectorAll('[data-a]').forEach(el=>{
+    const go=()=>{editing={dep:el.dataset.a,test:key.t,fecha:key.f};buf='';touched=false;render()};
+    el.onclick=go; el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}};
+  });
+}
+
+function vEntrada(m){
+  const a=ATH.find(x=>x.id===editing.dep), test=TESTS.find(t=>t.n===editing.test);
+  const prev=DATA.res.find(r=>r.dep===editing.dep&&r.test===editing.test&&r.fecha===editing.fecha);
+  const modo = test.m===0 ? (test.d==='ciclismo'?'pot':'dist') : 'tiempo';
+  if(!touched&&prev) buf = modo==='pot'?String(prev.pot):modo==='dist'?String(prev.dist):
+                       String(Math.floor(prev.t/60)).padStart(2,'0')+String(Math.round(prev.t%60)).padStart(2,'0');
+  const val = modo==='tiempo'
+    ? (buf.padStart(4,'0').slice(-4).replace(/^(\d\d)(\d\d)$/,"$1:$2"))
+    : (buf||'0');
+  const lbl = modo==='pot'?'Vatios medios':modo==='dist'?'Metros recorridos':'Minutos : segundos';
+  m.innerHTML=`<div class="meta" style="margin-bottom:10px"><span class="tag ${test.d}">${esc(test.n)}</span><span>${fecha(editing.fecha)}</span></div>
+    <h3 style="font-size:20px;font-weight:600;margin-bottom:14px">${esc(a.n)}</h3>
+    <div class="board"><div class="val num">${val}</div><div class="lbl">${lbl}</div></div>
+    <div class="keys">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-k="${n}">${n}</button>`).join('')}
+      <button class="wide" data-k="c">Borrar</button><button data-k="0">0</button>
+      <button class="wide" data-k="b">←</button></div>
+    <div class="grid3" style="margin-top:16px">
+      <div><label for="e1" style="margin-top:0">FC media</label><input id="e1" type="number" inputmode="numeric" value="${prev?.fcm??''}" placeholder="—"></div>
+      <div><label for="e2" style="margin-top:0">FC máx</label><input id="e2" type="number" inputmode="numeric" value="${prev?.fcx??''}" placeholder="—"></div>
+      <div><label for="e3" style="margin-top:0">FC a 1'</label><input id="e3" type="number" inputmode="numeric" value="${prev?.fc1??''}" placeholder="—"></div>
+    </div>
+    <label>Percepción del esfuerzo</label>
+    <div class="chips">${[...Array(11).keys()].map(n=>`<button class="chip" data-r="${n}" aria-pressed="${prev?.rpe===n}">${n}</button>`).join('')}</div>
+    <button class="btn" id="ok">Guardar marca</button>
+    <button class="btn ghost" id="no" style="margin-top:8px">Volver sin guardar</button>`;
+  m.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.k;
+    touched=true;
+    if(k==='c')buf=''; else if(k==='b')buf=buf.slice(0,-1);
+    else buf=(buf+k).slice(0, modo==='tiempo'?4:5);
+    render();
+  });
+  m.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{
+    m.querySelectorAll('[data-r]').forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+  });
+  $('#no').onclick=()=>{editing=null;buf='';touched=false;render()};
+  $('#ok').onclick=async()=>{
+    if(!buf){toast('Introduce la marca');return}
+    const rpeEl=m.querySelector('[data-r][aria-pressed=true]');
+    const rec={dep:editing.dep,test:editing.test,fecha:editing.fecha,por:U.n,
+      t: modo==='tiempo'? (+buf.padStart(4,'0').slice(-4).slice(0,2))*60+(+buf.slice(-2)) : null,
+      pot: modo==='pot'?+buf:null, dist: modo==='dist'?+buf:null,
+      fcm:+$('#e1').value||null, fcx:+$('#e2').value||null, fc1:+$('#e3').value||null,
+      rpe: rpeEl?+rpeEl.dataset.r:null};
+    const i=DATA.res.findIndex(r=>r.dep===rec.dep&&r.test===rec.test&&r.fecha===rec.fecha);
+    if(i>=0)DATA.res[i]=rec; else DATA.res.push(rec);
+    await save(); toast(ATH.find(x=>x.id===rec.dep).n.split(' ')[0]+' registrado');
+    editing=null; buf=''; touched=false; render();
+  };
+}
+
+function vResultados(m){
+  const rs=[...DATA.res].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const nd=new Set(rs.map(r=>r.dep)).size;
+  m.innerHTML=`<div class="grid3" style="margin-bottom:16px">
+      <div class="stat"><b class="num">${rs.length}</b><span>MARCAS</span></div>
+      <div class="stat"><b class="num">${nd}</b><span>DEPORTISTAS</span></div>
+      <div class="stat"><b class="num">${DATA.ses.length}</b><span>SESIONES</span></div>
+    </div>
+    <h2>Últimas marcas registradas</h2>`+
+    (rs.length?`<table><thead><tr><th>Fecha</th><th>Deportista</th><th>Prueba</th><th style="text-align:right">Marca</th><th>Por</th></tr></thead><tbody>`+
+    rs.slice(0,40).map(r=>{const t=TESTS.find(x=>x.n===r.test);
+      return `<tr><td class="num">${fecha(r.fecha)}</td><td>${esc(ATH.find(a=>a.id===r.dep)?.n||'')}</td>
+      <td style="color:var(--mute)">${esc(r.test)}</td>
+      <td class="num" style="text-align:right;font-size:15px">${r.pot?r.pot+' W':r.dist?r.dist+' m':fmt(r.t)}</td>
+      <td style="color:var(--mute)">${esc(r.por)}</td></tr>`}).join('')+'</tbody></table>'
+    :`<div class="empty"><b>Aún no hay marcas</b>Entra como uno de los entrenadores y registra algún test para ver aquí lo que llega.</div>`)+
+    `<p class="note">En la aplicación real esta pantalla exporta a Excel con el mismo formato que tu hoja REGISTRO_TESTS, así que la ficha de evolución y la comparativa siguen funcionando igual.</p>`;
+}
+
+$('#hExit').onclick=()=>{U=null;editing=null;render()};
+load().then(render);
+</script>
