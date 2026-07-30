@@ -33,11 +33,11 @@ export default async function RepartoPage({
   const siguienteDate = new Date(semanaDate);
   siguienteDate.setDate(semanaDate.getDate() + 7);
 
-  const [{ data: grupos }, { data: entrenadores }, { data: asignaciones }] =
+  const [{ data: grupos }, { data: entrenadores }, { data: asignaciones }, { data: tarifas }] =
     await Promise.all([
       supabase
         .from("grupos")
-        .select("id, nombre, dias, hora_inicio, hora_fin")
+        .select("id, nombre, disciplina, dias, hora_inicio, hora_fin")
         .eq("activo", true)
         .order("id"),
       supabase
@@ -50,6 +50,7 @@ export default async function RepartoPage({
         .from("asignaciones")
         .select("grupo_id, entrenador_id")
         .eq("semana", semana),
+      supabase.from("tarifas_entrenador").select("entrenador_id, disciplina, euros_hora"),
     ]);
 
   return (
@@ -61,6 +62,7 @@ export default async function RepartoPage({
         grupos={grupos ?? []}
         entrenadores={entrenadores ?? []}
         asignacionesIniciales={asignaciones ?? []}
+        tarifas={tarifas ?? []}
       />
     </AppShell>
   );

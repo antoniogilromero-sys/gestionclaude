@@ -8,12 +8,42 @@ import { setAsignacion, copiarSemanaAnterior } from "./actions";
 type Grupo = {
   id: number;
   nombre: string;
+  disciplina: string;
   dias: string[];
-  hora_inicio: string;
-  hora_fin: string;
+  hora_inicio: string | null;
+  hora_fin: string | null;
 };
 type Entrenador = { id: string; nombre: string };
 type Asignacion = { grupo_id: number; entrenador_id: string };
+type Tarifa = { entrenador_id: string; disciplina: string; euros_hora: number };
+
+const ROSTER_TEMPORADA = ["Nimai", "Toni", "Nacho", "Diego", "Claudia", "Celia", "Sonia", "Hector"];
+
+const TARIFA_GENERAL: Record<string, number> = {
+  natacion: 15,
+  carrera: 15,
+  ciclismo: 20,
+};
+
+const DISCIPLINA_LABEL: Record<string, string> = {
+  natacion: "Natación",
+  carrera: "Carrera",
+  ciclismo: "Ciclismo",
+};
+
+const DISCIPLINA_TAG: Record<string, string> = {
+  natacion: "bg-swim/15 text-swim",
+  carrera: "bg-run/15 text-run",
+  ciclismo: "bg-bike/15 text-bike",
+};
+
+function normaliza(s: string) {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .trim();
+}
 
 function key(grupoId: number, entrenadorId: string) {
   return `${grupoId}:${entrenadorId}`;
@@ -30,9 +60,24 @@ function formatSemana(iso: string) {
 }
 
 function franjasSolapan(a: Grupo, b: Grupo) {
+  if (!a.hora_inicio || !a.hora_fin || !b.hora_inicio || !b.hora_fin) return false;
   const diasComunes = a.dias.some((d) => b.dias.includes(d));
   if (!diasComunes) return false;
   return a.hora_inicio < b.hora_fin && b.hora_inicio < a.hora_fin;
+}
+
+function horasSemanales(g: Grupo) {
+  if (!g.hora_inicio || !g.hora_fin) return null;
+  const [h1, m1] = g.hora_inicio.split(":").map(Number);
+  const [h2, m2] = g.hora_fin.split(":").map(Number);
+  const horasPorSesion = (h2 * 60 + m2 - (h1 * 60 + m1)) / 60;
+  return horasPorSesion * g.dias.length;
+}
+
+function tarifaDe(entrenadorId: string, disciplina: string, tarifas: Tarifa[]) {
+  const propia = tarifas.find((t) => t.entrenador_id === entrenadorId && t.disciplina === disciplina);
+  if (propia) return propia.euros_hora;
+  return TARIFA_GENERAL[disciplina] ?? null;
 }
 
 export function RepartoGrid({
@@ -42,6 +87,7 @@ export function RepartoGrid({
   grupos,
   entrenadores,
   asignacionesIniciales,
+  tarifas,
 }: {
   semana: string;
   semanaAnterior: string;
@@ -49,6 +95,7 @@ export function RepartoGrid({
   grupos: Grupo[];
   entrenadores: Entrenador[];
   asignacionesIniciales: Asignacion[];
+  tarifas: Tarifa[];
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -116,8 +163,12 @@ export function RepartoGrid({
     }
   }
 
+  const disciplinas = [...new Set(grupos.map((g) => g.disciplina))];
+
   return (
     <div>
+      <CuadroPersonal entrenadores={entrenadores} />
+
       <div className="flex items-center justify-between mb-3">
         <Link
           href={`/reparto?semana=${semanaAnterior}`}
@@ -163,36 +214,170 @@ export function RepartoGrid({
         </div>
       )}
 
-      {grupos.map((g) => (
-        <article key={g.id} className="bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5">
-          <h3 className="text-[16px] font-semibold mb-[3px]">{g.nombre}</h3>
-          <div className="text-xs text-mute mb-2.5">
-            {g.dias.join(" y ")} · {g.hora_inicio.slice(0, 5)}–{g.hora_fin.slice(0, 5)}
-          </div>
-          <div className="flex flex-wrap gap-[7px]">
-            {entrenadores.map((e) => {
-              const activo = asignado.has(key(g.id, e.id));
-              return (
-                <button
-                  key={e.id}
-                  onClick={() => toggle(g.id, e.id)}
-                  aria-pressed={activo}
-                  className={`px-[13px] py-2 rounded-full border text-[13px] cursor-pointer select-none ${
-                    activo
-                      ? "bg-signal text-[#160800] border-signal font-semibold"
-                      : "bg-deep text-mute border-edge"
-                  }`}
-                >
-                  {e.nombre}
-                </button>
-              );
-            })}
-            {entrenadores.length === 0 && (
-              <p className="text-mute text-[13px]">No hay entrenadores aprobados todavía.</p>
-            )}
-          </div>
-        </article>
+      {disciplinas.map((disc) => (
+        <div key={disc} className="mb-4">
+          <h2 className="font-display text-[13px] tracking-[.12em] uppercase text-mute mb-2 flex items-center gap-2">
+            <span className={`px-[7px] py-[2px] rounded-[5px] ${DISCIPLINA_TAG[disc] ?? "bg-edge text-chalk"}`}>
+              {DISCIPLINA_LABEL[disc] ?? disc}
+            </span>
+          </h2>
+          {grupos
+            .filter((g) => g.disciplina === disc)
+            .map((g) => (
+              <article key={g.id} className="bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5">
+                <h3 className="text-[16px] font-semibold mb-[3px]">{g.nombre}</h3>
+                <div className="text-xs text-mute mb-2.5">
+                  {g.dias.join(" y ")} ·{" "}
+                  {g.hora_inicio && g.hora_fin
+                    ? `${g.hora_inicio.slice(0, 5)}–${g.hora_fin.slice(0, 5)}`
+                    : "horario variable"}
+                </div>
+                <div className="flex flex-wrap gap-[7px]">
+                  {entrenadores.map((e) => {
+                    const activo = asignado.has(key(g.id, e.id));
+                    return (
+                      <button
+                        key={e.id}
+                        onClick={() => toggle(g.id, e.id)}
+                        aria-pressed={activo}
+                        className={`px-[13px] py-2 rounded-full border text-[13px] cursor-pointer select-none ${
+                          activo
+                            ? "bg-signal text-[#160800] border-signal font-semibold"
+                            : "bg-deep text-mute border-edge"
+                        }`}
+                      >
+                        {e.nombre}
+                      </button>
+                    );
+                  })}
+                  {entrenadores.length === 0 && (
+                    <p className="text-mute text-[13px]">No hay entrenadores aprobados todavía.</p>
+                  )}
+                </div>
+              </article>
+            ))}
+        </div>
       ))}
+
+      <CosteSemanal grupos={grupos} entrenadores={entrenadores} asignado={asignado} tarifas={tarifas} />
+    </div>
+  );
+}
+
+function CuadroPersonal({ entrenadores }: { entrenadores: Entrenador[] }) {
+  const registrados = new Set(entrenadores.map((e) => normaliza(e.nombre)));
+
+  return (
+    <div className="mb-5">
+      <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute mb-2.5">
+        Cuadro de personal · 26/27
+      </h2>
+      <div className="flex flex-wrap gap-[7px]">
+        {ROSTER_TEMPORADA.map((nombre) => {
+          const enEquipo = registrados.has(normaliza(nombre));
+          return (
+            <span
+              key={nombre}
+              className={`px-[13px] py-2 rounded-full border text-[13px] ${
+                enEquipo ? "border-ok/50 text-chalk" : "border-edge text-mute"
+              }`}
+            >
+              {nombre}
+              {!enEquipo && <span className="text-mute"> · sin cuenta</span>}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CosteSemanal({
+  grupos,
+  entrenadores,
+  asignado,
+  tarifas,
+}: {
+  grupos: Grupo[];
+  entrenadores: Entrenador[];
+  asignado: Set<string>;
+  tarifas: Tarifa[];
+}) {
+  const filas = entrenadores
+    .map((e) => {
+      const gruposDe = grupos.filter((g) => asignado.has(key(g.id, e.id)));
+      let horas = 0;
+      let coste = 0;
+      let completo = true;
+      for (const g of gruposDe) {
+        const h = horasSemanales(g);
+        const t = tarifaDe(e.id, g.disciplina, tarifas);
+        if (h == null || t == null) {
+          completo = false;
+          continue;
+        }
+        horas += h;
+        coste += h * t;
+      }
+      return { entrenador: e.nombre, horas, coste, completo };
+    })
+    .filter((f) => f.horas > 0 || f.coste > 0);
+
+  const huboIncompletos = filas.some((f) => !f.completo);
+  const totalHoras = filas.reduce((s, f) => s + f.horas, 0);
+  const totalCoste = filas.reduce((s, f) => s + f.coste, 0);
+
+  if (filas.length === 0) return null;
+
+  return (
+    <div className="mt-2">
+      <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute mb-2.5">
+        Coste semanal
+      </h2>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr>
+              <th className="text-left font-display text-xs tracking-[.1em] uppercase text-mute border-b border-edge py-[7px] px-1.5">
+                Entrenador
+              </th>
+              <th className="text-right font-display text-xs tracking-[.1em] uppercase text-mute border-b border-edge py-[7px] px-1.5">
+                Horas
+              </th>
+              <th className="text-right font-display text-xs tracking-[.1em] uppercase text-mute border-b border-edge py-[7px] px-1.5">
+                Coste
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map((f) => (
+              <tr key={f.entrenador}>
+                <td className="py-[9px] px-1.5 border-b border-edge/50">{f.entrenador}</td>
+                <td className="font-display text-right py-[9px] px-1.5 border-b border-edge/50">
+                  {f.horas}
+                  {!f.completo && "*"}
+                </td>
+                <td className="font-display text-right py-[9px] px-1.5 border-b border-edge/50">
+                  {f.coste.toFixed(2)} €{!f.completo && "*"}
+                </td>
+              </tr>
+            ))}
+            <tr>
+              <td className="py-[9px] px-1.5 font-semibold">Total</td>
+              <td className="font-display text-right py-[9px] px-1.5 font-semibold">{totalHoras}</td>
+              <td className="font-display text-right py-[9px] px-1.5 font-semibold">
+                {totalCoste.toFixed(2)} €
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      {huboIncompletos && (
+        <p className="text-xs text-mute mt-2">
+          * Algún grupo de este entrenador no tiene horario fijo (por ejemplo, ciclismo de
+          carretera), así que no entra en el cálculo hasta que se sepa cuánto dura.
+        </p>
+      )}
     </div>
   );
 }

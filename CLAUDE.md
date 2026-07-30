@@ -27,3 +27,17 @@ una línea de trabajo real del club a futuro, no solo el export a Excel. Por
 eso existe `/analisis` (solo director): ficha individual con gráfico de
 evolución por prueba, y comparativa de grupo. Usa Recharts. Sigue creciendo
 este apartado con cuidado — es donde más valor a futuro tiene la app.
+
+## Ampliación de alcance: carrera, ciclismo, tarifas y coste
+
+El reparto semanal (`/reparto`) ya no es solo natación: incluye grupos de
+carrera y ciclismo (ver `docs/migracion_reparto_entrenadores.sql`, que Antón
+tiene que ejecutar en Supabase para que existan) y calcula el coste semanal
+por entrenador según tarifas guardadas en `tarifas_entrenador` (tarifa
+general por disciplina + excepciones por entrenador, ej. Celia cobra más).
+Esto reemplaza el cálculo manual de `CUADRANTE_ENTRENADORES_26_27.xlsx`. La
+plantilla de entrenadores de la temporada (8, incluida Sonia, que aún no
+tiene cuenta) vive como constante `ROSTER_TEMPORADA` en `RepartoGrid.tsx` —
+actualízala si cambia el equipo. El grupo de ciclismo de carretera no tiene
+horario fijo (`hora_inicio`/`hora_fin` a null): no rehagas eso pensando que
+es un dato que falta rellenar, es intencional.
