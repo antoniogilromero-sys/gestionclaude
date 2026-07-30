@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
 import { toISODateLocal, lunesDe } from "@/lib/date";
 import { TestsClient } from "./TestsClient";
 
@@ -57,18 +57,14 @@ export default async function TestsPage() {
   });
 
   return (
-    <div className="mx-auto w-full max-w-[520px] flex-1 flex flex-col">
-      <AppHeader nombre={perfil.nombre} rol={perfil.rol} />
-      <div className="lane" />
-      <main className="px-[18px] pt-4 pb-[26px]">
-        <TestsClient
-          userId={user.id}
-          tiposTest={tiposTest ?? []}
-          deportistas={deportistasLimpios}
-          misGrupoIds={misGrupoIds}
-          grupos={grupos ?? []}
-        />
-      </main>
-    </div>
+    <AppShell nombre={perfil.nombre} rol={perfil.rol}>
+      <TestsClient
+        userId={user.id}
+        tiposTest={tiposTest ?? []}
+        deportistas={deportistasLimpios}
+        misGrupoIds={misGrupoIds}
+        grupos={grupos ?? []}
+      />
+    </AppShell>
   );
 }

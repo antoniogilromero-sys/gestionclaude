@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
 import { fmtTiempo } from "@/lib/formato";
 
 type Fila = {
@@ -71,10 +71,8 @@ export default async function ResultadosPage({
   if (params.hasta) qs.set("hasta", params.hasta);
 
   return (
-    <div className="mx-auto w-full max-w-[520px] flex-1 flex flex-col">
-      <AppHeader nombre={perfil.nombre} rol={perfil.rol} />
-      <div className="lane" />
-      <main className="px-[18px] pt-4 pb-[26px]">
+    <AppShell nombre={perfil.nombre} rol={perfil.rol}>
+      <>
         <div className="grid grid-cols-3 gap-2 mb-4">
           <div className="bg-surf border border-edge rounded-[10px] p-[11px]">
             <b className="font-display text-[26px] block leading-none">{marcas.length}</b>
@@ -202,7 +200,7 @@ export default async function ResultadosPage({
             </table>
           </div>
         )}
-      </main>
-    </div>
+      </>
+    </AppShell>
   );
 }

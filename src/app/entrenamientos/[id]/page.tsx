@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
 import { MarcarVisto } from "../MarcarVisto";
 
 const TAG_DISC: Record<string, string> = {
@@ -46,35 +46,31 @@ export default async function EntrenamientoDetalle({
     .filter(Boolean);
 
   return (
-    <div className="mx-auto w-full max-w-[520px] flex-1 flex flex-col">
-      <AppHeader nombre={perfil.nombre} rol={perfil.rol} />
-      <div className="lane" />
-      <main className="px-[18px] pt-4 pb-[26px]">
-        <MarcarVisto sesionId={sesion.id} />
-        <Link href="/entrenamientos" className="text-mute text-sm">
-          ← Entrenamientos
-        </Link>
-        <article className="bg-surf border border-edge rounded-[10px] p-3.5 mt-2.5">
-          <div className="flex items-center gap-2 flex-wrap mb-1.5">
-            <span
-              className={`font-display text-xs tracking-[.08em] uppercase px-[7px] py-[2px] rounded-[5px] ${TAG_DISC[sesion.disciplina ?? ""] ?? "bg-edge text-chalk"}`}
-            >
-              {sesion.disciplina}
-            </span>
-            <span className="font-display text-sm">
-              {sesion.fecha.split("-").reverse().slice(0, 2).join("/")}
-            </span>
-            <span className="text-mute text-sm">· {grupos.join(" · ")}</span>
-          </div>
-          <h3 className="text-[16px] font-semibold">{sesion.titulo}</h3>
-          {sesion.material && (
-            <div className="text-xs text-mute mt-1">material: {sesion.material}</div>
-          )}
-          <div className="whitespace-pre-wrap text-sm leading-relaxed mt-2.5 pt-2.5 border-t border-edge text-[#CFE3E8]">
-            {sesion.contenido}
-          </div>
-        </article>
-      </main>
-    </div>
+    <AppShell nombre={perfil.nombre} rol={perfil.rol}>
+      <MarcarVisto sesionId={sesion.id} />
+      <Link href="/entrenamientos" className="text-mute text-sm">
+        ← Entrenamientos
+      </Link>
+      <article className="bg-surf border border-edge rounded-[10px] p-3.5 mt-2.5">
+        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+          <span
+            className={`font-display text-xs tracking-[.08em] uppercase px-[7px] py-[2px] rounded-[5px] ${TAG_DISC[sesion.disciplina ?? ""] ?? "bg-edge text-chalk"}`}
+          >
+            {sesion.disciplina}
+          </span>
+          <span className="font-display text-sm">
+            {sesion.fecha.split("-").reverse().slice(0, 2).join("/")}
+          </span>
+          <span className="text-mute text-sm">· {grupos.join(" · ")}</span>
+        </div>
+        <h3 className="text-[16px] font-semibold">{sesion.titulo}</h3>
+        {sesion.material && (
+          <div className="text-xs text-mute mt-1">material: {sesion.material}</div>
+        )}
+        <div className="whitespace-pre-wrap text-sm leading-relaxed mt-2.5 pt-2.5 border-t border-edge text-[#CFE3E8]">
+          {sesion.contenido}
+        </div>
+      </article>
+    </AppShell>
   );
 }

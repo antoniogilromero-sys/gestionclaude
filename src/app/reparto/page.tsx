@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
 import { toISODateLocal, parseLocalDate, lunesDe } from "@/lib/date";
 import { RepartoGrid } from "./RepartoGrid";
 
@@ -53,19 +53,15 @@ export default async function RepartoPage({
     ]);
 
   return (
-    <div className="mx-auto w-full max-w-[520px] flex-1 flex flex-col">
-      <AppHeader nombre={perfil.nombre} rol={perfil.rol} />
-      <div className="lane" />
-      <main className="px-[18px] pt-4 pb-[26px]">
-        <RepartoGrid
-          semana={semana}
-          semanaAnterior={toISODateLocal(anteriorDate)}
-          semanaSiguiente={toISODateLocal(siguienteDate)}
-          grupos={grupos ?? []}
-          entrenadores={entrenadores ?? []}
-          asignacionesIniciales={asignaciones ?? []}
-        />
-      </main>
-    </div>
+    <AppShell nombre={perfil.nombre} rol={perfil.rol}>
+      <RepartoGrid
+        semana={semana}
+        semanaAnterior={toISODateLocal(anteriorDate)}
+        semanaSiguiente={toISODateLocal(siguienteDate)}
+        grupos={grupos ?? []}
+        entrenadores={entrenadores ?? []}
+        asignacionesIniciales={asignaciones ?? []}
+      />
+    </AppShell>
   );
 }

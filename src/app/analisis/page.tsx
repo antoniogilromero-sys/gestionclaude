@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
 import { AnalisisClient } from "./AnalisisClient";
 
 export default async function AnalisisPage() {
@@ -32,16 +32,12 @@ export default async function AnalisisPage() {
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-[520px] flex-1 flex flex-col">
-      <AppHeader nombre={perfil.nombre} rol={perfil.rol} />
-      <div className="lane" />
-      <main className="px-[18px] pt-4 pb-[26px]">
-        <AnalisisClient
-          deportistas={deportistas ?? []}
-          tiposTest={tiposTest ?? []}
-          grupos={grupos ?? []}
-        />
-      </main>
-    </div>
+    <AppShell nombre={perfil.nombre} rol={perfil.rol}>
+      <AnalisisClient
+        deportistas={deportistas ?? []}
+        tiposTest={tiposTest ?? []}
+        grupos={grupos ?? []}
+      />
+    </AppShell>
   );
 }

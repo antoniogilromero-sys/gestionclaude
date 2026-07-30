@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
 
 const TAG_DISC: Record<string, string> = {
   natacion: "bg-swim/15 text-swim",
@@ -37,10 +37,8 @@ export default async function EntrenamientosPage() {
   const { data: sesiones } = await query;
 
   return (
-    <div className="mx-auto w-full max-w-[520px] flex-1 flex flex-col">
-      <AppHeader nombre={perfil.nombre} rol={perfil.rol} />
-      <div className="lane" />
-      <main className="px-[18px] pt-4 pb-[26px]">
+    <AppShell nombre={perfil.nombre} rol={perfil.rol}>
+      <>
         <div className="flex items-center justify-between mb-2.5">
           <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute">
             Entrenamientos
@@ -110,7 +108,7 @@ export default async function EntrenamientosPage() {
             </Link>
           );
         })}
-      </main>
-    </div>
+      </>
+    </AppShell>
   );
 }

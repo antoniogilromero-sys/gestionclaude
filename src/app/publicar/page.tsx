@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
 import { PublicarForm } from "./PublicarForm";
 
 export default async function PublicarPage() {
@@ -24,12 +24,8 @@ export default async function PublicarPage() {
     .order("id");
 
   return (
-    <div className="mx-auto w-full max-w-[520px] flex-1 flex flex-col">
-      <AppHeader nombre={perfil.nombre} rol={perfil.rol} />
-      <div className="lane" />
-      <main className="px-[18px] pt-4 pb-[26px]">
-        <PublicarForm grupos={grupos ?? []} />
-      </main>
-    </div>
+    <AppShell nombre={perfil.nombre} rol={perfil.rol}>
+      <PublicarForm grupos={grupos ?? []} />
+    </AppShell>
   );
 }
