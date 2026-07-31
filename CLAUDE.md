@@ -61,6 +61,28 @@ por qué no**: rompe la decisión ya cerrada de "sin datos personales
 sensibles en la app". Aceptó guardar nombre/email/teléfono pero no IBAN.
 Si vuelve a pedirlo, recordarle esta conversación antes de añadirlo.
 
+## Ampliación de alcance: gestiones administrativas (facturas)
+
+`/administracion` (solo director) es un apartado nuevo para tareas que el
+encargo original dejaba deliberadamente fuera de la app ("lo administrativo
+se queda en tus Excel"). Su primera pieza es `/facturas`: emisión de
+facturas **exentas de IVA** (art. 20.Uno.13º LIVA — confirmado por Antón,
+no lo des por hecho en otro club) con numeración correlativa que **empieza
+en 65** porque ya había emitido 1-64 fuera de la app
+(`docs/migracion_facturas.sql`).
+
+Decisiones de esta ampliación:
+- **Los datos del pagador (nombre, NIF, dirección) NO se guardan como
+  perfil reutilizable.** Antón prefirió rellenarlos a mano en cada factura
+  antes que crear una ficha de familias en la base de datos — es un dato
+  personal más (de padres/madres, no de los deportistas menores) y se
+  minimiza no persistiéndolo salvo dentro de la factura ya emitida.
+- **Las facturas no se editan ni se borran una vez creadas** (sin política
+  RLS de update/delete, a propósito). Es lo que exige Hacienda: un error se
+  corrige con una rectificativa, nunca tocando la original.
+- Los datos fiscales del emisor (NIF G88525589, dirección) están en
+  `src/lib/emisor.ts`, fijos — solo cambian si el club se traslada.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que

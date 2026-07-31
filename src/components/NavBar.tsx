@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const DIRECTOR_ITEMS = [
+type NavItem = { href: string; label: string; tambien?: string[] };
+
+const DIRECTOR_ITEMS: NavItem[] = [
   { href: "/reparto", label: "Reparto" },
   { href: "/publicar", label: "Publicar" },
   { href: "/entrenamientos", label: "Entrenamientos" },
@@ -11,9 +13,10 @@ const DIRECTOR_ITEMS = [
   { href: "/analisis", label: "Análisis" },
   { href: "/equipo", label: "Equipo" },
   { href: "/deportistas", label: "Deportistas" },
+  { href: "/administracion", label: "Administración", tambien: ["/facturas"] },
 ];
 
-const ENTRENADOR_ITEMS = [
+const ENTRENADOR_ITEMS: NavItem[] = [
   { href: "/entrenamientos", label: "Entrenamientos" },
   { href: "/tests", label: "Registrar test" },
 ];
@@ -41,7 +44,9 @@ export function NavBar({
           Inicio
         </Link>
         {items.map((item) => {
-          const active = pathname.startsWith(item.href);
+          const active =
+            pathname.startsWith(item.href) ||
+            (item.tambien?.some((p) => pathname.startsWith(p)) ?? false);
           const aviso = item.href === "/equipo" ? pendientes : 0;
           return (
             <Link
