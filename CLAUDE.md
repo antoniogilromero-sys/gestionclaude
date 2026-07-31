@@ -96,3 +96,9 @@ Decisiones de esta ampliación:
   crea borrador y solo publica al final).
 - **Los mensajes de "no hay nada" se multiplican** cuando la lista crece:
   ponlos una vez arriba, no dentro de cada tarjeta, y di qué hacer.
+- **Nunca uses `throw new Error(...)` dentro de una server action.** Next.js
+  redacta el mensaje en producción (solo deja un "digest" ilegible) — Antón
+  lo sufrió con las facturas. Todas las actions devuelven
+  `{ error: string } | <resultado>` en vez de lanzar, y quien las llama
+  comprueba `"error" in resultado`. Si añades una action nueva, sigue este
+  patrón o el mensaje de error nunca llegará a la pantalla en Vercel.
