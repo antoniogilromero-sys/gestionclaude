@@ -32,7 +32,7 @@ insert into personal_temporada (nombre, email, telefono) values
   ('Claudia', 'claudiaa.mm20@gmail.com',     '722564220'),
   ('Nacho',   'nach.2012@gmail.com',         '687941360'),
   ('Celia',   'c.calderonsantamaria@gmail.com', '664500245'),
-  ('Diego',   'diegogilgordillo10@gmail.com','625367351'),
+  ('Diego',   'diegogilgordillo@gmail.com',  '625367351'),
   ('Toni',    'antoniogilromero@gmail.com',  '605808150')
 on conflict (email) do update set
   nombre   = excluded.nombre,
