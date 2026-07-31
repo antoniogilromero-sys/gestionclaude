@@ -37,3 +37,14 @@ export async function reactivar(perfilId: string) {
   const { error } = await supabase.from("perfiles").update({ activo: true }).eq("id", perfilId);
   if (error) throw new Error(error.message);
 }
+
+export async function cambiarNombre(perfilId: string, nombre: string) {
+  const supabase = await requireDirector();
+  const limpio = nombre.trim();
+  if (!limpio) throw new Error("El nombre no puede estar vacío");
+  // Google manda el nombre completo de la cuenta (p. ej. "Antonio Gil
+  // Romero"); en el club se les llama por el nombre de pila o el apodo
+  // (Toni, Nacho, Nimai...), así que el director lo ajusta aquí.
+  const { error } = await supabase.from("perfiles").update({ nombre: limpio }).eq("id", perfilId);
+  if (error) throw new Error(error.message);
+}
