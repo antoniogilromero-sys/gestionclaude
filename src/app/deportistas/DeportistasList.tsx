@@ -168,7 +168,7 @@ export function DeportistasList({
             <button
               disabled={cargando === d.id}
               onClick={() => onCambiarActivo(d.id, !d.activo)}
-              className="shrink-0 bg-transparent border border-edge text-chalk rounded-lg px-2.5 py-1.5 font-display text-xs tracking-[.06em] uppercase cursor-pointer disabled:opacity-60"
+              className="shrink-0 bg-transparent border border-edge text-chalk rounded-lg min-h-[44px] px-3 flex items-center justify-center font-display text-xs tracking-[.06em] uppercase cursor-pointer disabled:opacity-60"
             >
               {d.activo ? "Dar de baja" : "Reactivar"}
             </button>

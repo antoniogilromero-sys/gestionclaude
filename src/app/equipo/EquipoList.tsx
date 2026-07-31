@@ -73,7 +73,7 @@ export function EquipoList({ perfiles }: { perfiles: Perfil[] }) {
           <button
             disabled={cargando === p.id}
             onClick={() => ejecutar(p.id, aprobarEntrenador)}
-            className="shrink-0 bg-signal text-[#160800] rounded-[9px] px-3.5 py-2 font-display text-xs tracking-[.08em] uppercase font-semibold cursor-pointer disabled:opacity-60"
+            className="shrink-0 bg-signal text-[#160800] rounded-[9px] min-h-[44px] px-3.5 flex items-center justify-center font-display text-xs tracking-[.08em] uppercase font-semibold cursor-pointer disabled:opacity-60"
           >
             Aprobar
           </button>
@@ -100,7 +100,7 @@ export function EquipoList({ perfiles }: { perfiles: Perfil[] }) {
             <button
               disabled={cargando === p.id}
               onClick={() => ejecutar(p.id, darDeBaja)}
-              className="shrink-0 bg-transparent border border-edge text-chalk rounded-[9px] px-3.5 py-2 font-display text-xs tracking-[.08em] uppercase cursor-pointer disabled:opacity-60"
+              className="shrink-0 bg-transparent border border-edge text-chalk rounded-[9px] min-h-[44px] px-3.5 flex items-center justify-center font-display text-xs tracking-[.08em] uppercase cursor-pointer disabled:opacity-60"
             >
               Dar de baja
             </button>
@@ -108,7 +108,7 @@ export function EquipoList({ perfiles }: { perfiles: Perfil[] }) {
             <button
               disabled={cargando === p.id}
               onClick={() => ejecutar(p.id, reactivar)}
-              className="shrink-0 bg-transparent border border-edge text-chalk rounded-[9px] px-3.5 py-2 font-display text-xs tracking-[.08em] uppercase cursor-pointer disabled:opacity-60"
+              className="shrink-0 bg-transparent border border-edge text-chalk rounded-[9px] min-h-[44px] px-3.5 flex items-center justify-center font-display text-xs tracking-[.08em] uppercase cursor-pointer disabled:opacity-60"
             >
               Reactivar
             </button>
