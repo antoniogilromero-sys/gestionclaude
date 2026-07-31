@@ -40,12 +40,26 @@ carrera y ciclismo (ver `docs/migracion_reparto_entrenadores.sql`, que Antón
 tiene que ejecutar en Supabase para que existan) y calcula el coste semanal
 por entrenador según tarifas guardadas en `tarifas_entrenador` (tarifa
 general por disciplina + excepciones por entrenador, ej. Celia cobra más).
-Esto reemplaza el cálculo manual de `CUADRANTE_ENTRENADORES_26_27.xlsx`. La
-plantilla de entrenadores de la temporada (8, incluida Sonia, que aún no
-tiene cuenta) vive como constante `ROSTER_TEMPORADA` en `RepartoGrid.tsx` —
-actualízala si cambia el equipo. El grupo de ciclismo de carretera no tiene
-horario fijo (`hora_inicio`/`hora_fin` a null): no rehagas eso pensando que
-es un dato que falta rellenar, es intencional.
+Esto reemplaza el cálculo manual de `CUADRANTE_ENTRENADORES_26_27.xlsx`. El
+grupo de ciclismo de carretera no tiene horario fijo
+(`hora_inicio`/`hora_fin` a null): no rehagas eso pensando que es un dato
+que falta rellenar, es intencional.
+
+**El director es también uno de los entrenadores de la plantilla** (Toni,
+`antoniogilromero@gmail.com`) — no son dos personas distintas.
+
+## Cuadro de personal y datos de contacto
+
+La plantilla de la temporada (9 personas) ya no es un array fijo en el
+código: vive en la tabla `personal_temporada` (nombre, email, teléfono —
+ver `docs/migracion_personal_temporada.sql`) y se cruza por email con
+`perfiles` para saber quién ya tiene cuenta. El email es la clave de cruce,
+no el nombre (Google manda el nombre completo, no el apodo del club).
+
+**Antón pidió meter también el número de cuenta bancaria y se le explicó
+por qué no**: rompe la decisión ya cerrada de "sin datos personales
+sensibles en la app". Aceptó guardar nombre/email/teléfono pero no IBAN.
+Si vuelve a pedirlo, recordarle esta conversación antes de añadirlo.
 
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
