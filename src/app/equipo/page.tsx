@@ -17,7 +17,7 @@ export default async function EquipoPage() {
     .single();
   if (!perfil || perfil.rol !== "director") redirect("/");
 
-  const { data: perfiles } = await supabase
+  const { data: perfiles, error } = await supabase
     .from("perfiles")
     .select("id, nombre, email, telefono, rol, activo")
     .neq("rol", "director")
@@ -25,7 +25,19 @@ export default async function EquipoPage() {
 
   return (
     <AppShell nombre={perfil.nombre} rol={perfil.rol}>
-      <EquipoList perfiles={perfiles ?? []} />
+      {error ? (
+        <div className="bg-surf border border-run/40 rounded-[10px] p-3.5">
+          <b className="block text-[15px] font-medium mb-1 text-run">
+            No se ha podido cargar el equipo
+          </b>
+          <p className="text-sm text-mute leading-relaxed">
+            Puede que falte alguna migración por ejecutar en Supabase.
+            Detalle técnico: {error.message}
+          </p>
+        </div>
+      ) : (
+        <EquipoList perfiles={perfiles ?? []} />
+      )}
     </AppShell>
   );
 }

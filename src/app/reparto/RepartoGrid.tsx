@@ -87,6 +87,7 @@ export function RepartoGrid({
   asignacionesIniciales,
   tarifas,
   personal,
+  personalError,
 }: {
   semana: string;
   semanaAnterior: string;
@@ -96,6 +97,7 @@ export function RepartoGrid({
   asignacionesIniciales: Asignacion[];
   tarifas: Tarifa[];
   personal: PersonalTemporada[];
+  personalError: string | null;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -167,7 +169,7 @@ export function RepartoGrid({
 
   return (
     <div>
-      <CuadroPersonal personal={personal} />
+      <CuadroPersonal personal={personal} error={personalError} />
 
       {sinEquipo && (
         <div className="bg-surf border border-signal/40 rounded-[10px] p-3.5 mb-4">
@@ -349,14 +351,31 @@ function ResumenSemanaVisual({
   );
 }
 
-function CuadroPersonal({ personal }: { personal: PersonalTemporada[] }) {
+function CuadroPersonal({
+  personal,
+  error,
+}: {
+  personal: PersonalTemporada[];
+  error: string | null;
+}) {
   return (
     <div className="mb-5">
       <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute mb-2.5">
         Cuadro de personal · 26/27
       </h2>
+      {error && (
+        <div className="bg-surf border border-run/40 rounded-[10px] p-3.5 mb-2.5">
+          <b className="block text-[15px] font-medium mb-1 text-run">
+            No se ha podido cargar el cuadro de personal
+          </b>
+          <p className="text-sm text-mute leading-relaxed">
+            Puede que falte ejecutar la migración de personal_temporada en
+            Supabase. Detalle técnico: {error}
+          </p>
+        </div>
+      )}
       <div className="flex flex-col gap-[7px]">
-        {personal.map((p) => (
+        {!error && personal.map((p) => (
           <div
             key={p.email}
             className={`flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-[10px] border ${
@@ -379,7 +398,7 @@ function CuadroPersonal({ personal }: { personal: PersonalTemporada[] }) {
             </span>
           </div>
         ))}
-        {personal.length === 0 && (
+        {!error && personal.length === 0 && (
           <p className="text-mute text-sm">Sin plantilla cargada todavía.</p>
         )}
       </div>

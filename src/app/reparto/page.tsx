@@ -38,7 +38,7 @@ export default async function RepartoPage({
     { data: entrenadores },
     { data: asignaciones },
     { data: tarifas },
-    { data: personalTemporada },
+    { data: personalTemporada, error: personalError },
     { data: cuentasActivas },
   ] = await Promise.all([
     supabase
@@ -86,6 +86,7 @@ export default async function RepartoPage({
         asignacionesIniciales={asignaciones ?? []}
         tarifas={tarifas ?? []}
         personal={personal}
+        personalError={personalError?.message ?? null}
       />
     </AppShell>
   );
