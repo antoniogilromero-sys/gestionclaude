@@ -16,8 +16,12 @@ type Grupo = {
 type Entrenador = { id: string; nombre: string };
 type Asignacion = { grupo_id: number; entrenador_id: string };
 type Tarifa = { entrenador_id: string; disciplina: string; euros_hora: number };
-
-const ROSTER_TEMPORADA = ["Nimai", "Toni", "Nacho", "Diego", "Claudia", "Celia", "Sonia", "Hector"];
+type PersonalTemporada = {
+  nombre: string;
+  email: string;
+  telefono: string | null;
+  registrado: boolean;
+};
 
 const TARIFA_GENERAL: Record<string, number> = {
   natacion: 15,
@@ -36,14 +40,6 @@ const DISCIPLINA_TAG: Record<string, string> = {
   carrera: "bg-run/15 text-run",
   ciclismo: "bg-bike/15 text-bike",
 };
-
-function normaliza(s: string) {
-  return s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim();
-}
 
 function key(grupoId: number, entrenadorId: string) {
   return `${grupoId}:${entrenadorId}`;
@@ -97,7 +93,7 @@ export function RepartoGrid({
   entrenadores: Entrenador[];
   asignacionesIniciales: Asignacion[];
   tarifas: Tarifa[];
-  personal: { nombre: string }[];
+  personal: PersonalTemporada[];
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -281,29 +277,39 @@ export function RepartoGrid({
   );
 }
 
-function CuadroPersonal({ personal }: { personal: { nombre: string }[] }) {
-  const registrados = new Set(personal.map((p) => normaliza(p.nombre)));
-
+function CuadroPersonal({ personal }: { personal: PersonalTemporada[] }) {
   return (
     <div className="mb-5">
       <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute mb-2.5">
         Cuadro de personal · 26/27
       </h2>
-      <div className="flex flex-wrap gap-[7px]">
-        {ROSTER_TEMPORADA.map((nombre) => {
-          const enEquipo = registrados.has(normaliza(nombre));
-          return (
+      <div className="flex flex-col gap-[7px]">
+        {personal.map((p) => (
+          <div
+            key={p.email}
+            className={`flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-[10px] border ${
+              p.registrado ? "border-ok/50 bg-surf" : "border-edge bg-surf"
+            }`}
+          >
+            <div className="min-w-0">
+              <b className="text-[14px] block truncate">{p.nombre}</b>
+              <span className="text-xs text-mute block truncate">
+                {p.email}
+                {p.telefono && ` · ${p.telefono}`}
+              </span>
+            </div>
             <span
-              key={nombre}
-              className={`px-[13px] py-2 rounded-full border text-[13px] ${
-                enEquipo ? "border-ok/50 text-chalk" : "border-edge text-mute"
+              className={`shrink-0 font-display text-[11px] tracking-[.05em] uppercase px-2 py-1 rounded-full ${
+                p.registrado ? "bg-ok/15 text-ok" : "bg-edge text-mute"
               }`}
             >
-              {nombre}
-              {!enEquipo && <span className="text-mute"> · sin cuenta</span>}
+              {p.registrado ? "En el equipo" : "Sin cuenta"}
             </span>
-          );
-        })}
+          </div>
+        ))}
+        {personal.length === 0 && (
+          <p className="text-mute text-sm">Sin plantilla cargada todavía.</p>
+        )}
       </div>
     </div>
   );

@@ -38,7 +38,8 @@ export default async function RepartoPage({
     { data: entrenadores },
     { data: asignaciones },
     { data: tarifas },
-    { data: personal },
+    { data: personalTemporada },
+    { data: cuentasActivas },
   ] = await Promise.all([
     supabase
       .from("grupos")
@@ -56,12 +57,23 @@ export default async function RepartoPage({
       .select("grupo_id, entrenador_id")
       .eq("semana", semana),
     supabase.from("tarifas_entrenador").select("entrenador_id, disciplina, euros_hora"),
+    supabase.from("personal_temporada").select("nombre, email, telefono").order("nombre"),
     // El director también puede ser uno de los entrenadores de la
     // plantilla (p. ej. Toni lleva grupos y además dirige el club), así
-    // que el cuadro de personal compara contra todos los roles, no solo
-    // "entrenador" — si no, aparecería como "sin cuenta" siendo él mismo.
-    supabase.from("perfiles").select("nombre").in("rol", ["director", "entrenador"]).eq("activo", true),
+    // que el cuadro de personal cruza contra todos los roles activos, no
+    // solo "entrenador" — si no, aparecería como "sin cuenta" siendo él
+    // mismo. Se cruza por email, que es más fiable que el nombre (Google
+    // manda el nombre completo, no el apodo que usa el club).
+    supabase.from("perfiles").select("email").in("rol", ["director", "entrenador"]).eq("activo", true),
   ]);
+
+  const emailsRegistrados = new Set(
+    (cuentasActivas ?? []).map((c) => c.email.toLowerCase()),
+  );
+  const personal = (personalTemporada ?? []).map((p) => ({
+    ...p,
+    registrado: emailsRegistrados.has(p.email.toLowerCase()),
+  }));
 
   return (
     <AppShell nombre={perfil.nombre} rol={perfil.rol}>
@@ -73,7 +85,7 @@ export default async function RepartoPage({
         entrenadores={entrenadores ?? []}
         asignacionesIniciales={asignaciones ?? []}
         tarifas={tarifas ?? []}
-        personal={personal ?? []}
+        personal={personal}
       />
     </AppShell>
   );
