@@ -26,7 +26,7 @@ create policy p_personal_director on personal_temporada for all
 
 insert into personal_temporada (nombre, email, telefono) values
   ('Laura',   'lauraopperez@gmail.com',      '682102794'),
-  ('Sonia',   'sonicesteros@gmail.com',      '692070081'),
+  ('Sonia',   'soniacesteros@gmail.com',     '692070081'),
   ('Héctor',  'llitomtb@gmail.com',          '695683229'),
   ('Nimai',   'ndelisrojas@gmail.com',       '640194979'),
   ('Claudia', 'claudiaa.mm20@gmail.com',     '722564220'),
