@@ -35,14 +35,13 @@ export function PublicarForm({ grupos }: { grupos: { id: number; nombre: string 
       return;
     }
     setEnviando(true);
-    try {
-      await publicarSesion({ titulo, fecha, disciplina, contenido, material, grupoIds });
+    const resultado = await publicarSesion({ titulo, fecha, disciplina, contenido, material, grupoIds });
+    if ("error" in resultado) {
+      setError(resultado.error);
+      setEnviando(false);
+    } else {
       router.push("/entrenamientos");
       router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo publicar");
-    } finally {
-      setEnviando(false);
     }
   }
 

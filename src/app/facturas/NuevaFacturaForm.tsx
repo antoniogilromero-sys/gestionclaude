@@ -26,19 +26,19 @@ export function NuevaFacturaForm() {
       return;
     }
     setEnviando(true);
-    try {
-      const numero = await emitirFactura({
-        pagadorNombre,
-        pagadorNif,
-        pagadorDireccion,
-        concepto,
-        importe: importeNum,
-      });
-      router.push(`/facturas/${numero}`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo emitir la factura");
+    const resultado = await emitirFactura({
+      pagadorNombre,
+      pagadorNif,
+      pagadorDireccion,
+      concepto,
+      importe: importeNum,
+    });
+    if ("error" in resultado) {
+      setError(resultado.error);
       setEnviando(false);
+      return;
     }
+    router.push(`/facturas/${resultado.numero}`);
   }
 
   return (

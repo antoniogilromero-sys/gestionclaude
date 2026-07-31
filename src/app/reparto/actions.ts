@@ -2,19 +2,23 @@
 
 import { createClient } from "@/lib/supabase/server";
 
+// Next.js oculta el mensaje real de cualquier `throw` dentro de una server
+// action en producción (solo deja un "digest"). Estas acciones nunca lanzan:
+// siempre devuelven { error } o el resultado, para que el mensaje llegue
+// intacto a la pantalla.
 export async function setAsignacion(
   semana: string,
   grupoId: number,
   entrenadorId: string,
   asignar: boolean,
-) {
+): Promise<{ error: string } | { ok: true }> {
   const supabase = await createClient();
 
   if (asignar) {
     const { error } = await supabase
       .from("asignaciones")
       .insert({ semana, grupo_id: grupoId, entrenador_id: entrenadorId });
-    if (error && error.code !== "23505") throw new Error(error.message);
+    if (error && error.code !== "23505") return { error: error.message };
   } else {
     const { error } = await supabase
       .from("asignaciones")
@@ -22,21 +26,22 @@ export async function setAsignacion(
       .eq("semana", semana)
       .eq("grupo_id", grupoId)
       .eq("entrenador_id", entrenadorId);
-    if (error) throw new Error(error.message);
+    if (error) return { error: error.message };
   }
+  return { ok: true };
 }
 
 export async function copiarSemanaAnterior(
   semanaDestino: string,
   semanaOrigen: string,
-) {
+): Promise<{ error: string } | { copiado: boolean; filas: number }> {
   const supabase = await createClient();
 
   const { data: origen, error: eOrigen } = await supabase
     .from("asignaciones")
     .select("grupo_id, entrenador_id")
     .eq("semana", semanaOrigen);
-  if (eOrigen) throw new Error(eOrigen.message);
+  if (eOrigen) return { error: eOrigen.message };
 
   if (!origen || origen.length === 0) {
     // No hay nada que copiar: no tocamos la semana destino para no borrarla por error.
@@ -47,7 +52,7 @@ export async function copiarSemanaAnterior(
     .from("asignaciones")
     .delete()
     .eq("semana", semanaDestino);
-  if (eDel) throw new Error(eDel.message);
+  if (eDel) return { error: eDel.message };
 
   const filas = origen.map((r) => ({
     semana: semanaDestino,
@@ -55,7 +60,7 @@ export async function copiarSemanaAnterior(
     entrenador_id: r.entrenador_id,
   }));
   const { error: eIns } = await supabase.from("asignaciones").insert(filas);
-  if (eIns) throw new Error(eIns.message);
+  if (eIns) return { error: eIns.message };
 
   return { copiado: true, filas: filas.length };
 }

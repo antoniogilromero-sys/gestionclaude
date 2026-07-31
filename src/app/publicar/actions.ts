@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 
+// Nunca lanza: Next.js oculta el mensaje de un `throw` en producción.
 export async function publicarSesion(input: {
   titulo: string;
   fecha: string;
@@ -9,15 +10,15 @@ export async function publicarSesion(input: {
   contenido: string;
   material: string;
   grupoIds: number[];
-}) {
+}): Promise<{ error: string } | { id: number }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("No autenticado");
+  if (!user) return { error: "No autenticado" };
 
   if (!input.titulo.trim() || !input.contenido.trim() || input.grupoIds.length === 0) {
-    throw new Error("Faltan título, contenido o grupos");
+    return { error: "Faltan título, contenido o grupos" };
   }
 
   // Se crea primero como borrador y solo se publica cuando los grupos ya
@@ -38,20 +39,20 @@ export async function publicarSesion(input: {
     .select("id")
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   const filas = input.grupoIds.map((grupoId) => ({
     sesion_id: sesion.id,
     grupo_id: grupoId,
   }));
   const { error: eGrupos } = await supabase.from("sesion_grupo").insert(filas);
-  if (eGrupos) throw new Error(eGrupos.message);
+  if (eGrupos) return { error: eGrupos.message };
 
   const { error: ePublicar } = await supabase
     .from("sesiones")
     .update({ publicada: true })
     .eq("id", sesion.id);
-  if (ePublicar) throw new Error(ePublicar.message);
+  if (ePublicar) return { error: ePublicar.message };
 
-  return sesion.id as number;
+  return { id: sesion.id as number };
 }

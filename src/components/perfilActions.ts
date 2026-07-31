@@ -2,16 +2,18 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-export async function cambiarMiNombre(nombre: string) {
+// Nunca lanza: Next.js oculta el mensaje de un `throw` en producción.
+export async function cambiarMiNombre(nombre: string): Promise<{ error: string } | { ok: true }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("No autenticado");
+  if (!user) return { error: "No autenticado" };
 
   const limpio = nombre.trim();
-  if (!limpio) throw new Error("El nombre no puede estar vacío");
+  if (!limpio) return { error: "El nombre no puede estar vacío" };
 
   const { error } = await supabase.from("perfiles").update({ nombre: limpio }).eq("id", user.id);
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
+  return { ok: true };
 }

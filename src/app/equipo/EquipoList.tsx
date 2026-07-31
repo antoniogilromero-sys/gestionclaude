@@ -19,32 +19,33 @@ export function EquipoList({ perfiles }: { perfiles: Perfil[] }) {
   const [error, setError] = useState<string | null>(null);
   const [editando, setEditando] = useState<string | null>(null);
 
-  async function ejecutar(id: string, accion: (id: string) => Promise<void>) {
+  async function ejecutar(id: string, accion: (id: string) => Promise<{ error: string } | { ok: true }>) {
     setCargando(id);
     setError(null);
-    try {
-      await accion(id);
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo completar la acción");
-    } finally {
-      setCargando(null);
-    }
+    const resultado = await accion(id);
+    if ("error" in resultado) setError(resultado.error);
+    else router.refresh();
+    setCargando(null);
   }
 
   async function guardarDatos(id: string, nombre: string, telefono: string) {
     setCargando(id);
     setError(null);
-    try {
-      await cambiarNombre(id, nombre);
-      await cambiarTelefono(id, telefono);
-      setEditando(null);
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo guardar");
-    } finally {
+    const r1 = await cambiarNombre(id, nombre);
+    if ("error" in r1) {
+      setError(r1.error);
       setCargando(null);
+      return;
     }
+    const r2 = await cambiarTelefono(id, telefono);
+    if ("error" in r2) {
+      setError(r2.error);
+      setCargando(null);
+      return;
+    }
+    setEditando(null);
+    setCargando(null);
+    router.refresh();
   }
 
   const pendientes = perfiles.filter((p) => p.rol === "pendiente");

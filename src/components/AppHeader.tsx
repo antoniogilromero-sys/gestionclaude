@@ -16,6 +16,7 @@ export function AppHeader({
   const [editando, setEditando] = useState(false);
   const [valor, setValor] = useState(nombre);
   const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function salir() {
     const supabase = createClient();
@@ -26,15 +27,15 @@ export function AppHeader({
 
   async function guardarNombre() {
     setGuardando(true);
-    try {
-      await cambiarMiNombre(valor);
+    setError(null);
+    const resultado = await cambiarMiNombre(valor);
+    if ("error" in resultado) {
+      setError(resultado.error);
+    } else {
       setEditando(false);
       router.refresh();
-    } catch {
-      // Si falla, dejamos el editor abierto con lo que había escrito.
-    } finally {
-      setGuardando(false);
     }
+    setGuardando(false);
   }
 
   return (
@@ -100,6 +101,7 @@ export function AppHeader({
           </div>
         )}
       </div>
+      {editando && error && <p className="text-run text-xs mt-1.5">{error}</p>}
     </header>
   );
 }

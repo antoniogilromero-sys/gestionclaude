@@ -2,28 +2,32 @@
 
 import { createClient } from "@/lib/supabase/server";
 
+// Next.js oculta el mensaje real de cualquier `throw` dentro de una server
+// action en producción (por seguridad, solo deja un "digest"). Para que el
+// director vea el motivo real del fallo, esta acción NUNCA lanza: siempre
+// devuelve { error } o el resultado.
 export async function emitirFactura(input: {
   pagadorNombre: string;
   pagadorNif: string;
   pagadorDireccion: string;
   concepto: string;
   importe: number;
-}) {
+}): Promise<{ error: string } | { numero: number }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("No autenticado");
+  if (!user) return { error: "No autenticado" };
 
   const nombre = input.pagadorNombre.trim();
   const nif = input.pagadorNif.trim();
   const concepto = input.concepto.trim();
 
   if (!nombre || !nif || !concepto) {
-    throw new Error("Faltan el nombre, el NIF o el concepto");
+    return { error: "Faltan el nombre, el NIF o el concepto" };
   }
   if (!(input.importe > 0)) {
-    throw new Error("El importe tiene que ser mayor que cero");
+    return { error: "El importe tiene que ser mayor que cero" };
   }
 
   const { data, error } = await supabase
@@ -39,6 +43,6 @@ export async function emitirFactura(input: {
     .select("numero")
     .single();
 
-  if (error) throw new Error(error.message);
-  return data.numero as number;
+  if (error) return { error: error.message };
+  return { numero: data.numero as number };
 }

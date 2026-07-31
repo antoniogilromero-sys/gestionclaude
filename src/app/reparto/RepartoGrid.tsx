@@ -115,16 +115,15 @@ export function RepartoGrid({
       return next;
     });
     startTransition(async () => {
-      try {
-        await setAsignacion(semana, grupoId, entrenadorId, !yaAsignado);
-      } catch (e) {
+      const resultado = await setAsignacion(semana, grupoId, entrenadorId, !yaAsignado);
+      if ("error" in resultado) {
         setAsignado((prev) => {
           const next = new Set(prev);
           if (yaAsignado) next.add(k);
           else next.delete(k);
           return next;
         });
-        setError(e instanceof Error ? e.message : "No se pudo guardar el cambio, inténtalo de nuevo");
+        setError(resultado.error);
       }
     });
   }
@@ -132,16 +131,16 @@ export function RepartoGrid({
   async function copiarAnterior() {
     setCopiando(true);
     setAvisoCopia(null);
-    try {
-      const resultado = await copiarSemanaAnterior(semana, semanaAnterior);
-      if (!resultado.copiado) {
-        setAvisoCopia("La semana anterior no tiene reparto guardado, así que no se ha tocado nada.");
-      } else {
-        router.refresh();
-      }
-    } finally {
-      setCopiando(false);
+    setError(null);
+    const resultado = await copiarSemanaAnterior(semana, semanaAnterior);
+    if ("error" in resultado) {
+      setError(resultado.error);
+    } else if (!resultado.copiado) {
+      setAvisoCopia("La semana anterior no tiene reparto guardado, así que no se ha tocado nada.");
+    } else {
+      router.refresh();
     }
+    setCopiando(false);
   }
 
   const sinEntrenador = grupos.filter(

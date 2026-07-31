@@ -45,27 +45,19 @@ export function DeportistasList({
   async function onCambiarGrupo(id: number, grupoId: string) {
     setCargando(id);
     setError(null);
-    try {
-      await cambiarGrupo(id, grupoId ? Number(grupoId) : null);
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo cambiar el grupo");
-    } finally {
-      setCargando(null);
-    }
+    const resultado = await cambiarGrupo(id, grupoId ? Number(grupoId) : null);
+    if ("error" in resultado) setError(resultado.error);
+    else router.refresh();
+    setCargando(null);
   }
 
   async function onCambiarActivo(id: number, activo: boolean) {
     setCargando(id);
     setError(null);
-    try {
-      await cambiarActivo(id, activo);
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo actualizar");
-    } finally {
-      setCargando(null);
-    }
+    const resultado = await cambiarActivo(id, activo);
+    if ("error" in resultado) setError(resultado.error);
+    else router.refresh();
+    setCargando(null);
   }
 
   async function onAlta() {
@@ -75,24 +67,23 @@ export function DeportistasList({
       return;
     }
     setEnviando(true);
-    try {
-      await altaDeportista({
-        ref: nuevoRef,
-        nombre: nuevoNombre,
-        categoria: nuevaCategoria,
-        grupoId: nuevoGrupo ? Number(nuevoGrupo) : null,
-      });
+    const resultado = await altaDeportista({
+      ref: nuevoRef,
+      nombre: nuevoNombre,
+      categoria: nuevaCategoria,
+      grupoId: nuevoGrupo ? Number(nuevoGrupo) : null,
+    });
+    if ("error" in resultado) {
+      setError(resultado.error);
+    } else {
       setNuevoRef("");
       setNuevoNombre("");
       setNuevaCategoria("");
       setNuevoGrupo("");
       setMostrarAlta(false);
       router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo dar de alta");
-    } finally {
-      setEnviando(false);
     }
+    setEnviando(false);
   }
 
   return (
