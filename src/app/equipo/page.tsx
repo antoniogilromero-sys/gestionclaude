@@ -19,7 +19,7 @@ export default async function EquipoPage() {
 
   const { data: perfiles } = await supabase
     .from("perfiles")
-    .select("id, nombre, email, rol, activo")
+    .select("id, nombre, email, telefono, rol, activo")
     .neq("rol", "director")
     .order("nombre");
 

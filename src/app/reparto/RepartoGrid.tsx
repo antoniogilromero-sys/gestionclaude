@@ -88,6 +88,7 @@ export function RepartoGrid({
   entrenadores,
   asignacionesIniciales,
   tarifas,
+  personal,
 }: {
   semana: string;
   semanaAnterior: string;
@@ -96,6 +97,7 @@ export function RepartoGrid({
   entrenadores: Entrenador[];
   asignacionesIniciales: Asignacion[];
   tarifas: Tarifa[];
+  personal: { nombre: string }[];
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -168,7 +170,7 @@ export function RepartoGrid({
 
   return (
     <div>
-      <CuadroPersonal entrenadores={entrenadores} />
+      <CuadroPersonal personal={personal} />
 
       {sinEquipo && (
         <div className="bg-surf border border-signal/40 rounded-[10px] p-3.5 mb-4">
@@ -279,8 +281,8 @@ export function RepartoGrid({
   );
 }
 
-function CuadroPersonal({ entrenadores }: { entrenadores: Entrenador[] }) {
-  const registrados = new Set(entrenadores.map((e) => normaliza(e.nombre)));
+function CuadroPersonal({ personal }: { personal: { nombre: string }[] }) {
+  const registrados = new Set(personal.map((p) => normaliza(p.nombre)));
 
   return (
     <div className="mb-5">

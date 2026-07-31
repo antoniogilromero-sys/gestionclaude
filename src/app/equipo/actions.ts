@@ -48,3 +48,12 @@ export async function cambiarNombre(perfilId: string, nombre: string) {
   const { error } = await supabase.from("perfiles").update({ nombre: limpio }).eq("id", perfilId);
   if (error) throw new Error(error.message);
 }
+
+export async function cambiarTelefono(perfilId: string, telefono: string) {
+  const supabase = await requireDirector();
+  const { error } = await supabase
+    .from("perfiles")
+    .update({ telefono: telefono.trim() || null })
+    .eq("id", perfilId);
+  if (error) throw new Error(error.message);
+}
