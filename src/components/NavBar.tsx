@@ -13,7 +13,11 @@ const DIRECTOR_ITEMS: NavItem[] = [
   { href: "/analisis", label: "Análisis" },
   { href: "/equipo", label: "Equipo" },
   { href: "/deportistas", label: "Deportistas" },
-  { href: "/administracion", label: "Administración", tambien: ["/facturas", "/pedidos"] },
+  {
+    href: "/administracion",
+    label: "Administración",
+    tambien: ["/facturas", "/pedidos", "/jornadas"],
+  },
 ];
 
 const ENTRENADOR_ITEMS: NavItem[] = [

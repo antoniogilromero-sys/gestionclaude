@@ -40,6 +40,16 @@ export default async function AdministracionPage() {
           Pedidos de camisetas y sudaderas: quién lo pide, talla y cantidad.
         </span>
       </Link>
+      <Link
+        href="/jornadas"
+        className="block bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5"
+      >
+        <b className="block text-[16px] font-semibold mb-[3px]">Jornadas en colegios</b>
+        <span className="text-sm text-mute">
+          Talleres de promoción (duatlón, acuatlón...): colegio, fecha y
+          entrenadores asignados.
+        </span>
+      </Link>
       <p className="text-xs text-mute leading-relaxed mt-4 pt-3 border-t border-edge">
         Este apartado irá creciendo con más gestiones administrativas del
         club (campamentos...) según haga falta.
