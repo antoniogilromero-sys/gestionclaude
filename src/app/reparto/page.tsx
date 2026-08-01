@@ -49,7 +49,7 @@ export default async function RepartoPage({
     supabase
       .from("perfiles")
       .select("id, nombre")
-      .eq("rol", "entrenador")
+      .in("rol", ["director", "entrenador"])
       .eq("activo", true)
       .order("nombre"),
     supabase
