@@ -31,9 +31,18 @@ export default async function AdministracionPage() {
           Emitir facturas exentas de IVA con numeración correlativa.
         </span>
       </Link>
+      <Link
+        href="/pedidos"
+        className="block bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5"
+      >
+        <b className="block text-[16px] font-semibold mb-[3px]">Pedidos</b>
+        <span className="text-sm text-mute">
+          Pedidos de camisetas y sudaderas: quién lo pide, talla y cantidad.
+        </span>
+      </Link>
       <p className="text-xs text-mute leading-relaxed mt-4 pt-3 border-t border-edge">
         Este apartado irá creciendo con más gestiones administrativas del
-        club (pedidos, campamentos...) según haga falta.
+        club (campamentos...) según haga falta.
       </p>
     </AppShell>
   );
