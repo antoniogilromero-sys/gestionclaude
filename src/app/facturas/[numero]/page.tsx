@@ -46,17 +46,32 @@ export default async function FacturaPage({
         <PrintButton />
       </div>
 
-      <div className="max-w-[700px] mx-auto bg-white text-[#1a1a1a] rounded-lg shadow-2xl mb-10 print:shadow-none print:rounded-none print:mb-0">
-        <div className="p-10">
-          <div className="flex items-start justify-between border-b-2 border-[#1a1a1a] pb-6 mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">{EMISOR.nombre}</h1>
-              <p className="text-sm mt-1">NIF {EMISOR.nif}</p>
-              <p className="text-sm">{EMISOR.direccion}</p>
-              <p className="text-sm">{EMISOR.poblacion}</p>
-              <p className="text-sm">{EMISOR.email}</p>
+      <div className="relative overflow-hidden max-w-[700px] mx-auto bg-white text-[#1a1a1a] rounded-lg shadow-2xl mb-10 print:shadow-none print:rounded-none print:mb-0">
+        {/* Marca de agua: <img> real (no CSS background) para que salga también al imprimir. */}
+        <img
+          src="/logo-club.png"
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none select-none absolute left-1/2 top-1/2 w-[480px] h-[480px] object-contain opacity-[0.06] z-0"
+          style={{ transform: "translate(-50%, -50%)" }}
+        />
+        <div className="relative z-10 p-10">
+          <div className="flex items-start justify-between gap-6 border-b-2 border-[#1a1a1a] pb-6 mb-6">
+            <div className="flex items-start gap-4">
+              <img
+                src="/logo-club.png"
+                alt={EMISOR.nombre}
+                className="w-16 h-16 object-contain shrink-0"
+              />
+              <div>
+                <h1 className="text-2xl font-bold">{EMISOR.nombre}</h1>
+                <p className="text-sm mt-1">NIF {EMISOR.nif}</p>
+                <p className="text-sm">{EMISOR.direccion}</p>
+                <p className="text-sm">{EMISOR.poblacion}</p>
+                <p className="text-sm">{EMISOR.email}</p>
+              </div>
             </div>
-            <div className="text-right">
+            <div className="text-right shrink-0">
               <div className="text-xs uppercase tracking-wider text-gray-500">Factura</div>
               <div className="text-3xl font-bold">Nº {factura.numero}</div>
               <div className="text-sm mt-1">{fmtFechaLarga(factura.fecha)}</div>
