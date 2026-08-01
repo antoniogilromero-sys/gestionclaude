@@ -50,6 +50,16 @@ export default async function AdministracionPage() {
           entrenadores asignados.
         </span>
       </Link>
+      <Link
+        href="/pagos"
+        className="block bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5"
+      >
+        <b className="block text-[16px] font-semibold mb-[3px]">Pagos a entrenadores</b>
+        <span className="text-sm text-mute">
+          Cierre semanal y mensual del coste de cada entrenador, según el
+          reparto y las tarifas.
+        </span>
+      </Link>
       <p className="text-xs text-mute leading-relaxed mt-4 pt-3 border-t border-edge">
         Este apartado irá creciendo con más gestiones administrativas del
         club (campamentos...) según haga falta.

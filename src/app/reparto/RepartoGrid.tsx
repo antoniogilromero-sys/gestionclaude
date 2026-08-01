@@ -4,41 +4,22 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { setAsignacion, copiarSemanaAnterior } from "./actions";
+import {
+  tarifaDe,
+  horasSemanales,
+  DISCIPLINA_LABEL,
+  DISCIPLINA_TAG,
+  type Grupo,
+  type Tarifa,
+} from "@/lib/costes";
 
-type Grupo = {
-  id: number;
-  nombre: string;
-  disciplina: string;
-  dias: string[];
-  hora_inicio: string | null;
-  hora_fin: string | null;
-};
 type Entrenador = { id: string; nombre: string };
 type Asignacion = { grupo_id: number; entrenador_id: string };
-type Tarifa = { entrenador_id: string; disciplina: string; euros_hora: number };
 type PersonalTemporada = {
   nombre: string;
   email: string;
   telefono: string | null;
   registrado: boolean;
-};
-
-const TARIFA_GENERAL: Record<string, number> = {
-  natacion: 15,
-  carrera: 15,
-  ciclismo: 20,
-};
-
-const DISCIPLINA_LABEL: Record<string, string> = {
-  natacion: "Natación",
-  carrera: "Carrera",
-  ciclismo: "Ciclismo",
-};
-
-const DISCIPLINA_TAG: Record<string, string> = {
-  natacion: "bg-swim/15 text-swim",
-  carrera: "bg-run/15 text-run",
-  ciclismo: "bg-bike/15 text-bike",
 };
 
 const ORDEN_DIAS = ["lunes", "martes", "miercoles", "miércoles", "jueves", "viernes", "sabado", "sábado", "domingo"];
@@ -62,20 +43,6 @@ function franjasSolapan(a: Grupo, b: Grupo) {
   const diasComunes = a.dias.some((d) => b.dias.includes(d));
   if (!diasComunes) return false;
   return a.hora_inicio < b.hora_fin && b.hora_inicio < a.hora_fin;
-}
-
-function horasSemanales(g: Grupo) {
-  if (!g.hora_inicio || !g.hora_fin) return null;
-  const [h1, m1] = g.hora_inicio.split(":").map(Number);
-  const [h2, m2] = g.hora_fin.split(":").map(Number);
-  const horasPorSesion = (h2 * 60 + m2 - (h1 * 60 + m1)) / 60;
-  return horasPorSesion * g.dias.length;
-}
-
-function tarifaDe(entrenadorId: string, disciplina: string, tarifas: Tarifa[]) {
-  const propia = tarifas.find((t) => t.entrenador_id === entrenadorId && t.disciplina === disciplina);
-  if (propia) return propia.euros_hora;
-  return TARIFA_GENERAL[disciplina] ?? null;
 }
 
 export function RepartoGrid({
