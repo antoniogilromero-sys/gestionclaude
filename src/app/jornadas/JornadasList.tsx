@@ -10,6 +10,7 @@ type Jornada = {
   colegio: string;
   fechaHorario: string;
   disciplina: string;
+  contacto: string | null;
   entrenadores: string[];
 };
 
@@ -67,6 +68,11 @@ export function JornadasList({ jornadas }: { jornadas: Jornada[] }) {
                     </div>
                     <b className="block text-[15px] font-medium truncate">{j.colegio}</b>
                     <span className="text-xs text-mute block mt-0.5">{j.fechaHorario}</span>
+                    {j.contacto && (
+                      <span className="text-xs text-mute block mt-0.5">
+                        Contacto: {j.contacto}
+                      </span>
+                    )}
                     <span className="text-xs text-mute block mt-1">
                       {j.entrenadores.length > 0
                         ? j.entrenadores.join(" y ")

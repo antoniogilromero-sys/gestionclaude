@@ -30,6 +30,7 @@ export async function crearJornada(input: {
   colegio: string;
   fechaHorario: string;
   disciplina: string;
+  contacto: string;
   entrenadorIds: string[];
 }): Promise<Resultado> {
   const r = await requireDirector();
@@ -51,6 +52,7 @@ export async function crearJornada(input: {
       colegio,
       fecha_horario: fechaHorario,
       disciplina,
+      contacto: input.contacto.trim() || null,
       creado_por: r.userId,
     })
     .select("id")

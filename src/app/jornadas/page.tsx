@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { JornadasList } from "./JornadasList";
+import { CuadranteAnio } from "./CuadranteAnio";
 
 export default async function JornadasPage() {
   const supabase = await createClient();
@@ -20,7 +21,9 @@ export default async function JornadasPage() {
 
   const { data: jornadas, error } = await supabase
     .from("jornadas_colegios")
-    .select("id, anio, colegio, fecha_horario, disciplina, jornada_entrenador(perfiles(nombre))")
+    .select(
+      "id, anio, colegio, fecha_horario, disciplina, contacto, jornada_entrenador(perfiles(nombre))",
+    )
     .order("anio", { ascending: false })
     .order("id", { ascending: false });
 
@@ -37,9 +40,14 @@ export default async function JornadasPage() {
       colegio: j.colegio as string,
       fechaHorario: j.fecha_horario as string,
       disciplina: j.disciplina as string,
+      contacto: j.contacto as string | null,
       entrenadores,
     };
   });
+
+  const anioActual = new Date().getFullYear();
+  const jornadasAnioActual = jornadasLimpias.filter((j) => j.anio === anioActual);
+  const jornadasOtrosAnios = jornadasLimpias.filter((j) => j.anio !== anioActual);
 
   return (
     <AppShell nombre={perfil.nombre} rol={perfil.rol}>
@@ -67,7 +75,20 @@ export default async function JornadasPage() {
         </div>
       )}
 
-      {!error && <JornadasList jornadas={jornadasLimpias} />}
+      {!error && (
+        <>
+          <CuadranteAnio anio={anioActual} jornadas={jornadasAnioActual} />
+
+          {jornadasOtrosAnios.length > 0 && (
+            <>
+              <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute mt-5 mb-2.5">
+                Años anteriores
+              </h2>
+              <JornadasList jornadas={jornadasOtrosAnios} />
+            </>
+          )}
+        </>
+      )}
     </AppShell>
   );
 }

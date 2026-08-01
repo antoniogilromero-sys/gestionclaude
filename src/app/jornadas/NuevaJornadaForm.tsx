@@ -11,6 +11,7 @@ export function NuevaJornadaForm({ entrenadores }: { entrenadores: Entrenador[] 
   const router = useRouter();
   const [anio, setAnio] = useState(String(new Date().getFullYear()));
   const [colegio, setColegio] = useState("");
+  const [contacto, setContacto] = useState("");
   const [fechaHorario, setFechaHorario] = useState("");
   const [disciplina, setDisciplina] = useState(DISCIPLINAS_JORNADA[0]);
   const [otraDisciplina, setOtraDisciplina] = useState("");
@@ -41,6 +42,7 @@ export function NuevaJornadaForm({ entrenadores }: { entrenadores: Entrenador[] 
       colegio,
       fechaHorario,
       disciplina: disciplinaFinal,
+      contacto,
       entrenadorIds,
     });
     if ("error" in resultado) {
@@ -106,6 +108,16 @@ export function NuevaJornadaForm({ entrenadores }: { entrenadores: Entrenador[] 
         value={colegio}
         onChange={(e) => setColegio(e.target.value)}
         placeholder="Colegio GSD Guadarrama"
+        className="w-full bg-deep border border-edge text-chalk rounded-lg p-[11px] text-[15px]"
+      />
+
+      <label className="block font-display text-[13px] tracking-[.1em] uppercase text-mute mt-3 mb-[5px]">
+        Contacto del colegio
+      </label>
+      <input
+        value={contacto}
+        onChange={(e) => setContacto(e.target.value)}
+        placeholder="Carmen (opcional)"
         className="w-full bg-deep border border-edge text-chalk rounded-lg p-[11px] text-[15px]"
       />
 
