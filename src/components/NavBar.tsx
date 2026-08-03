@@ -16,7 +16,7 @@ const DIRECTOR_ITEMS: NavItem[] = [
   {
     href: "/administracion",
     label: "Administración",
-    tambien: ["/facturas", "/pedidos", "/jornadas", "/pagos"],
+    tambien: ["/facturas", "/pedidos", "/jornadas", "/pagos", "/horarios"],
   },
 ];
 

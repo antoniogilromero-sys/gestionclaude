@@ -60,6 +60,16 @@ export default async function AdministracionPage() {
           reparto y las tarifas.
         </span>
       </Link>
+      <Link
+        href="/horarios"
+        className="block bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5"
+      >
+        <b className="block text-[16px] font-semibold mb-[3px]">Horarios de entrenamientos</b>
+        <span className="text-sm text-mute">
+          Horario de consulta de Adultos y Escuela: día, disciplina, hora y
+          lugar.
+        </span>
+      </Link>
       <p className="text-xs text-mute leading-relaxed mt-4 pt-3 border-t border-edge">
         Este apartado irá creciendo con más gestiones administrativas del
         club (campamentos...) según haga falta.
