@@ -21,7 +21,7 @@ export default async function InscripcionesPage() {
     supabase
       .from("inscripciones")
       .select(
-        "id, email, nombre_completo, dni, fecha_nacimiento, domicilio, talla_camiseta, dias_piscina, proteccion_datos, derechos_imagen, telefono, deportista_id, creado_en",
+        "id, email, email2, nombre_completo, dni, fecha_nacimiento, domicilio, talla_camiseta, dias_piscina, proteccion_datos, derechos_imagen, telefono, tarifa, deportista_id, creado_en",
       )
       .order("creado_en", { ascending: false }),
     supabase.from("deportistas").select("id, nombre").eq("activo", true).order("nombre"),

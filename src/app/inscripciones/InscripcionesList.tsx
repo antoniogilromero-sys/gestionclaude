@@ -7,6 +7,7 @@ import { vincularDeportista, borrarInscripcion } from "./actions";
 type Inscripcion = {
   id: number;
   email: string;
+  email2: string | null;
   nombre_completo: string;
   dni: string | null;
   fecha_nacimiento: string | null;
@@ -16,6 +17,7 @@ type Inscripcion = {
   proteccion_datos: string | null;
   derechos_imagen: string | null;
   telefono: string | null;
+  tarifa: string | null;
   deportista_id: number | null;
   creado_en: string;
 };
@@ -99,6 +101,16 @@ export function InscripcionesList({
                 {i.telefono && (
                   <p>
                     <span className="text-mute">Teléfono:</span> {i.telefono}
+                  </p>
+                )}
+                {i.email2 && (
+                  <p>
+                    <span className="text-mute">Email 2:</span> {i.email2}
+                  </p>
+                )}
+                {i.tarifa && (
+                  <p>
+                    <span className="text-mute">Tarifa:</span> {i.tarifa}
                   </p>
                 )}
                 {i.domicilio && (

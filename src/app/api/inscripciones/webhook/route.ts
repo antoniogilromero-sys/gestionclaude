@@ -54,6 +54,8 @@ export async function POST(request: NextRequest) {
     proteccion_datos: typeof body.proteccionDatos === "string" ? body.proteccionDatos.trim() || null : null,
     derechos_imagen: typeof body.derechosImagen === "string" ? body.derechosImagen.trim() || null : null,
     telefono: typeof body.telefono === "string" ? body.telefono.trim() || null : null,
+    email2: typeof body.email2 === "string" ? body.email2.trim() || null : null,
+    tarifa: typeof body.tarifa === "string" ? body.tarifa.trim() || null : null,
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

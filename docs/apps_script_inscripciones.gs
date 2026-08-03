@@ -51,6 +51,8 @@ function alRecibirRespuesta(e) {
     proteccionDatos: buscar(nv, "PROTECCION"),
     derechosImagen: buscar(nv, "DERECHOS"),
     telefono: buscar(nv, "TELEFONO"),
+    email2: buscar(nv, "EMAIL 2"),
+    tarifa: buscar(nv, "TARIFA"),
   };
 
   var respuesta = UrlFetchApp.fetch(WEBHOOK_URL, {
