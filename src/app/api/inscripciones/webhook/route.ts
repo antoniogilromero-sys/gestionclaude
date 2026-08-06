@@ -8,14 +8,30 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 function parseFecha(valor: string | undefined): string | null {
   if (!valor) return null;
-  const iso = /^\d{4}-\d{2}-\d{2}$/;
-  if (iso.test(valor)) return valor;
+  const iso = valor.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) {
+    const [, y, m, d] = iso;
+    return fechaValida(y, m, d) ? valor : null;
+  }
   const dmy = valor.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (dmy) {
     const [, d, m, y] = dmy;
+    if (!fechaValida(y, m, d)) return null;
     return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
   return null;
+}
+
+// Algunas fechas del Excel original vienen mal escritas (ej. "8/29/0013",
+// mes 29 o año a cuatro dígitos incompleto) — en vez de que eso rompa el
+// insert entero con un error de Postgres, se descarta esa fecha en
+// concreto y se deja en blanco, para no perder el resto de los datos de
+// esa persona.
+function fechaValida(y: string, m: string, d: string): boolean {
+  const anio = Number(y);
+  const mes = Number(m);
+  const dia = Number(d);
+  return anio >= 1920 && anio <= 2026 && mes >= 1 && mes <= 12 && dia >= 1 && dia <= 31;
 }
 
 export async function POST(request: NextRequest) {
@@ -38,13 +54,13 @@ export async function POST(request: NextRequest) {
 
   const email = typeof body.email === "string" ? body.email.trim() : "";
   const nombreCompleto = typeof body.nombreCompleto === "string" ? body.nombreCompleto.trim() : "";
-  if (!email || !nombreCompleto) {
-    return NextResponse.json({ error: "Faltan email o nombre completo" }, { status: 400 });
+  if (!nombreCompleto) {
+    return NextResponse.json({ error: "Falta el nombre completo" }, { status: 400 });
   }
 
   const supabase = createAdminClient();
   const { error } = await supabase.from("inscripciones").insert({
-    email,
+    email: email || null,
     nombre_completo: nombreCompleto,
     dni: typeof body.dni === "string" ? body.dni.trim() || null : null,
     fecha_nacimiento: parseFecha(typeof body.fechaNacimiento === "string" ? body.fechaNacimiento : undefined),
