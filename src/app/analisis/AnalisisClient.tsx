@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { createClient } from "@/lib/supabase/client";
 import { fmtTiempo, fmtFecha } from "@/lib/formato";
+import { Competiciones } from "./Competiciones";
 
 type Deportista = {
   id: number;
@@ -31,6 +32,17 @@ type TipoTest = {
   distancia_m: number | null;
 };
 type Grupo = { id: number; nombre: string };
+type CompeticionInicial = {
+  id: number;
+  deportista_id: number;
+  anio: number;
+  nombre_carrera: string;
+  fecha: string | null;
+  disciplina: string;
+  tiempo: string | null;
+  clasificacion: string | null;
+  deportistaNombre: string;
+};
 
 type FilaCalc = {
   fecha: string;
@@ -94,12 +106,16 @@ export function AnalisisClient({
   deportistas,
   tiposTest,
   grupos,
+  competiciones,
+  competicionesError,
 }: {
   deportistas: Deportista[];
   tiposTest: TipoTest[];
   grupos: Grupo[];
+  competiciones: CompeticionInicial[];
+  competicionesError: string | null;
 }) {
-  const [tab, setTab] = useState<"deportista" | "grupo">("deportista");
+  const [tab, setTab] = useState<"deportista" | "grupo" | "competiciones">("deportista");
 
   return (
     <div>
@@ -107,7 +123,7 @@ export function AnalisisClient({
         Análisis
       </h2>
       <div className="flex bg-surf border border-edge rounded-[9px] p-1 mb-4">
-        {(["deportista", "grupo"] as const).map((t) => (
+        {(["deportista", "grupo", "competiciones"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -115,16 +131,29 @@ export function AnalisisClient({
               tab === t ? "bg-signal text-[#160800] font-semibold" : "text-mute"
             }`}
           >
-            {t === "deportista" ? "Ficha individual" : "Comparativa de grupo"}
+            {t === "deportista" ? "Ficha" : t === "grupo" ? "Grupo" : "Competiciones"}
           </button>
         ))}
       </div>
 
-      {tab === "deportista" ? (
+      {tab === "deportista" && (
         <FichaIndividual deportistas={deportistas} tiposTest={tiposTest} />
-      ) : (
-        <ComparativaGrupo grupos={grupos} tiposTest={tiposTest} />
       )}
+      {tab === "grupo" && <ComparativaGrupo grupos={grupos} tiposTest={tiposTest} />}
+      {tab === "competiciones" &&
+        (competicionesError ? (
+          <div className="bg-surf border border-run/40 rounded-[10px] p-3.5">
+            <b className="block text-[15px] font-medium mb-1 text-run">
+              No se ha podido cargar el listado
+            </b>
+            <p className="text-sm text-mute leading-relaxed">
+              Puede que falte ejecutar la migración de competiciones en Supabase.
+              Detalle técnico: {competicionesError}
+            </p>
+          </div>
+        ) : (
+          <Competiciones deportistas={deportistas} competiciones={competiciones} />
+        ))}
     </div>
   );
 }
