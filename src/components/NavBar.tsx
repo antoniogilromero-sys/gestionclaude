@@ -9,6 +9,7 @@ const DIRECTOR_ITEMS: NavItem[] = [
   { href: "/reparto", label: "Reparto" },
   { href: "/publicar", label: "Publicar" },
   { href: "/entrenamientos", label: "Entrenamientos" },
+  { href: "/tests", label: "Registrar test" },
   { href: "/resultados", label: "Resultados" },
   { href: "/analisis", label: "Análisis" },
   { href: "/equipo", label: "Equipo" },
