@@ -83,6 +83,26 @@ Decisiones de esta ampliación:
 - Los datos fiscales del emisor (NIF G88525589, dirección) están en
   `src/lib/emisor.ts`, fijos — solo cambian si el club se traslada.
 
+## Ampliación de alcance: rankings internos por categoría
+
+`/rankings` (director y entrenador) muestra, por prueba y año, la mejor
+marca de cada deportista activo — pensado como contenido fácil de
+enseñar en redes ("mejores tiempos 100m libres sub-14 esta temporada").
+
+**Esto toca deliberadamente la frontera de seguridad de `resultados`**
+descrita en `schema.sql` ("el historico de marcas y el analisis, no.
+Solo el director"). Antón, preguntado explícitamente, pidió que los
+entrenadores también vean el ranking. La forma de hacerlo sin abrir esa
+frontera entera fue una función `security definer`
+(`docs/migracion_rankings.sql`, función `mejores_marcas`) que calcula
+SOLO la mejor marca de cada deportista por prueba/año y no expone nada
+más: ni el resto del histórico, ni fechas de intentos anteriores, ni
+RPE/FC/notas. La tabla `resultados` en sí sigue con la misma RLS de
+siempre (entrenador = últimos 7 días, director = todo). Si algún día se
+toca esa función, que siga devolviendo solo el mejor-por-deportista, no
+el listado completo — es la única razón por la que este agujero es
+seguro.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que
