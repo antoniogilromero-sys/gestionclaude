@@ -32,8 +32,11 @@ select id, grupo_id from deportistas where grupo_id is not null
 on conflict do nothing;
 
 -- resultados_calc necesita exponer TODOS los grupos de cada deportista,
--- no uno solo, para que "Comparativa de grupo" siga funcionando.
-create or replace view resultados_calc as
+-- no uno solo, para que "Comparativa de grupo" siga funcionando. Postgres
+-- no deja renombrar una columna de vista con "or replace" (grupo_id ->
+-- grupo_ids), así que hay que borrarla primero.
+drop view if exists resultados_calc;
+create view resultados_calc as
 select r.*,
        d.nombre as deportista,
        coalesce(
