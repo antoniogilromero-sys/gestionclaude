@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { altaDeportista, cambiarActivo, cambiarGrupo } from "./actions";
+import { altaDeportista, cambiarActivo, actualizarGrupos } from "./actions";
 
 type Deportista = {
   id: number;
   ref: string | null;
   nombre: string;
   categoria: string | null;
-  grupo_id: number | null;
+  grupoIds: number[];
   activo: boolean;
 };
 
@@ -25,13 +25,19 @@ export function DeportistasList({
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState<number | null>(null);
+  const [editandoGrupos, setEditandoGrupos] = useState<number | null>(null);
   const [mostrarAlta, setMostrarAlta] = useState(false);
   const [nuevoRef, setNuevoRef] = useState("");
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevaCategoria, setNuevaCategoria] = useState("");
-  const [nuevoGrupo, setNuevoGrupo] = useState("");
+  const [nuevosGrupos, setNuevosGrupos] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+
+  const nombrePorGrupoId = useMemo(
+    () => new Map(grupos.map((g) => [g.id, g.nombre])),
+    [grupos],
+  );
 
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
@@ -42,12 +48,15 @@ export function DeportistasList({
     );
   }, [deportistas, busqueda]);
 
-  async function onCambiarGrupo(id: number, grupoId: string) {
+  async function onGuardarGrupos(id: number, grupoIds: number[]) {
     setCargando(id);
     setError(null);
-    const resultado = await cambiarGrupo(id, grupoId ? Number(grupoId) : null);
+    const resultado = await actualizarGrupos(id, grupoIds);
     if ("error" in resultado) setError(resultado.error);
-    else router.refresh();
+    else {
+      setEditandoGrupos(null);
+      router.refresh();
+    }
     setCargando(null);
   }
 
@@ -71,7 +80,7 @@ export function DeportistasList({
       ref: nuevoRef,
       nombre: nuevoNombre,
       categoria: nuevaCategoria,
-      grupoId: nuevoGrupo ? Number(nuevoGrupo) : null,
+      grupoIds: nuevosGrupos,
     });
     if ("error" in resultado) {
       setError(resultado.error);
@@ -79,7 +88,7 @@ export function DeportistasList({
       setNuevoRef("");
       setNuevoNombre("");
       setNuevaCategoria("");
-      setNuevoGrupo("");
+      setNuevosGrupos([]);
       setMostrarAlta(false);
       router.refresh();
     }
@@ -122,18 +131,14 @@ export function DeportistasList({
             onChange={(e) => setNuevoNombre(e.target.value)}
             className="w-full bg-deep border border-edge text-chalk rounded-lg p-[11px] text-sm mt-2.5"
           />
-          <select
-            value={nuevoGrupo}
-            onChange={(e) => setNuevoGrupo(e.target.value)}
-            className="w-full bg-deep border border-edge text-chalk rounded-lg p-[11px] text-sm mt-2.5"
-          >
-            <option value="">Sin grupo</option>
-            {grupos.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.nombre}
-              </option>
-            ))}
-          </select>
+          <span className="block font-display text-[13px] tracking-[.1em] uppercase text-mute mt-3 mb-[7px]">
+            Grupos
+          </span>
+          <ChipsGrupos
+            grupos={grupos}
+            seleccionados={nuevosGrupos}
+            onCambiar={setNuevosGrupos}
+          />
           <button
             onClick={onAlta}
             disabled={enviando}
@@ -173,24 +178,114 @@ export function DeportistasList({
               {d.activo ? "Dar de baja" : "Reactivar"}
             </button>
           </div>
-          <select
-            value={d.grupo_id ?? ""}
-            disabled={cargando === d.id}
-            onChange={(e) => onCambiarGrupo(d.id, e.target.value)}
-            className="w-full bg-deep border border-edge text-chalk rounded-lg p-2 text-sm"
-          >
-            <option value="">Sin asignar</option>
-            {grupos.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.nombre}
-              </option>
-            ))}
-          </select>
+
+          {editandoGrupos === d.id ? (
+            <EditorGrupos
+              grupos={grupos}
+              grupoIdsIniciales={d.grupoIds}
+              cargando={cargando === d.id}
+              onGuardar={(ids) => onGuardarGrupos(d.id, ids)}
+              onCancelar={() => setEditandoGrupos(null)}
+            />
+          ) : (
+            <button
+              onClick={() => setEditandoGrupos(d.id)}
+              className="w-full text-left bg-deep border border-edge rounded-lg p-2 text-sm text-chalk"
+            >
+              {d.grupoIds.length === 0 ? (
+                <span className="text-mute">Sin grupo asignado</span>
+              ) : (
+                d.grupoIds
+                  .map((id) => nombrePorGrupoId.get(id))
+                  .filter(Boolean)
+                  .join(" · ")
+              )}
+            </button>
+          )}
         </div>
       ))}
       {filtrados.length === 0 && (
         <p className="text-mute text-sm text-center py-6">Sin resultados.</p>
       )}
+    </div>
+  );
+}
+
+function ChipsGrupos({
+  grupos,
+  seleccionados,
+  onCambiar,
+}: {
+  grupos: Grupo[];
+  seleccionados: number[];
+  onCambiar: (ids: number[]) => void;
+}) {
+  function toggle(id: number) {
+    onCambiar(
+      seleccionados.includes(id)
+        ? seleccionados.filter((x) => x !== id)
+        : [...seleccionados, id],
+    );
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {grupos.map((g) => {
+        const on = seleccionados.includes(g.id);
+        return (
+          <button
+            key={g.id}
+            type="button"
+            onClick={() => toggle(g.id)}
+            aria-pressed={on}
+            className={`px-3 py-1.5 rounded-full border font-display text-xs tracking-[.04em] cursor-pointer ${
+              on
+                ? "bg-signal text-[#160800] border-signal font-semibold"
+                : "bg-deep text-mute border-edge"
+            }`}
+          >
+            {g.nombre}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function EditorGrupos({
+  grupos,
+  grupoIdsIniciales,
+  cargando,
+  onGuardar,
+  onCancelar,
+}: {
+  grupos: Grupo[];
+  grupoIdsIniciales: number[];
+  cargando: boolean;
+  onGuardar: (ids: number[]) => void;
+  onCancelar: () => void;
+}) {
+  const [seleccionados, setSeleccionados] = useState<number[]>(grupoIdsIniciales);
+  return (
+    <div className="bg-deep border border-edge rounded-lg p-2.5">
+      <ChipsGrupos grupos={grupos} seleccionados={seleccionados} onCambiar={setSeleccionados} />
+      <div className="flex gap-2 mt-2.5">
+        <button
+          type="button"
+          disabled={cargando}
+          onClick={() => onGuardar(seleccionados)}
+          className="flex-1 bg-signal text-[#160800] rounded-lg min-h-[38px] font-display text-xs tracking-[.08em] uppercase font-semibold cursor-pointer disabled:opacity-60"
+        >
+          {cargando ? "Guardando…" : "Guardar"}
+        </button>
+        <button
+          type="button"
+          disabled={cargando}
+          onClick={onCancelar}
+          className="flex-1 bg-transparent border border-edge text-chalk rounded-lg min-h-[38px] font-display text-xs tracking-[.08em] uppercase cursor-pointer disabled:opacity-60"
+        >
+          Cancelar
+        </button>
+      </div>
     </div>
   );
 }

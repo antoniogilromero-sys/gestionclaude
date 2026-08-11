@@ -18,7 +18,7 @@ type Deportista = {
   ref: string | null;
   nombre: string;
   categoria: string | null;
-  grupo_id: number | null;
+  grupoIds: number[];
   grupoNombre: string | null;
 };
 
@@ -100,8 +100,8 @@ export function TestsClient({
 
   const ordenados = [...deportistas]
     .sort((a, b) => {
-      const mA = a.grupo_id != null && misGrupoSet.has(a.grupo_id) ? 0 : 1;
-      const mB = b.grupo_id != null && misGrupoSet.has(b.grupo_id) ? 0 : 1;
+      const mA = a.grupoIds.some((id) => misGrupoSet.has(id)) ? 0 : 1;
+      const mB = b.grupoIds.some((id) => misGrupoSet.has(id)) ? 0 : 1;
       if (mA !== mB) return mA - mB;
       return (
         (a.grupoNombre ?? "").localeCompare(b.grupoNombre ?? "") ||

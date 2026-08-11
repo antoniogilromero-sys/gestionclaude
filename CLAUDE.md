@@ -83,6 +83,27 @@ Decisiones de esta ampliación:
 - Los datos fiscales del emisor (NIF G88525589, dirección) están en
   `src/lib/emisor.ts`, fijos — solo cambian si el club se traslada.
 
+## Ampliación de alcance: un deportista puede estar en varios grupos
+
+Antón reorganizó los grupos de natación en 13 horarios sueltos por día
+(ej. "Martes Avanzado 19h" y "Jueves Avanzado 19h" en vez de un único
+"Avanzado" que cubría martes y jueves) y confirmó explícitamente que un
+mismo deportista puede estar apuntado a varios de esos horarios a la
+vez. Por eso `deportistas.grupo_id` (una relación única) dejó de ser
+suficiente: ahora la relación deportista↔grupo vive en la tabla
+`deportista_grupo` (muchos a muchos, `docs/migracion_grupos_multiples.sql`).
+
+**La columna `deportistas.grupo_id` se queda en la tabla pero la app ya
+no la usa para nada** — no la reintroduzcas pensando que es la fuente de
+verdad, es un resto histórico. La UI de `/deportistas` cambió de un
+desplegable de un grupo a chips para marcar varios, guardados de golpe
+con la función `set_grupos_deportista(deportista_id, grupo_ids[])`.
+
+`resultados_calc` ahora expone `grupo_ids` (array) en vez de `grupo_id`;
+donde antes se filtraba con `.eq("grupo_id", x)` ahora se filtra con
+`.contains("grupo_ids", [x])` — así aparece en la comparativa de un
+deportista cualquier grupo al que pertenezca, sin duplicar sus marcas.
+
 ## Ampliación de alcance: rankings internos por categoría
 
 `/rankings` (director y entrenador) muestra, por prueba y año, la mejor

@@ -6,7 +6,7 @@ type FilaExport = {
   fecha: string;
   deportista: string;
   deportista_id: number;
-  grupo_id: number | null;
+  grupo_ids: number[] | null;
   test: string;
   disciplina: string;
   metrica: string;
@@ -53,14 +53,14 @@ export async function GET(request: Request) {
     let query = supabase
       .from("resultados_calc")
       .select(
-        "fecha, deportista, deportista_id, grupo_id, test, disciplina, metrica, tiempo_s, distancia_m, potencia_w, ritmo_s, fc_media, fc_max, fc_1min, rpe, registrado_por, notas",
+        "fecha, deportista, deportista_id, grupo_ids, test, disciplina, metrica, tiempo_s, distancia_m, potencia_w, ritmo_s, fc_media, fc_max, fc_1min, rpe, registrado_por, notas",
       )
       .order("fecha", { ascending: false })
       .order("deportista_id", { ascending: true })
       .range(desdeFila, desdeFila + TAMANO_PAGINA - 1);
 
     if (testId) query = query.eq("tipo_test_id", Number(testId));
-    if (grupoId) query = query.eq("grupo_id", Number(grupoId));
+    if (grupoId) query = query.contains("grupo_ids", [Number(grupoId)]);
     if (desde) query = query.gte("fecha", desde);
     if (hasta) query = query.lte("fecha", hasta);
 
@@ -117,7 +117,10 @@ export async function GET(request: Request) {
       ref: dep?.ref ?? "",
       deportista: r.deportista,
       categoria: dep?.categoria ?? "",
-      grupo: r.grupo_id ? (grupoPorId.get(r.grupo_id) ?? "") : "",
+      grupo: (r.grupo_ids ?? [])
+        .map((id) => grupoPorId.get(id))
+        .filter(Boolean)
+        .join(", "),
       prueba: r.test,
       marca,
       ritmo,

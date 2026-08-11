@@ -7,7 +7,6 @@ type Fila = {
   id: number;
   fecha: string;
   deportista: string;
-  grupo_id: number | null;
   test: string;
   disciplina: string;
   metrica: string;
@@ -50,13 +49,13 @@ export default async function ResultadosPage({
   let query = supabase
     .from("resultados_calc")
     .select(
-      "id, fecha, deportista, grupo_id, test, disciplina, metrica, tiempo_s, distancia_m, potencia_w, registrado_por",
+      "id, fecha, deportista, grupo_ids, test, disciplina, metrica, tiempo_s, distancia_m, potencia_w, registrado_por",
     )
     .order("fecha", { ascending: false })
     .limit(500);
 
   if (params.test) query = query.eq("tipo_test_id", Number(params.test));
-  if (params.grupo) query = query.eq("grupo_id", Number(params.grupo));
+  if (params.grupo) query = query.contains("grupo_ids", [Number(params.grupo)]);
   if (params.desde) query = query.gte("fecha", params.desde);
   if (params.hasta) query = query.lte("fecha", params.hasta);
 

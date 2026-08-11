@@ -16,8 +16,7 @@ type Marca = {
   deportista_id: number;
   deportista: string;
   categoria: string | null;
-  grupo_id: number | null;
-  grupo: string | null;
+  grupos: string | null;
   tipo_test_id: number;
   test: string;
   disciplina: string;
@@ -232,7 +231,7 @@ export function RankingsClient({
                   <Td>
                     <b className="font-medium">{m.deportista}</b>
                     <span className="block text-xs text-mute">
-                      {m.grupo ?? "Sin grupo"}
+                      {m.grupos ?? "Sin grupo"}
                     </span>
                   </Td>
                   <Td className="text-mute">{m.categoria ?? "—"}</Td>

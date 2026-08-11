@@ -25,13 +25,13 @@ async function requireDirector(): Promise<DirectorCheck> {
   return { ok: true, supabase };
 }
 
-export async function cambiarGrupo(deportistaId: number, grupoId: number | null): Promise<Resultado> {
+export async function actualizarGrupos(deportistaId: number, grupoIds: number[]): Promise<Resultado> {
   const r = await requireDirector();
   if (!r.ok) return { error: r.error };
-  const { error } = await r.supabase
-    .from("deportistas")
-    .update({ grupo_id: grupoId })
-    .eq("id", deportistaId);
+  const { error } = await r.supabase.rpc("set_grupos_deportista", {
+    p_deportista_id: deportistaId,
+    p_grupo_ids: grupoIds,
+  });
   if (error) return { error: error.message };
   return { ok: true };
 }
@@ -51,17 +51,27 @@ export async function altaDeportista(input: {
   ref: string;
   nombre: string;
   categoria: string;
-  grupoId: number | null;
+  grupoIds: number[];
 }): Promise<Resultado> {
   const r = await requireDirector();
   if (!r.ok) return { error: r.error };
   if (!input.nombre.trim()) return { error: "Falta el nombre" };
-  const { error } = await r.supabase.from("deportistas").insert({
-    ref: input.ref.trim() || null,
-    nombre: input.nombre.trim(),
-    categoria: input.categoria.trim() || null,
-    grupo_id: input.grupoId,
-  });
+  const { data, error } = await r.supabase
+    .from("deportistas")
+    .insert({
+      ref: input.ref.trim() || null,
+      nombre: input.nombre.trim(),
+      categoria: input.categoria.trim() || null,
+    })
+    .select("id")
+    .single();
   if (error) return { error: error.message };
+  if (input.grupoIds.length > 0) {
+    const { error: eGrupos } = await r.supabase.rpc("set_grupos_deportista", {
+      p_deportista_id: data.id,
+      p_grupo_ids: input.grupoIds,
+    });
+    if (eGrupos) return { error: eGrupos.message };
+  }
   return { ok: true };
 }

@@ -21,7 +21,7 @@ export default async function TestsPage() {
 
   const semana = toISODateLocal(lunesDe(new Date()));
 
-  const [{ data: tiposTest }, { data: deportistas }, { data: misAsignaciones }, { data: grupos }] =
+  const [{ data: tiposTest }, { data: deportistas }, { data: misAsignaciones }, { data: grupos }, { data: depGrupos }] =
     await Promise.all([
       supabase
         .from("tipos_test")
@@ -30,7 +30,7 @@ export default async function TestsPage() {
         .order("id"),
       supabase
         .from("deportistas")
-        .select("id, ref, nombre, categoria, grupo_id, grupos(nombre)")
+        .select("id, ref, nombre, categoria")
         .eq("activo", true)
         .order("nombre"),
       supabase
@@ -39,19 +39,29 @@ export default async function TestsPage() {
         .eq("entrenador_id", user.id)
         .eq("semana", semana),
       supabase.from("grupos").select("id, nombre"),
+      supabase.from("deportista_grupo").select("deportista_id, grupo_id"),
     ]);
 
   const misGrupoIds = [...new Set((misAsignaciones ?? []).map((a) => a.grupo_id))];
 
+  const nombrePorGrupoId = new Map((grupos ?? []).map((g) => [g.id, g.nombre]));
+  const gruposPorDeportista = new Map<number, number[]>();
+  (depGrupos ?? []).forEach((dg) => {
+    const arr = gruposPorDeportista.get(dg.deportista_id) ?? [];
+    arr.push(dg.grupo_id);
+    gruposPorDeportista.set(dg.deportista_id, arr);
+  });
+
   const deportistasLimpios = (deportistas ?? []).map((d) => {
-    const g = d.grupos as unknown as { nombre: string } | { nombre: string }[] | null;
-    const grupoNombre = Array.isArray(g) ? (g[0]?.nombre ?? null) : (g?.nombre ?? null);
+    const grupoIds = gruposPorDeportista.get(d.id) ?? [];
+    const grupoNombre =
+      grupoIds.map((id) => nombrePorGrupoId.get(id)).filter(Boolean).join(" · ") || null;
     return {
       id: d.id as number,
       ref: d.ref as string | null,
       nombre: d.nombre as string,
       categoria: d.categoria as string | null,
-      grupo_id: d.grupo_id as number | null,
+      grupoIds,
       grupoNombre,
     };
   });

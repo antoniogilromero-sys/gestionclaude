@@ -21,7 +21,6 @@ type Deportista = {
   nombre: string;
   ref: string | null;
   categoria: string | null;
-  grupo_id: number | null;
 };
 type TipoTest = {
   id: number;
@@ -385,9 +384,9 @@ function ComparativaGrupo({ grupos, tiposTest }: { grupos: Grupo[]; tiposTest: T
     supabase
       .from("resultados_calc")
       .select(
-        "fecha, tiempo_s, distancia_m, potencia_w, fc_media, rpe, ritmo_s, disciplina, deportista, deportista_id, grupo_id",
+        "fecha, tiempo_s, distancia_m, potencia_w, fc_media, rpe, ritmo_s, disciplina, deportista, deportista_id, grupo_ids",
       )
-      .eq("grupo_id", grupoId)
+      .contains("grupo_ids", [grupoId])
       .eq("tipo_test_id", testId)
       .order("fecha", { ascending: false })
       .then(({ data }) => {

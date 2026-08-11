@@ -21,7 +21,7 @@ export default async function AnalisisPage() {
     await Promise.all([
       supabase
         .from("deportistas")
-        .select("id, nombre, ref, categoria, grupo_id")
+        .select("id, nombre, ref, categoria")
         .eq("activo", true)
         .order("nombre"),
       supabase
