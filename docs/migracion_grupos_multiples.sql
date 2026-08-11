@@ -68,7 +68,10 @@ join tipos_test  t on t.id = r.tipo_test_id;
 
 -- mejores_marcas() (Rankings) también devolvía un único grupo por
 -- deportista: ahora devuelve los nombres de todos sus grupos juntos.
-create or replace function mejores_marcas(p_anio int default extract(year from current_date)::int)
+-- Igual que con la vista: cambiar la forma de las columnas de salida
+-- obliga a borrar la función antes de recrearla.
+drop function if exists mejores_marcas(int);
+create function mejores_marcas(p_anio int default extract(year from current_date)::int)
 returns table (
   deportista_id bigint,
   deportista    text,
