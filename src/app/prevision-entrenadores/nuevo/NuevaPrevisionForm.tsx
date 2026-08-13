@@ -16,7 +16,7 @@ const DIAS = [
 
 const DISCIPLINAS = [
   { value: "natacion", label: "Natación", color: "#43C6E0" },
-  { value: "carrera", label: "Atletismo", color: "#F2C744" },
+  { value: "carrera", label: "Atletismo", color: "#FF6EC7" },
   { value: "mtb", label: "MTB", color: "#D2691E" },
   { value: "carretera", label: "Carretera", color: "#8FCB4F" },
   { value: "fuerza", label: "Fuerza", color: "#E0A93D" },

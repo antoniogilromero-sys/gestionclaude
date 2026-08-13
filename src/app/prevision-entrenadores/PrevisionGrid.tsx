@@ -29,7 +29,7 @@ const ABREV_DIAS: Record<string, string> = {
 // Mismos colores que la leyenda del Excel de Antón.
 const COLOR_DISCIPLINA: Record<string, string> = {
   natacion: "#43C6E0",
-  carrera: "#F2C744",
+  carrera: "#FF6EC7",
   mtb: "#D2691E",
   carretera: "#8FCB4F",
   fuerza: "#E0A93D",
