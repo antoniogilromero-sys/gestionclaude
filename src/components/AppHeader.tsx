@@ -40,8 +40,11 @@ export function AppHeader({
 
   return (
     <header className="bg-surf border-b border-edge px-[18px] pt-[14px] pb-3">
-      <div className="font-display text-[13px] tracking-[.16em] uppercase text-mute">
-        C.D.E. Triatlón Alpedrete
+      <div className="flex items-center gap-1.5">
+        <img src="/logo-club.png" alt="" className="w-4 h-4 object-contain shrink-0" />
+        <div className="font-display text-[13px] tracking-[.16em] uppercase text-mute">
+          C.D.E. Triatlón Alpedrete
+        </div>
       </div>
       <div className="mt-[3px] flex items-center justify-between gap-2.5">
         {editando ? (

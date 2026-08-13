@@ -15,8 +15,14 @@ const barlow = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://triatlonalpedrete.vercel.app"),
   title: "C.D.E. Triatlón Alpedrete",
   description: "Gestión de entrenamientos y tests del club",
+  openGraph: {
+    title: "C.D.E. Triatlón Alpedrete",
+    description: "Gestión de entrenamientos y tests del club",
+    images: ["/logo-club.png"],
+  },
 };
 
 export default function RootLayout({
