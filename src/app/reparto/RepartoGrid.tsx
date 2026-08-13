@@ -46,6 +46,7 @@ function franjasSolapan(a: Grupo, b: Grupo) {
 }
 
 export function RepartoGrid({
+  esDirector,
   semana,
   semanaAnterior,
   semanaSiguiente,
@@ -56,6 +57,7 @@ export function RepartoGrid({
   personal,
   personalError,
 }: {
+  esDirector: boolean;
   semana: string;
   semanaAnterior: string;
   semanaSiguiente: string;
@@ -136,7 +138,7 @@ export function RepartoGrid({
 
   return (
     <div>
-      <CuadroPersonal personal={personal} error={personalError} />
+      {esDirector && <CuadroPersonal personal={personal} error={personalError} />}
 
       {sinEquipo && (
         <div className="bg-surf border border-signal/40 rounded-[10px] p-3.5 mb-4">
@@ -177,15 +179,19 @@ export function RepartoGrid({
 
       <ResumenSemanaVisual grupos={grupos} entrenadores={entrenadores} asignado={asignado} />
 
-      <button
-        onClick={copiarAnterior}
-        disabled={copiando}
-        className="w-full bg-transparent border border-edge text-chalk rounded-[9px] py-2.5 font-display text-sm tracking-[.05em] uppercase cursor-pointer mb-4 disabled:opacity-60"
-      >
-        {copiando ? "Copiando…" : "Copiar reparto de la semana anterior"}
-      </button>
-      {avisoCopia && <p className="text-mute text-[13px] -mt-2.5 mb-4">{avisoCopia}</p>}
-      {error && <p className="text-run text-[13px] -mt-2.5 mb-4">{error}</p>}
+      {esDirector && (
+        <>
+          <button
+            onClick={copiarAnterior}
+            disabled={copiando}
+            className="w-full bg-transparent border border-edge text-chalk rounded-[9px] py-2.5 font-display text-sm tracking-[.05em] uppercase cursor-pointer mb-4 disabled:opacity-60"
+          >
+            {copiando ? "Copiando…" : "Copiar reparto de la semana anterior"}
+          </button>
+          {avisoCopia && <p className="text-mute text-[13px] -mt-2.5 mb-4">{avisoCopia}</p>}
+          {error && <p className="text-run text-[13px] -mt-2.5 mb-4">{error}</p>}
+        </>
+      )}
 
       {!sinEquipo && (sinEntrenador.length > 0 || solapes.length > 0) && (
         <div className="bg-surf border border-run/40 rounded-[10px] p-3 mb-4 space-y-1">
@@ -223,6 +229,21 @@ export function RepartoGrid({
                 <div className="flex flex-wrap gap-[7px]">
                   {entrenadores.map((e) => {
                     const activo = asignado.has(key(g.id, e.id));
+                    if (!esDirector) {
+                      // Solo lectura: mismo aspecto, sin poder tocarlo.
+                      return (
+                        <span
+                          key={e.id}
+                          className={`min-h-[44px] px-4 rounded-full border text-[14px] flex items-center select-none ${
+                            activo
+                              ? "bg-signal text-[#160800] border-signal font-semibold"
+                              : "bg-deep text-mute border-edge opacity-50"
+                          }`}
+                        >
+                          {e.nombre}
+                        </span>
+                      );
+                    }
                     return (
                       <button
                         key={e.id}
@@ -244,7 +265,9 @@ export function RepartoGrid({
         </div>
       ))}
 
-      <CosteSemanal grupos={grupos} entrenadores={entrenadores} asignado={asignado} tarifas={tarifas} />
+      {esDirector && (
+        <CosteSemanal grupos={grupos} entrenadores={entrenadores} asignado={asignado} tarifas={tarifas} />
+      )}
     </div>
   );
 }

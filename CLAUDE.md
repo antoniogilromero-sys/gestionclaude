@@ -124,6 +124,32 @@ toca esa función, que siga devolviendo solo el mejor-por-deportista, no
 el listado completo — es la única razón por la que este agujero es
 seguro.
 
+## Ampliación de alcance: qué ven los entrenadores
+
+Antón pidió abrir a los entrenadores: Inicio, Reparto, Entrenamientos,
+Registrar test, Grupos y Competiciones (dentro de Análisis).
+
+- **Reparto es de solo lectura para el entrenador**, y le faltan dos
+  bloques enteros: el coste/sueldo semanal por entrenador y el cuadro de
+  personal (email/teléfono). Antón lo confirmó explícitamente al
+  preguntarle — no dio por hecho que "ver reparto" incluyera sueldos
+  ajenos. `RepartoGrid` recibe un `esDirector` que oculta esos dos
+  bloques y convierte los botones de asignar en `<span>` no clicables
+  para quien no sea director. La página también deja de pedir
+  `tarifas_entrenador`/`personal_temporada` a la API si no es director,
+  no solo de mostrarlo (menos superficie, no solo CSS).
+- **Competiciones se separó de `/analisis` a su propia ruta
+  `/competiciones`**, visible para ambos roles, porque `/analisis`
+  entero sigue siendo solo-director (Ficha y Grupo tocan el histórico de
+  marcas, que es la frontera de seguridad de siempre). El entrenador ve
+  la lista pero no puede crear ni borrar resultados (`soloLectura` en el
+  componente `Competiciones`, más el guard `requireDirector()` de
+  siempre en las server actions — las dos cosas, no solo la UI). Esto
+  obligó a ampliar la política de lectura de la tabla `competiciones` de
+  `es_director()` a `aprobado()` — ver
+  `docs/migracion_competiciones_lectura_entrenadores.sql`. Crear/borrar
+  sigue siendo solo del director, sin tocar.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que

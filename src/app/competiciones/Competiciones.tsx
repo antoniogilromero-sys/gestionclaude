@@ -22,9 +22,11 @@ const DISCIPLINAS = ["Duatlón", "Triatlón", "Acuatlón"];
 export function Competiciones({
   deportistas,
   competiciones,
+  soloLectura = false,
 }: {
   deportistas: Deportista[];
   competiciones: Competicion[];
+  soloLectura?: boolean;
 }) {
   const router = useRouter();
   const [mostrarForm, setMostrarForm] = useState(false);
@@ -37,15 +39,17 @@ export function Competiciones({
         <h3 className="font-display text-[13px] tracking-[.1em] uppercase text-mute">
           Resultados de competiciones
         </h3>
-        <button
-          onClick={() => setMostrarForm((v) => !v)}
-          className="font-display text-xs tracking-[.08em] uppercase text-signal cursor-pointer"
-        >
-          {mostrarForm ? "Cancelar" : "+ Nueva"}
-        </button>
+        {!soloLectura && (
+          <button
+            onClick={() => setMostrarForm((v) => !v)}
+            className="font-display text-xs tracking-[.08em] uppercase text-signal cursor-pointer"
+          >
+            {mostrarForm ? "Cancelar" : "+ Nueva"}
+          </button>
+        )}
       </div>
 
-      {mostrarForm && (
+      {!soloLectura && mostrarForm && (
         <NuevaCompeticionForm
           deportistas={deportistas}
           onGuardado={() => {
@@ -68,7 +72,12 @@ export function Competiciones({
             {competiciones
               .filter((c) => c.anio === anio)
               .map((c) => (
-                <FilaCompeticion key={c.id} c={c} onBorrado={() => router.refresh()} />
+                <FilaCompeticion
+                  key={c.id}
+                  c={c}
+                  soloLectura={soloLectura}
+                  onBorrado={() => router.refresh()}
+                />
               ))}
           </div>
         ))
@@ -77,7 +86,15 @@ export function Competiciones({
   );
 }
 
-function FilaCompeticion({ c, onBorrado }: { c: Competicion; onBorrado: () => void }) {
+function FilaCompeticion({
+  c,
+  soloLectura,
+  onBorrado,
+}: {
+  c: Competicion;
+  soloLectura: boolean;
+  onBorrado: () => void;
+}) {
   const [confirmando, setConfirmando] = useState(false);
   const [borrando, setBorrando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,30 +133,31 @@ function FilaCompeticion({ c, onBorrado }: { c: Competicion; onBorrado: () => vo
           )}
           {error && <p className="text-run text-xs mt-1">{error}</p>}
         </div>
-        {confirmando ? (
-          <div className="shrink-0 flex gap-1.5">
+        {!soloLectura &&
+          (confirmando ? (
+            <div className="shrink-0 flex gap-1.5">
+              <button
+                onClick={onBorrar}
+                disabled={borrando}
+                className="min-h-[40px] px-2.5 rounded-lg border border-run text-run font-display text-[11px] tracking-[.06em] uppercase cursor-pointer disabled:opacity-60"
+              >
+                {borrando ? "…" : "Sí"}
+              </button>
+              <button
+                onClick={() => setConfirmando(false)}
+                className="min-h-[40px] px-2.5 rounded-lg border border-edge text-mute font-display text-[11px] tracking-[.06em] uppercase cursor-pointer"
+              >
+                No
+              </button>
+            </div>
+          ) : (
             <button
-              onClick={onBorrar}
-              disabled={borrando}
-              className="min-h-[40px] px-2.5 rounded-lg border border-run text-run font-display text-[11px] tracking-[.06em] uppercase cursor-pointer disabled:opacity-60"
+              onClick={() => setConfirmando(true)}
+              className="shrink-0 min-h-[40px] px-2.5 rounded-lg border border-edge text-mute font-display text-[11px] tracking-[.06em] uppercase cursor-pointer"
             >
-              {borrando ? "…" : "Sí"}
+              Borrar
             </button>
-            <button
-              onClick={() => setConfirmando(false)}
-              className="min-h-[40px] px-2.5 rounded-lg border border-edge text-mute font-display text-[11px] tracking-[.06em] uppercase cursor-pointer"
-            >
-              No
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setConfirmando(true)}
-            className="shrink-0 min-h-[40px] px-2.5 rounded-lg border border-edge text-mute font-display text-[11px] tracking-[.06em] uppercase cursor-pointer"
-          >
-            Borrar
-          </button>
-        )}
+          ))}
       </div>
     </div>
   );
