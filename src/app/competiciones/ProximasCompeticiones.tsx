@@ -13,7 +13,10 @@ type Proxima = {
   notas: string | null;
 };
 
-const DISCIPLINAS = ["Duatlón", "Triatlón", "Acuatlón"];
+// Más amplio que en Resultados (Competiciones.tsx): el calendario de
+// próximas también recoge carreras sueltas de running/natación a las que
+// va gente del club, no solo triatlón/duatlón/acuatlón.
+const DISCIPLINAS = ["Triatlón", "Duatlón", "Acuatlón", "Natación", "Carrera", "SwimRun", "Otro"];
 
 function fechaPasada(fecha: string | null) {
   if (!fecha) return false;
