@@ -25,6 +25,7 @@ export function DeportistasList({
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState<number | null>(null);
+  const [copiadoId, setCopiadoId] = useState<number | null>(null);
   const [editandoGrupos, setEditandoGrupos] = useState<number | null>(null);
   const [mostrarAlta, setMostrarAlta] = useState(false);
   const [nuevoRef, setNuevoRef] = useState("");
@@ -58,6 +59,13 @@ export function DeportistasList({
       router.refresh();
     }
     setCargando(null);
+  }
+
+  async function copiarEnlaceStrava(id: number) {
+    const url = `https://triatlonalpedrete.vercel.app/strava-conectar/${id}`;
+    await navigator.clipboard.writeText(url);
+    setCopiadoId(id);
+    setTimeout(() => setCopiadoId((v) => (v === id ? null : v)), 2000);
   }
 
   async function onCambiarActivo(id: number, activo: boolean) {
@@ -170,13 +178,22 @@ export function DeportistasList({
                 {!d.activo && " · de baja"}
               </span>
             </div>
-            <button
-              disabled={cargando === d.id}
-              onClick={() => onCambiarActivo(d.id, !d.activo)}
-              className="shrink-0 bg-transparent border border-edge text-chalk rounded-lg min-h-[44px] px-3 flex items-center justify-center font-display text-xs tracking-[.06em] uppercase cursor-pointer disabled:opacity-60"
-            >
-              {d.activo ? "Dar de baja" : "Reactivar"}
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => copiarEnlaceStrava(d.id)}
+                title="Copiar enlace para conectar Strava"
+                className="bg-transparent border border-edge text-mute rounded-lg min-h-[44px] px-2.5 flex items-center justify-center font-display text-xs tracking-[.04em] cursor-pointer"
+              >
+                {copiadoId === d.id ? "Copiado ✓" : "Enlace Strava"}
+              </button>
+              <button
+                disabled={cargando === d.id}
+                onClick={() => onCambiarActivo(d.id, !d.activo)}
+                className="bg-transparent border border-edge text-chalk rounded-lg min-h-[44px] px-3 flex items-center justify-center font-display text-xs tracking-[.06em] uppercase cursor-pointer disabled:opacity-60"
+              >
+                {d.activo ? "Dar de baja" : "Reactivar"}
+              </button>
+            </div>
           </div>
 
           {editandoGrupos === d.id ? (

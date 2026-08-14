@@ -30,6 +30,11 @@ type TipoTest = {
   distancia_m: number | null;
 };
 type Grupo = { id: number; nombre: string };
+type ResumenStrava = {
+  conectado: boolean;
+  actividades: { id: number; nombre: string; tipo: string; distancia_m: number; tiempo_s: number; fecha: string }[];
+  semanas: { semana: string; km: number; horas: number; sesiones: number }[];
+};
 
 type FilaCalc = {
   fecha: string;
@@ -138,6 +143,8 @@ function FichaIndividual({
   const [testId, setTestId] = useState<number | undefined>(tiposTest[0]?.id);
   const [filas, setFilas] = useState<FilaCalc[]>([]);
   const [filasKey, setFilasKey] = useState<string | null>(null);
+  const [strava, setStrava] = useState<ResumenStrava | null>(null);
+  const [stravaCargando, setStravaCargando] = useState(false);
 
   const test = tiposTest.find((t) => t.id === testId);
   const clave = deportistaId && testId ? `${deportistaId}:${testId}` : null;
@@ -158,6 +165,17 @@ function FichaIndividual({
         setFilasKey(clave);
       });
   }, [deportistaId, testId]);
+
+  useEffect(() => {
+    if (!deportistaId) return;
+    setStrava(null);
+    setStravaCargando(true);
+    fetch(`/api/strava/resumen?deportistaId=${deportistaId}`)
+      .then((r) => r.json())
+      .then((data) => setStrava("conectado" in data ? data : { conectado: false, actividades: [], semanas: [] }))
+      .catch(() => setStrava({ conectado: false, actividades: [], semanas: [] }))
+      .finally(() => setStravaCargando(false));
+  }, [deportistaId]);
 
   const datosGrafico = useMemo(() => {
     if (!test) return [];
@@ -223,6 +241,8 @@ function FichaIndividual({
           {test.mejor_es === "menor" ? "Más bajo es mejor" : "Más alto es mejor"}
         </p>
       )}
+
+      {!stravaCargando && strava?.conectado && <ResumenStravaCard resumen={strava} />}
 
       {cargando ? (
         <p className="text-mute text-sm py-6 text-center">Cargando…</p>
@@ -474,6 +494,60 @@ function ComparativaGrupo({ grupos, tiposTest }: { grupos: Grupo[]; tiposTest: T
             </table>
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+const ICONO_TIPO: Record<string, string> = {
+  Run: "🏃",
+  Swim: "🏊",
+  Ride: "🚴",
+  VirtualRide: "🚴",
+  WeightTraining: "🏋️",
+};
+
+function fmtFechaCorta(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" });
+}
+
+function ResumenStravaCard({ resumen }: { resumen: ResumenStrava }) {
+  const ultimasSemanas = resumen.semanas.slice(0, 4);
+  const totalKm = ultimasSemanas.reduce((s, w) => s + w.km, 0);
+  const totalHoras = ultimasSemanas.reduce((s, w) => s + w.horas, 0);
+
+  return (
+    <div className="bg-surf border border-edge rounded-[10px] p-3.5 mb-3.5">
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <span className="w-2 h-2 rounded-full bg-[#FC4C02]" />
+        <b className="font-display text-[12px] tracking-[.1em] uppercase text-mute">
+          Strava · últimas 4 semanas
+        </b>
+      </div>
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="bg-deep border border-edge rounded-lg p-2.5">
+          <span className="text-[11px] text-mute block mb-0.5">KM</span>
+          <b className="font-display text-[18px]">{totalKm.toFixed(1)}</b>
+        </div>
+        <div className="bg-deep border border-edge rounded-lg p-2.5">
+          <span className="text-[11px] text-mute block mb-0.5">HORAS</span>
+          <b className="font-display text-[18px]">{totalHoras.toFixed(1)}</b>
+        </div>
+      </div>
+      {resumen.actividades.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          {resumen.actividades.slice(0, 5).map((a) => (
+            <div key={a.id} className="flex items-center justify-between text-xs gap-2">
+              <span className="text-chalk truncate">
+                {ICONO_TIPO[a.tipo] ?? "•"} {a.nombre}
+              </span>
+              <span className="text-mute shrink-0 tabular-nums">
+                {(a.distancia_m / 1000).toFixed(1)} km · {fmtFechaCorta(a.fecha)}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

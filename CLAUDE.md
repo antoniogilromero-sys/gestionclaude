@@ -150,6 +150,43 @@ Registrar test, Grupos y Competiciones (dentro de Análisis).
   `docs/migracion_competiciones_lectura_entrenadores.sql`. Crear/borrar
   sigue siendo solo del director, sin tocar.
 
+## Ampliación de alcance: conexión con Strava
+
+Muchos deportistas ya usan Strava, así que además de los tests manuales
+(`/tests`) el director puede ver su volumen real de entrenamiento
+(`/analisis`, pestaña Ficha). Decisiones tomadas al construirlo:
+
+- **Los deportistas no tienen cuenta en la app** (solo director/entrenador
+  la usan). Por eso conectar Strava es un enlace público sin login, igual
+  que `/horario-publico`: `/strava-conectar/[id]`. El director copia el
+  enlace de cada deportista desde `/deportistas` (botón "Enlace Strava") y
+  se lo manda por WhatsApp; el deportista lo abre, pulsa "Conectar con
+  Strava" una vez, y ya está.
+- **No se guarda ninguna actividad.** Solo existe `strava_conexiones`
+  (token + refresh_token por deportista, `docs/migracion_strava.sql`). Las
+  actividades se piden a la API de Strava en directo cada vez que se abre
+  la ficha del deportista (`src/lib/strava.ts`,
+  `/api/strava/resumen`), incluyendo la renovación automática del token
+  cuando caduca (dura ~6h). Menos datos guardados del deportista, menos
+  que proteger — coherente con "sin datos personales sensibles" del
+  encargo original.
+- El alta del token (tras autorizar en Strava) y su renovación **solo las
+  hace el servidor con la clave de servicio** (`createAdminClient`, mismo
+  patrón que el webhook de inscripciones) — no hay política de
+  insert/update/delete en `strava_conexiones`, así que nadie puede escribir
+  ahí desde el navegador.
+- Hacen falta dos variables de entorno en Vercel: `STRAVA_CLIENT_ID` y
+  `STRAVA_CLIENT_SECRET` (de la app registrada en
+  https://www.strava.com/settings/api, con "Authorization Callback Domain"
+  = `triatlonalpedrete.vercel.app`). Si el dominio de la app vuelve a
+  cambiar, hay que actualizar tanto eso en Strava como el `SITE_URL` fijo
+  en `src/app/strava-conectar/[id]/page.tsx` y `/api/strava/callback`.
+- Por ahora el resumen solo se ve en `/analisis`, que sigue siendo
+  solo-director (misma frontera de siempre: histórico de rendimiento
+  individual). La API `/api/strava/resumen` ya admite también entrenador
+  por si algún día se abre esa pestaña como se hizo con
+  `/rankings` — no lo des por hecho sin que Antón lo pida explícitamente.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que
