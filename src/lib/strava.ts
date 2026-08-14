@@ -1,10 +1,18 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { calcularDerivaFC, calcularGAP, calcularIF, calcularTSS, calcularVI, type PuntoStream } from "@/lib/stravaMetricas";
 
 // Integración con la API de Strava. Un deportista se conecta una vez desde
 // /strava-conectar/[id] (enlace público, sin login) y a partir de ahí se
-// puede ver su resumen de entrenamientos en /analisis. No se guarda
-// ninguna actividad en la base de datos: se pide en directo a Strava cada
-// vez que se abre la ficha, así que no hay nada que sincronizar.
+// puede ver su resumen de entrenamientos en /analisis.
+//
+// Hay dos niveles:
+//   - El resumen ligero (km, horas, ritmo, FC media) se pide en directo a
+//     Strava cada vez que se abre la ficha — nada se guarda.
+//   - Las métricas avanzadas (NP/IF/VI/TSS en ciclismo, GAP y deriva de FC
+//     en carrera) sí que se guardan en `strava_actividades`, porque
+//     calcularlas exige descargar el segundo a segundo de cada actividad
+//     y pedirlo en directo cada vez agotaría el límite de Strava. Solo se
+//     actualizan cuando el director pulsa "Sincronizar" en la ficha.
 //
 // STRAVA_CLIENT_ID y STRAVA_CLIENT_SECRET tienen que estar en las
 // variables de entorno de Vercel (y en .env.local si se prueba en local).
@@ -230,4 +238,145 @@ export async function obtenerResumenStrava(deportistaId: number): Promise<Resume
     totalesPorDisciplina,
     semanas,
   };
+}
+
+// -------------------------------------------------- MÉTRICAS AVANZADAS
+
+type ActividadDetalleCruda = {
+  id: number;
+  name: string;
+  type: string;
+  distance: number;
+  moving_time: number;
+  start_date_local: string;
+  total_elevation_gain: number;
+  average_heartrate?: number | null;
+  max_heartrate?: number | null;
+  average_cadence?: number | null;
+  average_watts?: number | null;
+  weighted_average_watts?: number | null;
+  device_watts?: boolean;
+};
+
+type StreamStrava = { data: number[] };
+type StreamsPorTipo = {
+  time?: StreamStrava;
+  distance?: StreamStrava;
+  velocity_smooth?: StreamStrava;
+  grade_smooth?: StreamStrava;
+  heartrate?: StreamStrava;
+  watts?: StreamStrava;
+};
+
+async function obtenerStreamsActividad(
+  actividadId: number,
+  token: string,
+): Promise<PuntoStream[] | null> {
+  const res = await fetch(
+    `${STRAVA_API}/activities/${actividadId}/streams?keys=time,distance,velocity_smooth,grade_smooth,heartrate,watts&key_by_type=true`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok) return null;
+  const streams: StreamsPorTipo = await res.json();
+  const tiempos = streams.time?.data;
+  if (!tiempos || tiempos.length === 0) return null;
+
+  return tiempos.map((t, i) => ({
+    tiempo_s: t,
+    distancia_m: streams.distance?.data[i] ?? 0,
+    velocidad_ms: streams.velocity_smooth?.data[i] ?? null,
+    pendiente_pct: streams.grade_smooth?.data[i] ?? null,
+    fc: streams.heartrate?.data[i] ?? null,
+    potencia_w: streams.watts?.data[i] ?? null,
+  }));
+}
+
+export type ResultadoSincronizacion = {
+  ok: boolean;
+  sincronizadas: number;
+  error?: string;
+};
+
+// Descarga las actividades de los últimos ~60 días, calcula las métricas
+// avanzadas que se puedan calcular con lo disponible (NP/IF/VI/TSS salen
+// de los campos que ya trae el resumen de Strava, sin coste extra; GAP y
+// deriva de FC en carrera y ciclismo sí piden el detalle segundo a
+// segundo, una petición extra por actividad) y las guarda en
+// `strava_actividades`. Pensada para lanzarse solo cuando el director lo
+// pide, no en cada carga de página.
+export async function sincronizarActividadesStrava(deportistaId: number): Promise<ResultadoSincronizacion> {
+  const token = await tokenValido(deportistaId);
+  if (!token) return { ok: false, sincronizadas: 0, error: "Este deportista no tiene Strava conectado" };
+
+  const supabase = createAdminClient();
+  const { data: deportista } = await supabase
+    .from("deportistas")
+    .select("ftp_ciclismo_w, ftp_carrera_w")
+    .eq("id", deportistaId)
+    .maybeSingle();
+  const ftpCiclismo = deportista?.ftp_ciclismo_w ?? null;
+  const ftpCarrera = deportista?.ftp_carrera_w ?? null;
+
+  const sesentaDiasAtras = Math.floor(Date.now() / 1000) - 60 * 24 * 60 * 60;
+  const res = await fetch(
+    `${STRAVA_API}/athlete/activities?after=${sesentaDiasAtras}&per_page=50`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok) return { ok: false, sincronizadas: 0, error: `Strava no respondió bien: ${await res.text()}` };
+  const crudas: ActividadDetalleCruda[] = await res.json();
+
+  let sincronizadas = 0;
+  for (const a of crudas) {
+    const disciplina = disciplinaDeStrava(a.type);
+    const ftp = disciplina === "ciclismo" ? ftpCiclismo : disciplina === "carrera" ? ftpCarrera : null;
+
+    const potenciaMedia = a.device_watts ? a.average_watts ?? null : null;
+    const potenciaNormalizada = a.device_watts ? a.weighted_average_watts ?? null : null;
+    const intensidadIF = calcularIF(potenciaNormalizada, ftp);
+    const variabilidadVI = calcularVI(potenciaNormalizada, potenciaMedia);
+    const tss = calcularTSS(a.moving_time, potenciaNormalizada, ftp);
+
+    let ritmoGap: number | null = null;
+    let derivaFc: number | null = null;
+    // El stream (segundo a segundo) solo se pide para carrera y ciclismo,
+    // que es donde tiene sentido GAP/deriva — así no se gasta cupo de
+    // Strava en natación u otras actividades donde no se usa.
+    if (disciplina === "carrera" || disciplina === "ciclismo") {
+      try {
+        const puntos = await obtenerStreamsActividad(a.id, token);
+        if (puntos) {
+          if (disciplina === "carrera") ritmoGap = calcularGAP(puntos);
+          derivaFc = calcularDerivaFC(puntos);
+        }
+      } catch {
+        // Si falla el stream de una actividad concreta, se sigue con las
+        // demás — no se aborta toda la sincronización por una.
+      }
+    }
+
+    const { error } = await supabase.from("strava_actividades").upsert({
+      id: a.id,
+      deportista_id: deportistaId,
+      disciplina,
+      nombre: a.name,
+      fecha: a.start_date_local,
+      distancia_m: a.distance,
+      tiempo_s: a.moving_time,
+      desnivel_m: a.total_elevation_gain,
+      fc_media: a.average_heartrate ?? null,
+      fc_max: a.max_heartrate ?? null,
+      cadencia_media: a.average_cadence ?? null,
+      potencia_media_w: potenciaMedia,
+      potencia_normalizada_w: potenciaNormalizada,
+      intensidad_if: intensidadIF,
+      variabilidad_vi: variabilidadVI,
+      tss,
+      ritmo_gap_s_km: ritmoGap,
+      deriva_fc_pct: derivaFc,
+      sincronizado_en: new Date().toISOString(),
+    });
+    if (!error) sincronizadas += 1;
+  }
+
+  return { ok: true, sincronizadas };
 }

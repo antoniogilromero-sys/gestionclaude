@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Line,
   LineChart,
@@ -14,12 +15,19 @@ import {
 } from "recharts";
 import { createClient } from "@/lib/supabase/client";
 import { fmtTiempo, fmtFecha } from "@/lib/formato";
+import { sincronizarStrava, actualizarPerfilFisiologico } from "./actions";
 
 type Deportista = {
   id: number;
   nombre: string;
   ref: string | null;
   categoria: string | null;
+  fc_max_ref: number | null;
+  fc_reposo: number | null;
+  peso_ref: number | null;
+  ftp_ciclismo_w: number | null;
+  ftp_carrera_w: number | null;
+  ritmo_umbral_s_km: number | null;
 };
 type TipoTest = {
   id: number;
@@ -248,6 +256,7 @@ function FichaIndividual({
   }, [datosGrafico, test]);
 
   const color = test ? (COLOR_DISC[test.disciplina] ?? COLOR_DEFECTO) : COLOR_DEFECTO;
+  const deportistaActual = deportistas.find((d) => d.id === deportistaId);
 
   return (
     <div>
@@ -281,9 +290,12 @@ function FichaIndividual({
         </p>
       )}
 
+      {deportistaActual && <PerfilFisiologicoEditor deportista={deportistaActual} />}
+
       {!stravaCargando && strava?.conectado && (
         <>
           <ResumenStravaCard resumen={strava} />
+          <MetricasAvanzadasStrava deportistaId={deportistaId!} />
           {datosGrafico.length > 1 && (
             <p className="text-xs text-mute -mt-2 mb-3.5">
               Compara el volumen de Strava de arriba con la evolución de la
@@ -713,6 +725,259 @@ function ResumenStravaCard({ resumen }: { resumen: ResumenStrava }) {
             );
           })}
         </div>
+      )}
+    </div>
+  );
+}
+
+function parseMinSegAKm(texto: string): number | null {
+  const m = texto.trim().match(/^(\d+):([0-5]?\d)$/);
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+
+function PerfilFisiologicoEditor({ deportista }: { deportista: Deportista }) {
+  const router = useRouter();
+  const [abierto, setAbierto] = useState(false);
+  const [fcMax, setFcMax] = useState(String(deportista.fc_max_ref ?? ""));
+  const [fcReposo, setFcReposo] = useState(String(deportista.fc_reposo ?? ""));
+  const [peso, setPeso] = useState(String(deportista.peso_ref ?? ""));
+  const [ftpCiclismo, setFtpCiclismo] = useState(String(deportista.ftp_ciclismo_w ?? ""));
+  const [ftpCarrera, setFtpCarrera] = useState(String(deportista.ftp_carrera_w ?? ""));
+  const [ritmoUmbral, setRitmoUmbral] = useState(
+    deportista.ritmo_umbral_s_km != null ? fmtMinSeg(deportista.ritmo_umbral_s_km) : "",
+  );
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [guardado, setGuardado] = useState(false);
+
+  useEffect(() => {
+    setFcMax(String(deportista.fc_max_ref ?? ""));
+    setFcReposo(String(deportista.fc_reposo ?? ""));
+    setPeso(String(deportista.peso_ref ?? ""));
+    setFtpCiclismo(String(deportista.ftp_ciclismo_w ?? ""));
+    setFtpCarrera(String(deportista.ftp_carrera_w ?? ""));
+    setRitmoUmbral(deportista.ritmo_umbral_s_km != null ? fmtMinSeg(deportista.ritmo_umbral_s_km) : "");
+    setGuardado(false);
+    setError(null);
+  }, [deportista.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function guardar() {
+    setGuardando(true);
+    setError(null);
+    setGuardado(false);
+    const ritmoSeg = ritmoUmbral.trim() ? parseMinSegAKm(ritmoUmbral) : null;
+    if (ritmoUmbral.trim() && ritmoSeg == null) {
+      setError('El ritmo umbral tiene que ser tipo 4:30 (minutos:segundos por km)');
+      setGuardando(false);
+      return;
+    }
+    const resultado = await actualizarPerfilFisiologico(deportista.id, {
+      fcMaxRef: fcMax.trim() ? Number(fcMax) : null,
+      fcReposo: fcReposo.trim() ? Number(fcReposo) : null,
+      pesoRef: peso.trim() ? Number(peso) : null,
+      ftpCiclismoW: ftpCiclismo.trim() ? Number(ftpCiclismo) : null,
+      ftpCarreraW: ftpCarrera.trim() ? Number(ftpCarrera) : null,
+      ritmoUmbralSKm: ritmoSeg,
+    });
+    setGuardando(false);
+    if ("error" in resultado) {
+      setError(resultado.error);
+    } else {
+      setGuardado(true);
+      router.refresh();
+    }
+  }
+
+  return (
+    <div className="bg-surf border border-edge rounded-[10px] mb-3.5 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setAbierto((v) => !v)}
+        className="w-full flex items-center justify-between px-3.5 py-2.5 cursor-pointer"
+      >
+        <b className="font-display text-[12px] tracking-[.1em] uppercase text-mute">
+          Perfil fisiológico
+        </b>
+        <span className="text-mute text-xs">{abierto ? "ocultar ▲" : "editar ▼"}</span>
+      </button>
+      {abierto && (
+        <div className="px-3.5 pb-3.5">
+          <p className="text-xs text-mute leading-relaxed mb-2.5">
+            Sirve para interpretar sus datos de Strava: zonas de FC, potencia
+            relativa e IF/TSS en ciclismo (y en carrera si usa un sensor de
+            potencia tipo Stryd). Rellena solo lo que sepas — lo demás se
+            deja en blanco sin problema.
+          </p>
+          <div className="grid grid-cols-2 gap-2 mb-2.5">
+            <Campo label="FC máx (ppm)" value={fcMax} onChange={setFcMax} />
+            <Campo label="FC reposo (ppm)" value={fcReposo} onChange={setFcReposo} />
+            <Campo label="Peso (kg)" value={peso} onChange={setPeso} />
+            <Campo label="Ritmo umbral (M:SS /km)" value={ritmoUmbral} onChange={setRitmoUmbral} tipo="text" />
+            <Campo label="FTP ciclismo (W)" value={ftpCiclismo} onChange={setFtpCiclismo} />
+            <Campo label="FTP carrera / Stryd (W)" value={ftpCarrera} onChange={setFtpCarrera} />
+          </div>
+          {error && <p className="text-run text-xs mb-2">{error}</p>}
+          {guardado && !error && <p className="text-ok text-xs mb-2">Guardado.</p>}
+          <button
+            type="button"
+            onClick={guardar}
+            disabled={guardando}
+            className="bg-signal text-[#160800] rounded-lg px-3 py-2 font-display text-xs tracking-[.08em] uppercase font-semibold cursor-pointer disabled:opacity-60"
+          >
+            {guardando ? "Guardando…" : "Guardar perfil"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Campo({
+  label,
+  value,
+  onChange,
+  tipo = "number",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  tipo?: string;
+}) {
+  return (
+    <div>
+      <label className="block text-[10px] text-mute uppercase tracking-[.04em] mb-1">{label}</label>
+      <input
+        type={tipo}
+        inputMode={tipo === "number" ? "decimal" : "text"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-deep border border-edge text-chalk rounded-lg p-2 text-sm"
+      />
+    </div>
+  );
+}
+
+type ActividadDetalle = {
+  id: number;
+  disciplina: DisciplinaStrava;
+  nombre: string;
+  fecha: string;
+  potencia_media_w: number | null;
+  potencia_normalizada_w: number | null;
+  intensidad_if: number | null;
+  variabilidad_vi: number | null;
+  tss: number | null;
+  ritmo_gap_s_km: number | null;
+  deriva_fc_pct: number | null;
+};
+
+function MetricasAvanzadasStrava({ deportistaId }: { deportistaId: number }) {
+  const [actividades, setActividades] = useState<ActividadDetalle[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [sincronizando, setSincronizando] = useState(false);
+  const [mensaje, setMensaje] = useState<string | null>(null);
+
+  const cargar = useCallback(() => {
+    setCargando(true);
+    const supabase = createClient();
+    supabase
+      .from("strava_actividades")
+      .select(
+        "id, disciplina, nombre, fecha, potencia_media_w, potencia_normalizada_w, intensidad_if, variabilidad_vi, tss, ritmo_gap_s_km, deriva_fc_pct",
+      )
+      .eq("deportista_id", deportistaId)
+      .order("fecha", { ascending: false })
+      .limit(15)
+      .then(({ data }) => {
+        setActividades((data ?? []) as ActividadDetalle[]);
+        setCargando(false);
+      });
+  }, [deportistaId]);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  async function onSincronizar() {
+    setSincronizando(true);
+    setMensaje(null);
+    const resultado = await sincronizarStrava(deportistaId);
+    setSincronizando(false);
+    if ("error" in resultado) {
+      setMensaje(resultado.error);
+    } else {
+      setMensaje(`${resultado.sincronizadas} actividades sincronizadas (últimos 60 días).`);
+      cargar();
+    }
+  }
+
+  const hayAlgunaMetrica = actividades.some(
+    (a) => a.tss != null || a.ritmo_gap_s_km != null || a.deriva_fc_pct != null,
+  );
+
+  return (
+    <div className="bg-surf border border-edge rounded-[10px] p-3.5 mb-3.5">
+      <div className="flex items-center justify-between mb-2.5 gap-2">
+        <b className="font-display text-[12px] tracking-[.1em] uppercase text-mute">
+          Métricas avanzadas
+        </b>
+        <button
+          type="button"
+          onClick={onSincronizar}
+          disabled={sincronizando}
+          className="shrink-0 bg-transparent border border-edge text-mute rounded-lg px-2.5 py-1 text-[11px] cursor-pointer disabled:opacity-60"
+        >
+          {sincronizando ? "Sincronizando…" : "Sincronizar"}
+        </button>
+      </div>
+      {mensaje && <p className="text-xs text-mute mb-2">{mensaje}</p>}
+
+      {cargando ? (
+        <p className="text-mute text-xs py-3 text-center">Cargando…</p>
+      ) : actividades.length === 0 ? (
+        <p className="text-mute text-xs leading-relaxed">
+          Todavía no hay nada sincronizado. Pulsa &quot;Sincronizar&quot; para
+          calcular NP/IF/VI/TSS (si hay potenciómetro) y GAP/deriva de FC en
+          carrera y ciclismo de los últimos 60 días.
+        </p>
+      ) : (
+        <>
+          {!hayAlgunaMetrica && (
+            <p className="text-mute text-xs leading-relaxed mb-2">
+              No se ha podido calcular ninguna métrica avanzada en estas
+              actividades — probablemente entrena sin potenciómetro y las
+              sesiones son cortas para medir deriva de FC. Es normal con
+              reloj GPS/pulsómetro básico, no es un fallo.
+            </p>
+          )}
+          <div className="flex flex-col gap-1.5">
+            {actividades.map((a) => (
+              <div key={a.id} className="text-xs border-b border-edge/50 pb-1.5 last:border-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-chalk truncate">{a.nombre}</span>
+                  <span className="text-mute shrink-0">{fmtFechaCorta(a.fecha)}</span>
+                </div>
+                {(a.tss != null || a.ritmo_gap_s_km != null || a.deriva_fc_pct != null) && (
+                  <div className="text-mute mt-0.5 flex flex-wrap gap-x-3">
+                    {a.tss != null && <span>TSS {a.tss.toFixed(0)}</span>}
+                    {a.intensidad_if != null && <span>IF {a.intensidad_if.toFixed(2)}</span>}
+                    {a.variabilidad_vi != null && <span>VI {a.variabilidad_vi.toFixed(2)}</span>}
+                    {a.potencia_normalizada_w != null && (
+                      <span>NP {Math.round(a.potencia_normalizada_w)} W</span>
+                    )}
+                    {a.ritmo_gap_s_km != null && <span>GAP {fmtMinSeg(a.ritmo_gap_s_km)} /km</span>}
+                    {a.deriva_fc_pct != null && (
+                      <span className={a.deriva_fc_pct > 5 ? "text-run" : ""}>
+                        Deriva FC {a.deriva_fc_pct.toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

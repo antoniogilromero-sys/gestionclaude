@@ -20,7 +20,9 @@ export default async function AnalisisPage() {
   const [{ data: deportistas }, { data: tiposTest }, { data: grupos }] = await Promise.all([
     supabase
       .from("deportistas")
-      .select("id, nombre, ref, categoria")
+      .select(
+        "id, nombre, ref, categoria, fc_max_ref, fc_reposo, peso_ref, ftp_ciclismo_w, ftp_carrera_w, ritmo_umbral_s_km",
+      )
       .eq("activo", true)
       .order("nombre"),
     supabase

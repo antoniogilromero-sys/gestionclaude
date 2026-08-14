@@ -199,6 +199,50 @@ Muchos deportistas ya usan Strava, así que además de los tests manuales
   la misma llamada a `/athlete/activities` (sin peticiones extra por
   actividad, para no gastar cupo de la API de Strava).
 
+### Métricas avanzadas (NP/TSS/IF/VI, GAP, deriva de FC)
+
+Antón pidió, además del resumen básico, poder calcular carga de
+entrenamiento de verdad (potencia normalizada, TSS, IF, VI en ciclismo y
+carrera con Stryd; ritmo ajustado a la pendiente y deriva cardíaca en
+carrera). Decisiones tomadas:
+
+- **Perfil fisiológico por deportista**: `fc_reposo`, `ftp_ciclismo_w`,
+  `ftp_carrera_w` (Stryd) y `ritmo_umbral_s_km` son columnas nuevas de
+  `deportistas` (`docs/migracion_metricas_avanzadas_strava.sql`).
+  `fc_max_ref` y `peso_ref` ya existían desde el `schema.sql` original
+  pero no tenían ningún formulario — ahora se editan junto a las nuevas en
+  el desplegable "Perfil fisiológico" de la Ficha en `/analisis`
+  (`PerfilFisiologicoEditor`, acción `actualizarPerfilFisiologico`).
+- **Sí se guardan actividades**, a propósito, rompiendo la norma de "nada
+  se persiste" del resto de la integración de Strava: calcular NP/TSS
+  exige el segundo a segundo de cada actividad (`/activities/{id}/streams`),
+  y pedirlo en directo cada vez agotaría el cupo de peticiones de Strava.
+  Por eso existe `strava_actividades`, y por eso **la sincronización es
+  manual** (botón "Sincronizar" en la Ficha, `sincronizarStrava` en
+  `analisis/actions.ts` → `sincronizarActividadesStrava` en
+  `src/lib/strava.ts`), no automática ni en segundo plano — este proyecto
+  no tiene cron ni workers, son planes gratuitos.
+- **NP/potencia media no piden stream**: `weighted_average_watts` /
+  `average_watts` ya vienen en el resumen de actividades de Strava si el
+  dispositivo mandó potencia real (`device_watts: true`) — vale tanto para
+  ciclismo (potenciómetro) como para carrera con Stryd, es el mismo campo.
+  Solo GAP y deriva de FC piden el stream (`obtenerStreamsActividad`), y
+  solo para carrera/ciclismo (no natación).
+- Las fórmulas (`src/lib/stravaMetricas.ts`, funciones puras) son
+  estándar del sector: Coggan (NP/IF/VI/TSS), Minetti et al. 2002 (coste
+  energético según pendiente, para GAP), método de desacople Potencia:FC
+  o Ritmo:FC (1ª mitad vs 2ª mitad) para la deriva cardíaca.
+- **Antón pidió también SWOLF y oscilación vertical/tiempo de contacto en
+  carrera — eso NO se ha construido porque la API pública de Strava no
+  los expone**, ni siquiera si el reloj del deportista los calcula (son
+  datos propios de Garmin Connect que Strava no reenvía a apps
+  terceras). Si esto se vuelve a pedir, no es un olvido: haría falta una
+  integración aparte con la API de Garmin (u otro fabricante), fuera de
+  alcance por ahora.
+- La ventana de sincronización son los últimos 60 días, hasta 50
+  actividades por sincronización — límite deliberado para no disparar el
+  número de peticiones a Strava en una sola pulsación del botón.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que
