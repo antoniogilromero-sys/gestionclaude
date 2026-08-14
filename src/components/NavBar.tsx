@@ -9,6 +9,7 @@ const DIRECTOR_ITEMS: NavItem[] = [
   { href: "/reparto", label: "Reparto" },
   { href: "/publicar", label: "Publicar" },
   { href: "/entrenamientos", label: "Entrenamientos" },
+  { href: "/programacion", label: "Programación" },
   { href: "/tests", label: "Registrar test" },
   { href: "/rankings", label: "Rankings" },
   { href: "/grupos", label: "Grupos" },
@@ -35,6 +36,7 @@ const DIRECTOR_ITEMS: NavItem[] = [
 const ENTRENADOR_ITEMS: NavItem[] = [
   { href: "/reparto", label: "Reparto" },
   { href: "/entrenamientos", label: "Entrenamientos" },
+  { href: "/programacion", label: "Programación" },
   { href: "/tests", label: "Registrar test" },
   { href: "/grupos", label: "Grupos" },
   { href: "/competiciones", label: "Competiciones" },

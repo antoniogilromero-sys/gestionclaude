@@ -266,6 +266,20 @@ vuelve a crear, no se edita). Las carreras con fecha pasada no se borran
 solas — se quedan colapsadas en un desplegable "Ya pasadas" al final de
 la pestaña Próximas, hasta que el director las borre a mano.
 
+## Ampliación de alcance: programación de entrenamientos (vista semanal)
+
+`/programacion` es una vista distinta de los mismos datos de `/publicar` +
+`/entrenamientos` (tabla `sesiones`), no una tabla nueva: en vez de la
+lista cronológica de siempre, organiza por día de la semana con
+navegación anterior/siguiente (`lunesDe` de `src/lib/date.ts`). Antón
+confirmó explícitamente que quería esto — una vista de calendario — y no
+planificación por fases/bloques de temporada ni plantillas reutilizables
+de entrenamiento (ambas se descartaron al preguntarle). Mismas reglas de
+visibilidad que `/entrenamientos`: el entrenador solo ve sesiones
+`publicada = true`, el director ve también los borradores (marcados con
+un chip "Borrador"). Visible para director y entrenador en el menú, junto
+a Entrenamientos.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que
