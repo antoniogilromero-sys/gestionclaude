@@ -11,6 +11,7 @@ type Proxima = {
   lugar: string | null;
   disciplina: string;
   notas: string | null;
+  es_escolar: boolean;
 };
 
 // Más amplio que en Resultados (Competiciones.tsx): el calendario de
@@ -124,9 +125,18 @@ function FilaProxima({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="font-display text-xs tracking-[.08em] uppercase px-[7px] py-[2px] rounded-[5px] bg-edge text-chalk">
+            <span
+              className={`font-display text-xs tracking-[.08em] uppercase px-[7px] py-[2px] rounded-[5px] ${
+                p.es_escolar ? "bg-swim/20 text-swim" : "bg-edge text-chalk"
+              }`}
+            >
               {p.disciplina}
             </span>
+            {p.es_escolar && (
+              <span className="font-display text-xs tracking-[.08em] uppercase px-[7px] py-[2px] rounded-[5px] bg-swim/20 text-swim">
+                Escolar
+              </span>
+            )}
             {p.fecha ? (
               <span className="text-xs text-mute">{p.fecha.split("-").reverse().join("/")}</span>
             ) : (
@@ -174,6 +184,7 @@ function NuevaProximaForm({ onGuardado }: { onGuardado: () => void }) {
   const [lugar, setLugar] = useState("");
   const [disciplina, setDisciplina] = useState(DISCIPLINAS[0]);
   const [notas, setNotas] = useState("");
+  const [esEscolar, setEsEscolar] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -184,7 +195,7 @@ function NuevaProximaForm({ onGuardado }: { onGuardado: () => void }) {
       return;
     }
     setEnviando(true);
-    const resultado = await crearProximaCompeticion({ nombre, fecha, lugar, disciplina, notas });
+    const resultado = await crearProximaCompeticion({ nombre, fecha, lugar, disciplina, notas, esEscolar });
     setEnviando(false);
     if ("error" in resultado) {
       setError(resultado.error);
@@ -254,6 +265,16 @@ function NuevaProximaForm({ onGuardado }: { onGuardado: () => void }) {
         placeholder="Inscripción hasta el 3 de octubre"
         className="w-full bg-deep border border-edge text-chalk rounded-lg p-2.5 text-sm mb-3"
       />
+
+      <label className="flex items-center gap-2 mb-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={esEscolar}
+          onChange={(e) => setEsEscolar(e.target.checked)}
+          className="w-4 h-4"
+        />
+        <span className="text-sm text-chalk">Es del Circuito Escolar (se pinta en azul claro)</span>
+      </label>
 
       {error && <p className="text-run text-sm mb-2">{error}</p>}
 

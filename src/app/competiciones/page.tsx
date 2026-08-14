@@ -31,7 +31,7 @@ export default async function CompeticionesPage() {
         .order("fecha", { ascending: false }),
       supabase
         .from("proximas_competiciones")
-        .select("id, nombre, fecha, lugar, disciplina, notas")
+        .select("id, nombre, fecha, lugar, disciplina, notas, es_escolar")
         .order("fecha", { ascending: true, nullsFirst: false }),
     ]);
 

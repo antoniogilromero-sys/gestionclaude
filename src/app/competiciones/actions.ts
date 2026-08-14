@@ -72,6 +72,7 @@ export async function crearProximaCompeticion(input: {
   lugar: string;
   disciplina: string;
   notas: string;
+  esEscolar: boolean;
 }): Promise<Resultado> {
   const r = await requireDirector();
   if (!r.ok) return { error: r.error };
@@ -87,6 +88,7 @@ export async function crearProximaCompeticion(input: {
     lugar: input.lugar.trim() || null,
     disciplina,
     notas: input.notas.trim() || null,
+    es_escolar: input.esEscolar,
     creado_por: r.userId,
   });
   if (error) return { error: error.message };

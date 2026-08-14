@@ -23,6 +23,7 @@ type Proxima = {
   lugar: string | null;
   disciplina: string;
   notas: string | null;
+  es_escolar: boolean;
 };
 
 export function CompeticionesTabs({
