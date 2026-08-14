@@ -20,15 +20,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`/strava-conectar/${deportistaId}?error=denegado`, request.url));
   }
 
+  function urlError(codigo: string, err: unknown) {
+    console.error(`Strava callback (${codigo}):`, err);
+    const url = new URL(`/strava-conectar/${deportistaId}`, request.url);
+    url.searchParams.set("error", codigo);
+    // El texto que devuelve Strava no incluye el client_secret, solo dice
+    // por qué ha rechazado la petición (ej. "invalid client_secret",
+    // "invalid code") — se muestra en la pantalla del deportista para no
+    // depender de que Antón entre a mirar los logs de Vercel.
+    const detalle = err instanceof Error ? err.message : String(err);
+    url.searchParams.set("detalle", detalle.slice(0, 300));
+    return NextResponse.redirect(url);
+  }
+
   let token;
   try {
     token = await intercambiarCodigoPorToken(code);
   } catch (err) {
-    // Se registra en los logs de Vercel (Deployments > el deploy activo >
-    // Logs) para poder ver el motivo exacto sin exponerlo en la pantalla
-    // pública del deportista.
-    console.error("Strava callback: fallo al cambiar el code por un token", err);
-    return NextResponse.redirect(new URL(`/strava-conectar/${deportistaId}?error=token`, request.url));
+    return urlError("token", err);
   }
 
   try {
@@ -42,8 +51,7 @@ export async function GET(request: NextRequest) {
     });
     if (error) throw new Error(error.message);
   } catch (err) {
-    console.error("Strava callback: fallo al guardar la conexión", err);
-    return NextResponse.redirect(new URL(`/strava-conectar/${deportistaId}?error=guardado`, request.url));
+    return urlError("guardado", err);
   }
 
   return NextResponse.redirect(new URL(`/strava-conectar/${deportistaId}?ok=1`, request.url));

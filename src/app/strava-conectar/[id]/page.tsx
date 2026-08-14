@@ -12,10 +12,10 @@ export default async function StravaConectarPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ ok?: string; error?: string }>;
+  searchParams: Promise<{ ok?: string; error?: string; detalle?: string }>;
 }) {
   const { id } = await params;
-  const { ok, error: errorQuery } = await searchParams;
+  const { ok, error: errorQuery, detalle } = await searchParams;
   const deportistaId = Number(id);
 
   if (!deportistaId) {
@@ -71,10 +71,15 @@ export default async function StravaConectarPage({
               nada más de tu cuenta.
             </p>
             {errorQuery && (
-              <p className="text-run text-sm mb-3">
-                Algo ha fallado al conectar. Vuelve a intentarlo.
-                <span className="block text-mute text-xs mt-0.5">(código: {errorQuery})</span>
-              </p>
+              <div className="text-run text-sm mb-3 text-left">
+                <p>Algo ha fallado al conectar. Vuelve a intentarlo.</p>
+                <p className="text-mute text-xs mt-0.5">(código: {errorQuery})</p>
+                {detalle && (
+                  <p className="text-mute text-[11px] mt-1 font-mono break-all bg-deep border border-edge rounded p-2">
+                    {detalle}
+                  </p>
+                )}
+              </div>
             )}
             <a
               href={authorizeUrl}
