@@ -70,9 +70,10 @@ export default async function StravaConectarPage({
               de entrenamiento — solo distancia, tiempo y tipo de actividad,
               nada más de tu cuenta.
             </p>
-            {errorQuery === "1" && (
+            {errorQuery && (
               <p className="text-run text-sm mb-3">
                 Algo ha fallado al conectar. Vuelve a intentarlo.
+                <span className="block text-mute text-xs mt-0.5">(código: {errorQuery})</span>
               </p>
             )}
             <a

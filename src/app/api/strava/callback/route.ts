@@ -16,11 +16,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Enlace inválido: falta el deportista" }, { status: 400 });
   }
   if (errorStrava || !code) {
-    return NextResponse.redirect(new URL(`/strava-conectar/${deportistaId}?error=1`, request.url));
+    console.error("Strava callback: sin code o denegado por el usuario", { deportistaId, errorStrava });
+    return NextResponse.redirect(new URL(`/strava-conectar/${deportistaId}?error=denegado`, request.url));
+  }
+
+  let token;
+  try {
+    token = await intercambiarCodigoPorToken(code);
+  } catch (err) {
+    // Se registra en los logs de Vercel (Deployments > el deploy activo >
+    // Logs) para poder ver el motivo exacto sin exponerlo en la pantalla
+    // pública del deportista.
+    console.error("Strava callback: fallo al cambiar el code por un token", err);
+    return NextResponse.redirect(new URL(`/strava-conectar/${deportistaId}?error=token`, request.url));
   }
 
   try {
-    const token = await intercambiarCodigoPorToken(code);
     const supabase = createAdminClient();
     const { error } = await supabase.from("strava_conexiones").upsert({
       deportista_id: deportistaId,
@@ -30,8 +41,9 @@ export async function GET(request: NextRequest) {
       expires_at: token.expires_at,
     });
     if (error) throw new Error(error.message);
-  } catch {
-    return NextResponse.redirect(new URL(`/strava-conectar/${deportistaId}?error=1`, request.url));
+  } catch (err) {
+    console.error("Strava callback: fallo al guardar la conexión", err);
+    return NextResponse.redirect(new URL(`/strava-conectar/${deportistaId}?error=guardado`, request.url));
   }
 
   return NextResponse.redirect(new URL(`/strava-conectar/${deportistaId}?ok=1`, request.url));
