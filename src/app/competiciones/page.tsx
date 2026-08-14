@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
-import { Competiciones } from "./Competiciones";
+import { CompeticionesTabs } from "./CompeticionesTabs";
 
 export default async function CompeticionesPage() {
   const supabase = await createClient();
@@ -17,18 +17,23 @@ export default async function CompeticionesPage() {
     .single();
   if (!perfil || perfil.rol === "pendiente") redirect("/");
 
-  const [{ data: deportistas }, { data: competiciones, error: eCompeticiones }] = await Promise.all([
-    supabase
-      .from("deportistas")
-      .select("id, nombre")
-      .eq("activo", true)
-      .order("nombre"),
-    supabase
-      .from("competiciones")
-      .select("id, deportista_id, anio, nombre_carrera, fecha, disciplina, tiempo, clasificacion, deportistas(nombre)")
-      .order("anio", { ascending: false })
-      .order("fecha", { ascending: false }),
-  ]);
+  const [{ data: deportistas }, { data: competiciones, error: eCompeticiones }, { data: proximas, error: eProximas }] =
+    await Promise.all([
+      supabase
+        .from("deportistas")
+        .select("id, nombre")
+        .eq("activo", true)
+        .order("nombre"),
+      supabase
+        .from("competiciones")
+        .select("id, deportista_id, anio, nombre_carrera, fecha, disciplina, tiempo, clasificacion, deportistas(nombre)")
+        .order("anio", { ascending: false })
+        .order("fecha", { ascending: false }),
+      supabase
+        .from("proximas_competiciones")
+        .select("id, nombre, fecha, lugar, disciplina, notas")
+        .order("fecha", { ascending: true, nullsFirst: false }),
+    ]);
 
   const competicionesLimpias = (competiciones ?? []).map((c) => {
     const d = c.deportistas as unknown as { nombre: string } | { nombre: string }[] | null;
@@ -51,20 +56,23 @@ export default async function CompeticionesPage() {
       <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute mb-2.5">
         Competiciones
       </h2>
-      {eCompeticiones ? (
+      {eCompeticiones || eProximas ? (
         <div className="bg-surf border border-run/40 rounded-[10px] p-3.5">
           <b className="block text-[15px] font-medium mb-1 text-run">
             No se ha podido cargar el listado
           </b>
           <p className="text-sm text-mute leading-relaxed">
-            Puede que falte ejecutar la migración de competiciones en Supabase.
-            Detalle técnico: {eCompeticiones.message}
+            Puede que falte ejecutar alguna migración de competiciones en
+            Supabase (la de resultados, o la nueva de próximas
+            competiciones). Detalle técnico:{" "}
+            {eCompeticiones?.message ?? eProximas?.message}
           </p>
         </div>
       ) : (
-        <Competiciones
+        <CompeticionesTabs
           deportistas={deportistas ?? []}
           competiciones={competicionesLimpias}
+          proximas={proximas ?? []}
           soloLectura={perfil.rol !== "director"}
         />
       )}

@@ -65,3 +65,38 @@ export async function borrarCompeticion(id: number): Promise<Resultado> {
   if (error) return { error: error.message };
   return { ok: true };
 }
+
+export async function crearProximaCompeticion(input: {
+  nombre: string;
+  fecha: string;
+  lugar: string;
+  disciplina: string;
+  notas: string;
+}): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+
+  const nombre = input.nombre.trim();
+  const disciplina = input.disciplina.trim();
+  if (!nombre) return { error: "Falta el nombre de la carrera" };
+  if (!disciplina) return { error: "Falta la disciplina" };
+
+  const { error } = await r.supabase.from("proximas_competiciones").insert({
+    nombre,
+    fecha: input.fecha || null,
+    lugar: input.lugar.trim() || null,
+    disciplina,
+    notas: input.notas.trim() || null,
+    creado_por: r.userId,
+  });
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+export async function borrarProximaCompeticion(id: number): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+  const { error } = await r.supabase.from("proximas_competiciones").delete().eq("id", id);
+  if (error) return { error: error.message };
+  return { ok: true };
+}

@@ -243,6 +243,29 @@ carrera). Decisiones tomadas:
   actividades por sincronización — límite deliberado para no disparar el
   número de peticiones a Strava en una sola pulsación del botón.
 
+## Ampliación de alcance: próximas competiciones
+
+`/competiciones` ahora tiene dos pestañas (`CompeticionesTabs`): **Próximas**
+y **Resultados** (esta última es la vista que ya existía). Son conceptos
+distintos a propósito:
+
+- `competiciones` (ya existía) = resultado de un deportista concreto en
+  una carrera que ya pasó (tiempo, clasificación).
+- `proximas_competiciones` (nueva, `docs/migracion_proximas_competiciones.sql`)
+  = calendario general del club, sin ligar a deportistas — solo nombre,
+  fecha, lugar, disciplina y notas. Antón lo confirmó explícitamente: de
+  momento es un calendario informativo ("a qué carreras vamos"), no una
+  lista de inscritos por carrera. Si más adelante pide saber quién va a
+  cada una, hay que añadir una tabla puente tipo `deportista_grupo`, no
+  forzarlo dentro de esta tabla.
+
+Misma visibilidad que Resultados: lectura para director y entrenador
+(`aprobado()`), alta/borrado solo director (`es_director()`), sin
+política de update (igual que `competiciones`: un error se borra y se
+vuelve a crear, no se edita). Las carreras con fecha pasada no se borran
+solas — se quedan colapsadas en un desplegable "Ya pasadas" al final de
+la pestaña Próximas, hasta que el director las borre a mano.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que
