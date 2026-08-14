@@ -121,19 +121,25 @@ function FilaProxima({
   }
 
   return (
-    <div className="bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5">
+    <div
+      className={`border rounded-[10px] p-3.5 mb-2.5 ${
+        p.es_escolar
+          ? "bg-swim/10 border-swim/50 border-l-4"
+          : "bg-surf border-edge"
+      }`}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span
               className={`font-display text-xs tracking-[.08em] uppercase px-[7px] py-[2px] rounded-[5px] ${
-                p.es_escolar ? "bg-swim/20 text-swim" : "bg-edge text-chalk"
+                p.es_escolar ? "bg-swim/25 text-swim" : "bg-edge text-chalk"
               }`}
             >
               {p.disciplina}
             </span>
             {p.es_escolar && (
-              <span className="font-display text-xs tracking-[.08em] uppercase px-[7px] py-[2px] rounded-[5px] bg-swim/20 text-swim">
+              <span className="font-display text-xs tracking-[.08em] uppercase px-[7px] py-[2px] rounded-[5px] bg-swim text-[#062028] font-semibold">
                 Escolar
               </span>
             )}
