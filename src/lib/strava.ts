@@ -20,12 +20,13 @@ type TokenStrava = {
 };
 
 export async function intercambiarCodigoPorToken(code: string): Promise<TokenStrava> {
+  // El endpoint de Strava espera application/x-www-form-urlencoded, no
+  // JSON — con URLSearchParams como body, fetch pone ese Content-Type solo.
   const res = await fetch(STRAVA_TOKEN_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: process.env.STRAVA_CLIENT_ID,
-      client_secret: process.env.STRAVA_CLIENT_SECRET,
+    body: new URLSearchParams({
+      client_id: process.env.STRAVA_CLIENT_ID ?? "",
+      client_secret: process.env.STRAVA_CLIENT_SECRET ?? "",
       code,
       grant_type: "authorization_code",
     }),
@@ -44,10 +45,9 @@ type Conexion = {
 async function refrescarToken(conexion: Conexion): Promise<string> {
   const res = await fetch(STRAVA_TOKEN_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: process.env.STRAVA_CLIENT_ID,
-      client_secret: process.env.STRAVA_CLIENT_SECRET,
+    body: new URLSearchParams({
+      client_id: process.env.STRAVA_CLIENT_ID ?? "",
+      client_secret: process.env.STRAVA_CLIENT_SECRET ?? "",
       refresh_token: conexion.refresh_token,
       grant_type: "refresh_token",
     }),
