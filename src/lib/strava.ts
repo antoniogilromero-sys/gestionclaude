@@ -85,34 +85,83 @@ async function tokenValido(deportistaId: number): Promise<string | null> {
   return refrescarToken(conexion);
 }
 
+// Mismas 3 disciplinas que usa el resto de la app (COLOR_DISC en
+// AnalisisClient): así el resumen de Strava se organiza igual que
+// Tests/Análisis, en vez de mezclar natación, bici y carrera en un totall.
+export type Disciplina = "natacion" | "ciclismo" | "carrera" | "otro";
+
+const TIPO_A_DISCIPLINA: Record<string, Disciplina> = {
+  Swim: "natacion",
+  Run: "carrera",
+  TrailRun: "carrera",
+  VirtualRun: "carrera",
+  Ride: "ciclismo",
+  VirtualRide: "ciclismo",
+  EBikeRide: "ciclismo",
+  GravelRide: "ciclismo",
+  MountainBikeRide: "ciclismo",
+  Handcycle: "ciclismo",
+};
+
+export function disciplinaDeStrava(tipo: string): Disciplina {
+  return TIPO_A_DISCIPLINA[tipo] ?? "otro";
+}
+
 export type ActividadStrava = {
   id: number;
   nombre: string;
   tipo: string;
+  disciplina: Disciplina;
   distancia_m: number;
   tiempo_s: number;
   fecha: string;
   desnivel_m: number;
+  velocidad_media_ms: number | null;
+  fc_media: number | null;
+  fc_max: number | null;
 };
+
+type TotalesDisciplina = Record<Disciplina, { km: number; horas: number; sesiones: number }>;
+
+function totalesVacios(): TotalesDisciplina {
+  return {
+    natacion: { km: 0, horas: 0, sesiones: 0 },
+    ciclismo: { km: 0, horas: 0, sesiones: 0 },
+    carrera: { km: 0, horas: 0, sesiones: 0 },
+    otro: { km: 0, horas: 0, sesiones: 0 },
+  };
+}
 
 export type ResumenStrava = {
   conectado: boolean;
   actividades: ActividadStrava[];
-  semanas: { semana: string; km: number; horas: number; sesiones: number }[];
+  totalesPorDisciplina: TotalesDisciplina;
+  semanas: {
+    semana: string;
+    km: number;
+    horas: number;
+    sesiones: number;
+    porDisciplina: TotalesDisciplina;
+  }[];
 };
 
+function resumenVacio(conectado: boolean): ResumenStrava {
+  return { conectado, actividades: [], totalesPorDisciplina: totalesVacios(), semanas: [] };
+}
+
 // Trae las actividades de las últimas ~8 semanas y las agrupa por semana
-// (empezando en lunes) para el resumen de volumen de entrenamiento.
+// (empezando en lunes) para el resumen de volumen de entrenamiento, con
+// desglose por disciplina para poder comparar con Tests/Análisis.
 export async function obtenerResumenStrava(deportistaId: number): Promise<ResumenStrava> {
   const token = await tokenValido(deportistaId);
-  if (!token) return { conectado: false, actividades: [], semanas: [] };
+  if (!token) return resumenVacio(false);
 
   const ochoSemanasAtras = Math.floor(Date.now() / 1000) - 8 * 7 * 24 * 60 * 60;
   const res = await fetch(
     `${STRAVA_API}/athlete/activities?after=${ochoSemanasAtras}&per_page=100`,
     { headers: { Authorization: `Bearer ${token}` } },
   );
-  if (!res.ok) return { conectado: true, actividades: [], semanas: [] };
+  if (!res.ok) return resumenVacio(true);
 
   type ActividadCruda = {
     id: number;
@@ -122,6 +171,9 @@ export async function obtenerResumenStrava(deportistaId: number): Promise<Resume
     moving_time: number;
     start_date_local: string;
     total_elevation_gain: number;
+    average_speed: number | null;
+    average_heartrate?: number | null;
+    max_heartrate?: number | null;
   };
   const crudas: ActividadCruda[] = await res.json();
 
@@ -129,23 +181,41 @@ export async function obtenerResumenStrava(deportistaId: number): Promise<Resume
     id: a.id,
     nombre: a.name,
     tipo: a.type,
+    disciplina: disciplinaDeStrava(a.type),
     distancia_m: a.distance,
     tiempo_s: a.moving_time,
     fecha: a.start_date_local,
     desnivel_m: a.total_elevation_gain,
+    velocidad_media_ms: a.average_speed ?? null,
+    fc_media: a.average_heartrate ?? null,
+    fc_max: a.max_heartrate ?? null,
   }));
 
-  const porSemana = new Map<string, { km: number; horas: number; sesiones: number }>();
+  const totalesPorDisciplina = totalesVacios();
+  const porSemana = new Map<
+    string,
+    { km: number; horas: number; sesiones: number; porDisciplina: TotalesDisciplina }
+  >();
   for (const a of actividades) {
+    const km = a.distancia_m / 1000;
+    const horas = a.tiempo_s / 3600;
+
+    totalesPorDisciplina[a.disciplina].km += km;
+    totalesPorDisciplina[a.disciplina].horas += horas;
+    totalesPorDisciplina[a.disciplina].sesiones += 1;
+
     const fecha = new Date(a.fecha);
     const lunes = new Date(fecha);
     const diaSemanaLunes0 = (lunes.getDay() + 6) % 7;
     lunes.setDate(lunes.getDate() - diaSemanaLunes0);
     const clave = lunes.toISOString().slice(0, 10);
-    const acc = porSemana.get(clave) ?? { km: 0, horas: 0, sesiones: 0 };
-    acc.km += a.distancia_m / 1000;
-    acc.horas += a.tiempo_s / 3600;
+    const acc = porSemana.get(clave) ?? { km: 0, horas: 0, sesiones: 0, porDisciplina: totalesVacios() };
+    acc.km += km;
+    acc.horas += horas;
     acc.sesiones += 1;
+    acc.porDisciplina[a.disciplina].km += km;
+    acc.porDisciplina[a.disciplina].horas += horas;
+    acc.porDisciplina[a.disciplina].sesiones += 1;
     porSemana.set(clave, acc);
   }
   const semanas = [...porSemana.entries()]
@@ -154,5 +224,10 @@ export async function obtenerResumenStrava(deportistaId: number): Promise<Resume
 
   actividades.sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
 
-  return { conectado: true, actividades: actividades.slice(0, 15), semanas };
+  return {
+    conectado: true,
+    actividades: actividades.slice(0, 15),
+    totalesPorDisciplina,
+    semanas,
+  };
 }

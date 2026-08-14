@@ -186,6 +186,18 @@ Muchos deportistas ya usan Strava, así que además de los tests manuales
   individual). La API `/api/strava/resumen` ya admite también entrenador
   por si algún día se abre esa pestaña como se hizo con
   `/rankings` — no lo des por hecho sin que Antón lo pida explícitamente.
+- El intercambio de código por token con Strava tiene que mandarse como
+  `application/x-www-form-urlencoded` (`URLSearchParams`), **no JSON** —
+  Strava lo rechaza en silencio con un error genérico
+  (`{"resource":"Application","field":"","code":"invalid"}`) si se manda
+  como JSON. Costó una ronda de depuración encontrarlo.
+- El resumen desglosa por disciplina (natación/ciclismo/carrera, mismo
+  criterio que `COLOR_DISC` en `AnalisisClient`) mapeando el `type` de
+  Strava (`disciplinaDeStrava` en `src/lib/strava.ts`) — así se puede
+  comparar con Tests sin mezclar todo en un único total. También incluye
+  ritmo/velocidad (según disciplina), FC media/máxima y desnivel, todo de
+  la misma llamada a `/athlete/activities` (sin peticiones extra por
+  actividad, para no gastar cupo de la API de Strava).
 
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
