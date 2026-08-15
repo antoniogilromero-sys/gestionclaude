@@ -280,6 +280,29 @@ visibilidad que `/entrenamientos`: el entrenador solo ve sesiones
 un chip "Borrador"). Visible para director y entrenador en el menú, junto
 a Entrenamientos.
 
+## Ampliación de alcance: histórico de documentos de pedidos
+
+`/pedidos` incorpora un histórico de los PDF que se mandan al proveedor de
+ropa (`DocumentosPedido.tsx`) — antes la app no guardaba ningún archivo en
+ningún sitio, esto es la primera vez que se usa **Supabase Storage**
+(`docs/migracion_pedidos_documentos.sql`, bucket privado
+`pedidos-documentos`).
+
+- El PDF se sube **directo desde el navegador al bucket** (no pasa por una
+  server action ni por el servidor de Next.js) — las server actions no son
+  el sitio para mover archivos binarios grandes. La action
+  `crearDocumentoPedido` solo registra el nombre y la ruta después de que
+  la subida ya haya terminado.
+- El bucket es privado: se ve con `createSignedUrl` (caduca a los 2
+  minutos), nunca con una URL pública fija.
+- Mismo criterio de acceso que el resto de `/pedidos`: solo director, tanto
+  en la tabla `pedidos_documentos` como en las políticas de
+  `storage.objects` del bucket (`es_director()` en las tres, leer/subir/
+  borrar).
+- Al borrar un documento se borra primero el archivo del bucket y luego la
+  fila de la tabla — si algún día se cambia el orden, un fallo a mitad
+  dejaría un archivo huérfano en Storage sin fila que lo referencie.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que

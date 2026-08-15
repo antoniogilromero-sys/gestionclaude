@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { PedidosList } from "./PedidosList";
+import { DocumentosPedido } from "./DocumentosPedido";
 
 export default async function PedidosPage() {
   const supabase = await createClient();
@@ -18,10 +19,16 @@ export default async function PedidosPage() {
     .single();
   if (!perfil || perfil.rol !== "director") redirect("/");
 
-  const { data: pedidos, error } = await supabase
-    .from("pedidos")
-    .select("id, articulo, talla, cantidad, creado_en, deportistas(nombre)")
-    .order("creado_en", { ascending: false });
+  const [{ data: pedidos, error }, { data: documentos }] = await Promise.all([
+    supabase
+      .from("pedidos")
+      .select("id, articulo, talla, cantidad, creado_en, deportistas(nombre)")
+      .order("creado_en", { ascending: false }),
+    supabase
+      .from("pedidos_documentos")
+      .select("id, nombre, storage_path, creado_en")
+      .order("creado_en", { ascending: false }),
+  ]);
 
   const pedidosLimpios = (pedidos ?? []).map((p) => {
     const d = p.deportistas as unknown as { nombre: string } | { nombre: string }[] | null;
@@ -61,6 +68,8 @@ export default async function PedidosPage() {
           </p>
         </div>
       )}
+
+      <DocumentosPedido documentos={documentos ?? []} />
 
       {!error && <PedidosList pedidos={pedidosLimpios} />}
     </AppShell>
