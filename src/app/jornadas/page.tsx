@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { JornadasList } from "./JornadasList";
 import { CuadranteAnio } from "./CuadranteAnio";
+import { DocumentosJornada } from "./DocumentosJornada";
 
 export default async function JornadasPage() {
   const supabase = await createClient();
@@ -19,13 +20,19 @@ export default async function JornadasPage() {
     .single();
   if (!perfil || perfil.rol !== "director") redirect("/");
 
-  const { data: jornadas, error } = await supabase
-    .from("jornadas_colegios")
-    .select(
-      "id, anio, colegio, fecha_horario, disciplina, contacto, jornada_entrenador(perfiles(nombre))",
-    )
-    .order("anio", { ascending: false })
-    .order("id", { ascending: false });
+  const [{ data: jornadas, error }, { data: documentos }] = await Promise.all([
+    supabase
+      .from("jornadas_colegios")
+      .select(
+        "id, anio, colegio, fecha_horario, disciplina, contacto, jornada_entrenador(perfiles(nombre))",
+      )
+      .order("anio", { ascending: false })
+      .order("id", { ascending: false }),
+    supabase
+      .from("jornadas_documentos")
+      .select("id, nombre, storage_path, creado_en")
+      .order("creado_en", { ascending: false }),
+  ]);
 
   const jornadasLimpias = (jornadas ?? []).map((j) => {
     const relacion = j.jornada_entrenador as unknown as
@@ -77,6 +84,8 @@ export default async function JornadasPage() {
 
       {!error && (
         <>
+          <DocumentosJornada documentos={documentos ?? []} />
+
           <CuadranteAnio anio={anioActual} jornadas={jornadasAnioActual} />
 
           {jornadasOtrosAnios.length > 0 && (

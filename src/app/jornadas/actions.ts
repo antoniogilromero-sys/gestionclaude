@@ -78,3 +78,35 @@ export async function borrarJornada(id: number): Promise<Resultado> {
   if (error) return { error: error.message };
   return { ok: true };
 }
+
+// El PDF en sí se sube directo desde el navegador al bucket de Storage
+// (DocumentosJornada.tsx) — esta action solo registra el nombre y la ruta
+// una vez subido, para que aparezca en el listado.
+export async function crearDocumentoJornada(input: {
+  nombre: string;
+  storagePath: string;
+}): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+
+  if (!input.nombre.trim()) return { error: "Falta el nombre del documento" };
+  if (!input.storagePath.trim()) return { error: "Falta la ruta del archivo" };
+
+  const { error } = await r.supabase.from("jornadas_documentos").insert({
+    nombre: input.nombre.trim(),
+    storage_path: input.storagePath,
+    subido_por: r.userId,
+  });
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+export async function borrarDocumentoJornada(id: number, storagePath: string): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+
+  await r.supabase.storage.from("jornadas-documentos").remove([storagePath]);
+  const { error } = await r.supabase.from("jornadas_documentos").delete().eq("id", id);
+  if (error) return { error: error.message };
+  return { ok: true };
+}

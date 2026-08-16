@@ -303,6 +303,25 @@ ningún sitio, esto es la primera vez que se usa **Supabase Storage**
   fila de la tabla — si algún día se cambia el orden, un fallo a mitad
   dejaría un archivo huérfano en Storage sin fila que lo referencie.
 
+## Ampliación de alcance: documentos en Jornadas de colegios
+
+`/jornadas` incorpora el mismo patrón de histórico de documentos que
+`/pedidos` (`DocumentosJornada.tsx`,
+`docs/migracion_jornadas_documentos.sql`, bucket privado
+`jornadas-documentos`) — mismo diseño, mismo criterio de acceso
+(`es_director()`), misma razón: subida directa desde el navegador al
+bucket, nunca por una server action. Ver la sección "Histórico de
+documentos de pedidos" más arriba para el porqué de cada decisión, es
+idéntico aquí salvo el nombre del bucket/tabla.
+
+Primer uso: un listado de los 39 colegios de Educación Infantil y
+Primaria de la zona noroeste (Alpedrete, Collado Villalba, Moralzarzal,
+Guadarrama, Galapagar, Navacerrada, Cercedilla, San Lorenzo de El
+Escorial) con teléfono, dirección y email, para tener a mano al organizar
+jornadas de promoción. Teléfono/dirección salen del buscador oficial de
+centros de la Comunidad de Madrid (no publica email de los públicos); el
+email se sacó de la web propia de cada centro o su ficha en EducaMadrid.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que
