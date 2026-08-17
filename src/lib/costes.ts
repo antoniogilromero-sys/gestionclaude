@@ -45,6 +45,7 @@ export const DISCIPLINA_TAG: Record<string, string> = {
   natacion: "bg-swim/15 text-swim",
   carrera: "bg-run/15 text-run",
   ciclismo: "bg-bike/15 text-bike",
+  fuerza: "bg-signal/15 text-signal",
 };
 
 export function horasSemanales(g: Grupo) {
