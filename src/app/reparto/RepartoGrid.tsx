@@ -22,8 +22,6 @@ type PersonalTemporada = {
   registrado: boolean;
 };
 
-const ORDEN_DIAS = ["lunes", "martes", "miercoles", "miércoles", "jueves", "viernes", "sabado", "sábado", "domingo"];
-
 function key(grupoId: number, entrenadorId: string) {
   return `${grupoId}:${entrenadorId}`;
 }
@@ -177,8 +175,6 @@ export function RepartoGrid({
         </Link>
       </div>
 
-      <ResumenSemanaVisual grupos={grupos} entrenadores={entrenadores} asignado={asignado} />
-
       {esDirector && (
         <>
           <button
@@ -268,75 +264,6 @@ export function RepartoGrid({
       {esDirector && (
         <CosteSemanal grupos={grupos} entrenadores={entrenadores} asignado={asignado} tarifas={tarifas} />
       )}
-    </div>
-  );
-}
-
-function capitaliza(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-function ResumenSemanaVisual({
-  grupos,
-  entrenadores,
-  asignado,
-}: {
-  grupos: Grupo[];
-  entrenadores: Entrenador[];
-  asignado: Set<string>;
-}) {
-  const diasUsados = ORDEN_DIAS.filter((d) => grupos.some((g) => g.dias.includes(d))).filter(
-    (d, i, arr) => arr.indexOf(d) === i,
-  );
-
-  if (diasUsados.length === 0) return null;
-
-  return (
-    <div className="mb-4">
-      <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute mb-2.5">
-        Resumen visual de la semana
-      </h2>
-      <div className="grid gap-2.5">
-        {diasUsados.map((dia) => {
-          const gruposDia = grupos
-            .filter((g) => g.dias.includes(dia))
-            .sort((a, b) => (a.hora_inicio ?? "99:99").localeCompare(b.hora_inicio ?? "99:99"));
-
-          return (
-            <div key={dia} className="bg-surf border border-edge rounded-[10px] p-3">
-              <h3 className="font-display text-[13px] tracking-[.1em] uppercase text-signal mb-2">
-                {capitaliza(dia)}
-              </h3>
-              <div className="space-y-1.5">
-                {gruposDia.map((g) => {
-                  const asignados = entrenadores.filter((e) => asignado.has(key(g.id, e.id)));
-                  return (
-                    <div key={g.id} className="flex items-center gap-2 text-[13px]">
-                      <span className="font-display text-mute w-[70px] shrink-0 tabular-nums">
-                        {g.hora_inicio && g.hora_fin
-                          ? `${g.hora_inicio.slice(0, 5)}–${g.hora_fin.slice(0, 5)}`
-                          : "variable"}
-                      </span>
-                      <span
-                        className={`shrink-0 px-[7px] py-[2px] rounded-[5px] text-xs ${DISCIPLINA_TAG[g.disciplina] ?? "bg-edge text-chalk"}`}
-                      >
-                        {g.nombre}
-                      </span>
-                      {asignados.length > 0 ? (
-                        <span className="text-chalk font-medium truncate">
-                          {asignados.map((e) => e.nombre).join(" · ")}
-                        </span>
-                      ) : (
-                        <span className="text-run">Sin asignar</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }
