@@ -34,10 +34,9 @@ export default async function RepartoPage({
   const siguienteDate = new Date(semanaDate);
   siguienteDate.setDate(semanaDate.getDate() + 7);
 
-  // El coste semanal (sueldos) y el cuadro de personal (email/teléfono) son
-  // datos solo para el director — a un entrenador no le hace falta ver lo
-  // que cobra el resto del equipo ni sus contactos, así que ni se piden si
-  // no es director.
+  // El coste semanal (sueldos) es un dato solo para el director — a un
+  // entrenador no le hace falta ver lo que cobra el resto del equipo, así
+  // que ni se pide si no es director.
   const [{ data: grupos }, { data: entrenadores }, { data: asignaciones }] = await Promise.all([
     supabase
       .from("grupos")
@@ -57,35 +56,12 @@ export default async function RepartoPage({
   ]);
 
   let tarifas: { entrenador_id: string; disciplina: string; euros_hora: number }[] = [];
-  let personalTemporada: { nombre: string; email: string; telefono: string | null }[] = [];
-  let personalError: string | null = null;
-  let cuentasActivas: { email: string }[] = [];
-
   if (esDirector) {
-    const [rTarifas, rPersonal, rCuentas] = await Promise.all([
-      supabase.from("tarifas_entrenador").select("entrenador_id, disciplina, euros_hora"),
-      supabase.from("personal_temporada").select("nombre, email, telefono").order("nombre"),
-      // El director también puede ser uno de los entrenadores de la
-      // plantilla (p. ej. Toni lleva grupos y además dirige el club), así
-      // que el cuadro de personal cruza contra todos los roles activos, no
-      // solo "entrenador" — si no, aparecería como "sin cuenta" siendo él
-      // mismo. Se cruza por email, más fiable que el nombre (Google manda
-      // el nombre completo, no el apodo que usa el club).
-      supabase.from("perfiles").select("email").in("rol", ["director", "entrenador"]).eq("activo", true),
-    ]);
-    tarifas = rTarifas.data ?? [];
-    personalTemporada = rPersonal.data ?? [];
-    personalError = rPersonal.error?.message ?? null;
-    cuentasActivas = rCuentas.data ?? [];
+    const { data } = await supabase
+      .from("tarifas_entrenador")
+      .select("entrenador_id, disciplina, euros_hora");
+    tarifas = data ?? [];
   }
-
-  const emailsRegistrados = new Set(
-    (cuentasActivas ?? []).map((c) => c.email.toLowerCase()),
-  );
-  const personal = (personalTemporada ?? []).map((p) => ({
-    ...p,
-    registrado: emailsRegistrados.has(p.email.toLowerCase()),
-  }));
 
   return (
     <AppShell nombre={perfil.nombre} rol={perfil.rol}>
@@ -98,8 +74,6 @@ export default async function RepartoPage({
         entrenadores={entrenadores ?? []}
         asignacionesIniciales={asignaciones ?? []}
         tarifas={tarifas}
-        personal={personal}
-        personalError={personalError}
       />
     </AppShell>
   );

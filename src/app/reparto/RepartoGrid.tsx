@@ -15,12 +15,6 @@ import {
 
 type Entrenador = { id: string; nombre: string };
 type Asignacion = { grupo_id: number; entrenador_id: string };
-type PersonalTemporada = {
-  nombre: string;
-  email: string;
-  telefono: string | null;
-  registrado: boolean;
-};
 
 function key(grupoId: number, entrenadorId: string) {
   return `${grupoId}:${entrenadorId}`;
@@ -45,8 +39,6 @@ export function RepartoGrid({
   entrenadores,
   asignacionesIniciales,
   tarifas,
-  personal,
-  personalError,
 }: {
   esDirector: boolean;
   semana: string;
@@ -56,8 +48,6 @@ export function RepartoGrid({
   entrenadores: Entrenador[];
   asignacionesIniciales: Asignacion[];
   tarifas: Tarifa[];
-  personal: PersonalTemporada[];
-  personalError: string | null;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -116,8 +106,6 @@ export function RepartoGrid({
 
   return (
     <div>
-      {esDirector && <CuadroPersonal personal={personal} error={personalError} />}
-
       {sinEquipo && (
         <div className="bg-surf border border-signal/40 rounded-[10px] p-3.5 mb-4">
           <b className="block text-[15px] font-medium mb-1">
@@ -239,61 +227,6 @@ export function RepartoGrid({
       {esDirector && (
         <CosteSemanal grupos={grupos} entrenadores={entrenadores} asignado={asignado} tarifas={tarifas} />
       )}
-    </div>
-  );
-}
-
-function CuadroPersonal({
-  personal,
-  error,
-}: {
-  personal: PersonalTemporada[];
-  error: string | null;
-}) {
-  return (
-    <div className="mb-5">
-      <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute mb-2.5">
-        Cuadro de personal · 26/27
-      </h2>
-      {error && (
-        <div className="bg-surf border border-run/40 rounded-[10px] p-3.5 mb-2.5">
-          <b className="block text-[15px] font-medium mb-1 text-run">
-            No se ha podido cargar el cuadro de personal
-          </b>
-          <p className="text-sm text-mute leading-relaxed">
-            Puede que falte ejecutar la migración de personal_temporada en
-            Supabase. Detalle técnico: {error}
-          </p>
-        </div>
-      )}
-      <div className="flex flex-col gap-[7px]">
-        {!error && personal.map((p) => (
-          <div
-            key={p.email}
-            className={`flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-[10px] border ${
-              p.registrado ? "border-ok/50 bg-surf" : "border-edge bg-surf"
-            }`}
-          >
-            <div className="min-w-0">
-              <b className="text-[14px] block truncate">{p.nombre}</b>
-              <span className="text-xs text-mute block truncate">
-                {p.email}
-                {p.telefono && ` · ${p.telefono}`}
-              </span>
-            </div>
-            <span
-              className={`shrink-0 font-display text-[11px] tracking-[.05em] uppercase px-2 py-1 rounded-full ${
-                p.registrado ? "bg-ok/15 text-ok" : "bg-edge text-mute"
-              }`}
-            >
-              {p.registrado ? "En el equipo" : "Sin cuenta"}
-            </span>
-          </div>
-        ))}
-        {!error && personal.length === 0 && (
-          <p className="text-mute text-sm">Sin plantilla cargada todavía.</p>
-        )}
-      </div>
     </div>
   );
 }
