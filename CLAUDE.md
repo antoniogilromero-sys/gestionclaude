@@ -50,11 +50,15 @@ que falta rellenar, es intencional.
 
 ## Cuadro de personal y datos de contacto
 
-La plantilla de la temporada (9 personas) ya no es un array fijo en el
-código: vive en la tabla `personal_temporada` (nombre, email, teléfono —
-ver `docs/migracion_personal_temporada.sql`) y se cruza por email con
-`perfiles` para saber quién ya tiene cuenta. El email es la clave de cruce,
-no el nombre (Google manda el nombre completo, no el apodo del club).
+**Se quitó de `/reparto`** (agosto 2026): Antón nunca ejecutó
+`docs/migracion_personal_temporada.sql` en producción, así que el bloque
+daba error permanentemente ("no se ha podido cargar"), y pidió
+explícitamente eliminarlo en vez de ejecutar la migración pendiente. Ya no
+existe `CuadroPersonal` en `RepartoGrid.tsx` ni se piden `personal_temporada`
+ni el cruce de `cuentasActivas` en `reparto/page.tsx`. El archivo de
+migración se queda en `docs/` sin usar, por si algún día se retoma la idea
+— no lo borres pensando que es basura, pero tampoco des por hecho que la
+tabla existe en Supabase.
 
 **Antón pidió meter también el número de cuenta bancaria y se le explicó
 por qué no**: rompe la decisión ya cerrada de "sin datos personales
