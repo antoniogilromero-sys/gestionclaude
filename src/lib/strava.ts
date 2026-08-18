@@ -127,6 +127,8 @@ export type ActividadStrava = {
   velocidad_media_ms: number | null;
   fc_media: number | null;
   fc_max: number | null;
+  potencia_media_w: number | null;
+  potencia_max_w: number | null;
 };
 
 type TotalesDisciplina = Record<Disciplina, { km: number; horas: number; sesiones: number }>;
@@ -182,6 +184,9 @@ export async function obtenerResumenStrava(deportistaId: number): Promise<Resume
     average_speed: number | null;
     average_heartrate?: number | null;
     max_heartrate?: number | null;
+    average_watts?: number | null;
+    max_watts?: number | null;
+    device_watts?: boolean;
   };
   const crudas: ActividadCruda[] = await res.json();
 
@@ -197,6 +202,10 @@ export async function obtenerResumenStrava(deportistaId: number): Promise<Resume
     velocidad_media_ms: a.average_speed ?? null,
     fc_media: a.average_heartrate ?? null,
     fc_max: a.max_heartrate ?? null,
+    // Solo si el dato viene de un sensor real (potenciómetro/Stryd), no
+    // una estimación de Strava — mismo criterio que las métricas avanzadas.
+    potencia_media_w: a.device_watts ? a.average_watts ?? null : null,
+    potencia_max_w: a.device_watts ? a.max_watts ?? null : null,
   }));
 
   const totalesPorDisciplina = totalesVacios();

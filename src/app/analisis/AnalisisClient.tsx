@@ -53,6 +53,8 @@ type ActividadStrava = {
   velocidad_media_ms: number | null;
   fc_media: number | null;
   fc_max: number | null;
+  potencia_media_w: number | null;
+  potencia_max_w: number | null;
 };
 type ResumenStrava = {
   conectado: boolean;
@@ -288,6 +290,16 @@ function FichaIndividual({
         <p className="text-xs text-mute mb-3.5">
           {test.mejor_es === "menor" ? "Más bajo es mejor" : "Más alto es mejor"}
         </p>
+      )}
+
+      {deportistaActual && (
+        <a
+          href={`/analisis/informe/${deportistaActual.id}`}
+          target="_blank"
+          className="inline-block font-display text-xs tracking-[.08em] uppercase text-signal mb-3.5"
+        >
+          Descargar informe de {deportistaActual.nombre} ↗
+        </a>
       )}
 
       {deportistaActual && <PerfilFisiologicoEditor deportista={deportistaActual} />}
@@ -703,24 +715,30 @@ function ResumenStravaCard({ resumen }: { resumen: ResumenStrava }) {
       )}
 
       {resumen.actividades.length > 0 && (
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-2">
           {resumen.actividades.slice(0, 8).map((a) => {
             const ritmo = formatoRitmo(a);
             return (
-              <div key={a.id} className="flex items-center justify-between text-xs gap-2">
-                <span className="text-chalk truncate flex items-center gap-1">
-                  <span
-                    className="w-1.5 h-1.5 rounded-full shrink-0"
-                    style={{ backgroundColor: colorDisciplina(a.disciplina) }}
-                  />
-                  {ICONO_TIPO[a.tipo] ?? "•"} {a.nombre}
-                </span>
-                <span className="text-mute shrink-0 tabular-nums text-right">
+              <div key={a.id} className="bg-deep border border-edge rounded-lg p-2">
+                <div className="flex items-center justify-between text-xs gap-2 mb-1">
+                  <span className="text-chalk truncate flex items-center gap-1 font-medium">
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: colorDisciplina(a.disciplina) }}
+                    />
+                    {ICONO_TIPO[a.tipo] ?? "•"} {a.nombre}
+                  </span>
+                  <span className="text-mute shrink-0">{fmtFechaCorta(a.fecha)}</span>
+                </div>
+                <div className="text-mute text-[11px] tabular-nums">
                   {(a.distancia_m / 1000).toFixed(1)} km
                   {ritmo && ` · ${ritmo}`}
+                  {a.desnivel_m > 0 && ` · ▲${Math.round(a.desnivel_m)} m`}
                   {a.fc_media != null && ` · ❤ ${Math.round(a.fc_media)}`}
-                  {` · ${fmtFechaCorta(a.fecha)}`}
-                </span>
+                  {a.fc_max != null && `–${Math.round(a.fc_max)} máx`}
+                  {a.potencia_media_w != null && ` · ⚡${Math.round(a.potencia_media_w)} W`}
+                  {a.potencia_max_w != null && `–${Math.round(a.potencia_max_w)} máx`}
+                </div>
               </div>
             );
           })}

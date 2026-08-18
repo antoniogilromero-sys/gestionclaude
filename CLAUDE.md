@@ -326,6 +326,37 @@ jornadas de promoción. Teléfono/dirección salen del buscador oficial de
 centros de la Comunidad de Madrid (no publica email de los públicos); el
 email se sacó de la web propia de cada centro o su ficha en EducaMadrid.
 
+## Ampliación de alcance: informe descargable e entrenamiento diario con RPE
+
+Dos piezas nuevas sobre la integración de Strava, agosto 2026:
+
+- **`/analisis/informe/[id]`** — informe de un deportista para descargar
+  (perfil fisiológico, mejores marcas por prueba, competiciones, resumen
+  Strava de las últimas 4 semanas), en una página imprimible de fondo
+  blanco con `window.print()`, mismo patrón que ya usaba
+  `/facturas/[numero]` (`PrintButton`/`ImprimirButton`, sin librería de
+  PDF, el navegador hace de motor). Solo director, como el resto de
+  `/analisis`. Enlace "Descargar informe" en la Ficha individual.
+- **`/entrenamiento-diario`** — a diferencia de `/analisis` (solo
+  director), esta pantalla es para **director y entrenador** a
+  propósito: Antón confirmó explícitamente que quería que los
+  entrenadores pudieran registrar la percepción del esfuerzo (RPE) de
+  cada sesión, porque son ellos quienes están presentes en el
+  entrenamiento del día a día — no se abrió el resto de `/analisis`
+  (histórico de tests, perfil fisiológico) para no romper esa frontera de
+  seguridad ya cerrada, esta es una pantalla nueva y separada, con solo
+  lo necesario para ver los últimos 7 días de actividades de Strava
+  (vatios medio/máximo, FC media/máxima, velocidad, desnivel) y anotar el
+  RPE. El RPE no viene de Strava — se guarda en `strava_rpe`
+  (`docs/migracion_strava_rpe.sql`), única tabla de Strava en la que
+  escriben director **y** entrenador directamente desde el navegador
+  (todas las demás tablas de Strava solo las escribe el servidor).
+- `obtenerResumenStrava` (`src/lib/strava.ts`) ahora también trae
+  `potencia_media_w`/`potencia_max_w` del resumen de actividad de Strava
+  (mismo endpoint que ya se pedía, sin coste extra de cupo) — solo si
+  `device_watts` es `true`, igual criterio que las métricas avanzadas: no
+  mostrar una estimación de Strava como si fuera un dato real de sensor.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que
