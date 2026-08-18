@@ -15,7 +15,13 @@ type Movimiento = {
 };
 type Externo = { id: number; concepto: string; importe: number };
 
-const INGRESO_CATEGORIAS = ["Cuotas de socios", "Otros ingresos"];
+const INGRESO_CATEGORIAS = [
+  "Socios club SEPA",
+  "Socios transferencia",
+  "Subvención",
+  "GSD",
+  "Otros ingresos",
+];
 const GASTO_CATEGORIAS = [
   "Piscina",
   "Liga de clubs",
