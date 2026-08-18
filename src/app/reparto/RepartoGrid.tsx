@@ -36,13 +36,6 @@ function formatSemana(iso: string) {
   return `${fmt(inicio)} – ${fmt(fin)}`;
 }
 
-function franjasSolapan(a: Grupo, b: Grupo) {
-  if (!a.hora_inicio || !a.hora_fin || !b.hora_inicio || !b.hora_fin) return false;
-  const diasComunes = a.dias.some((d) => b.dias.includes(d));
-  if (!diasComunes) return false;
-  return a.hora_inicio < b.hora_fin && b.hora_inicio < a.hora_fin;
-}
-
 export function RepartoGrid({
   esDirector,
   semana,
@@ -117,19 +110,6 @@ export function RepartoGrid({
   const sinEntrenador = grupos.filter(
     (g) => !entrenadores.some((e) => asignado.has(key(g.id, e.id))),
   );
-  const solapes: string[] = [];
-  for (const e of entrenadores) {
-    const gruposDe = grupos.filter((g) => asignado.has(key(g.id, e.id)));
-    for (let i = 0; i < gruposDe.length; i++) {
-      for (let j = i + 1; j < gruposDe.length; j++) {
-        if (franjasSolapan(gruposDe[i], gruposDe[j])) {
-          solapes.push(
-            `${e.nombre}: ${gruposDe[i].nombre} y ${gruposDe[j].nombre} coinciden en horario`,
-          );
-        }
-      }
-    }
-  }
 
   const disciplinas = [...new Set(grupos.map((g) => g.disciplina))];
   const sinEquipo = entrenadores.length === 0;
@@ -189,16 +169,11 @@ export function RepartoGrid({
         </>
       )}
 
-      {!sinEquipo && (sinEntrenador.length > 0 || solapes.length > 0) && (
+      {!sinEquipo && sinEntrenador.length > 0 && (
         <div className="bg-surf border border-run/40 rounded-[10px] p-3 mb-4 space-y-1">
           {sinEntrenador.map((g) => (
             <p key={g.id} className="text-run text-[13px]">
               {g.nombre} se queda sin entrenador
-            </p>
-          ))}
-          {solapes.map((s, i) => (
-            <p key={i} className="text-run text-[13px]">
-              {s}
             </p>
           ))}
         </div>
