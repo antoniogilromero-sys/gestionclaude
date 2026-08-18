@@ -36,7 +36,14 @@ export default async function BalancePage({
   const anteriorDate = new Date(mesDate.getFullYear(), mesDate.getMonth() - 1, 1);
   const siguienteDate = new Date(mesDate.getFullYear(), mesDate.getMonth() + 1, 1);
 
-  const [{ data: movimientos, error }, { data: facturas }, { data: pagosExtra }] = await Promise.all([
+  const [
+    { data: movimientos, error },
+    { data: facturas },
+    { data: pagosExtra },
+    { data: movimientosTodos },
+    { data: facturasTodas },
+    { data: pagosExtraTodos },
+  ] = await Promise.all([
     supabase
       .from("movimientos_club")
       .select("id, tipo, categoria, concepto, importe, fecha")
@@ -48,7 +55,27 @@ export default async function BalancePage({
       .from("pagos_extra")
       .select("id, concepto, importe")
       .eq("mes", mes),
+    // Para la media mensual hace falta todo el histórico, no solo el mes
+    // que se está viendo.
+    supabase.from("movimientos_club").select("tipo, importe, fecha"),
+    supabase.from("facturas").select("importe, fecha"),
+    supabase.from("pagos_extra").select("importe, mes"),
   ]);
+
+  const porMes = new Map<string, { ingresos: number; gastos: number }>();
+  function sumar(claveMes: string, tipo: "ingreso" | "gasto", importe: number) {
+    const acc = porMes.get(claveMes) ?? { ingresos: 0, gastos: 0 };
+    if (tipo === "ingreso") acc.ingresos += importe;
+    else acc.gastos += importe;
+    porMes.set(claveMes, acc);
+  }
+  for (const m of movimientosTodos ?? []) sumar(m.fecha.slice(0, 7), m.tipo as "ingreso" | "gasto", Number(m.importe));
+  for (const f of facturasTodas ?? []) sumar(f.fecha.slice(0, 7), "ingreso", Number(f.importe));
+  for (const p of pagosExtraTodos ?? []) sumar(p.mes.slice(0, 7), "gasto", Number(p.importe));
+
+  const meses = [...porMes.values()];
+  const mediaIngresos = meses.length > 0 ? meses.reduce((s, m) => s + m.ingresos, 0) / meses.length : 0;
+  const mediaGastos = meses.length > 0 ? meses.reduce((s, m) => s + m.gastos, 0) / meses.length : 0;
 
   return (
     <AppShell nombre={perfil.nombre} rol={perfil.rol}>
@@ -67,6 +94,9 @@ export default async function BalancePage({
           mes={mes}
           mesAnterior={toISODateLocal(anteriorDate)}
           mesSiguiente={toISODateLocal(siguienteDate)}
+          mediaIngresos={mediaIngresos}
+          mediaGastos={mediaGastos}
+          mesesConDatos={meses.length}
           movimientos={movimientos ?? []}
           facturas={(facturas ?? []).map((f) => ({
             id: f.numero,

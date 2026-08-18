@@ -58,6 +58,9 @@ export function BalanceView({
   mes,
   mesAnterior,
   mesSiguiente,
+  mediaIngresos,
+  mediaGastos,
+  mesesConDatos,
   movimientos,
   facturas,
   pagosExtra,
@@ -65,6 +68,9 @@ export function BalanceView({
   mes: string;
   mesAnterior: string;
   mesSiguiente: string;
+  mediaIngresos: number;
+  mediaGastos: number;
+  mesesConDatos: number;
   movimientos: Movimiento[];
   facturas: Externo[];
   pagosExtra: Externo[];
@@ -109,6 +115,19 @@ export function BalanceView({
           </b>
         </div>
       </div>
+
+      {mesesConDatos > 0 && (
+        <div className="flex items-center justify-between bg-deep border border-edge rounded-[10px] p-3 mb-4 text-sm">
+          <span className="text-mute">
+            Media mensual ({mesesConDatos} {mesesConDatos === 1 ? "mes" : "meses"} con datos)
+          </span>
+          <span>
+            <span className="text-ok font-medium">{euros(mediaIngresos)} €</span>
+            <span className="text-mute"> / </span>
+            <span className="text-run font-medium">{euros(mediaGastos)} €</span>
+          </span>
+        </div>
+      )}
 
       <div className="flex items-center justify-between mb-2.5">
         <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute">Movimientos</h2>
