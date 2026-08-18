@@ -17,12 +17,18 @@ type Externo = { id: number; concepto: string; importe: number };
 
 const INGRESO_CATEGORIAS = ["Cuotas de socios", "Otros ingresos"];
 const GASTO_CATEGORIAS = [
-  "Nóminas entrenadores",
   "Piscina",
-  "Pistas de atletismo",
-  "Seguro anual",
-  "Ropa deportiva",
-  "Liga de Talentos / Triatlón Adultos",
+  "Liga de clubs",
+  "Entrenadores",
+  "Seguro",
+  "Camisetas",
+  "Pista",
+  "Casas",
+  "Licencia",
+  "Material",
+  "Gorro",
+  "Gasolina",
+  "Compra",
   "Otros gastos",
 ];
 
