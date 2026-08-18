@@ -12,6 +12,8 @@
   --bike: #a8d84a;
   --run: #ff9145;
   --ok: #3dd68c;
+  --header: #1b4fdb;
+  --header-mute: #b9caf7;
   --r: 10px;
 
   --background: var(--deep);
@@ -30,6 +32,8 @@
   --color-bike: var(--bike);
   --color-run: var(--run);
   --color-ok: var(--ok);
+  --color-header: var(--header);
+  --color-header-mute: var(--header-mute);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);

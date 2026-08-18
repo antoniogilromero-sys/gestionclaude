@@ -39,10 +39,10 @@ export function AppHeader({
   }
 
   return (
-    <header className="bg-surf border-b border-edge px-[18px] pt-[14px] pb-3">
+    <header className="bg-header border-b border-edge px-[18px] pt-[14px] pb-3">
       <div className="flex items-center gap-1.5">
         <img src="/logo-club.png" alt="" className="w-4 h-4 object-contain shrink-0" />
-        <div className="font-display text-[13px] tracking-[.16em] uppercase text-mute">
+        <div className="font-display text-[13px] tracking-[.16em] uppercase text-header-mute">
           C.D.E. Triatlón Alpedrete
         </div>
       </div>
@@ -79,7 +79,7 @@ export function AppHeader({
                   setValor(nombre);
                   setEditando(true);
                 }}
-                className="shrink-0 text-mute text-xs underline"
+                className="shrink-0 text-header-mute text-xs underline"
               >
                 editar
               </button>
@@ -97,7 +97,7 @@ export function AppHeader({
             </span>
             <button
               onClick={salir}
-              className="bg-transparent border border-edge text-mute rounded-lg px-2.5 py-1 text-[11px] cursor-pointer hover:text-chalk hover:border-mute"
+              className="bg-transparent border border-header-mute/40 text-header-mute rounded-lg px-2.5 py-1 text-[11px] cursor-pointer hover:text-chalk hover:border-chalk"
             >
               Salir
             </button>
