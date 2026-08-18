@@ -55,7 +55,7 @@ export function NavBar({
   const items = rol === "director" ? DIRECTOR_ITEMS : ENTRENADOR_ITEMS;
 
   return (
-    <div className="relative bg-surf border-b border-edge">
+    <div className="relative bg-nav border-b border-edge">
       <nav className="flex gap-2 overflow-x-auto px-[18px] py-2">
         <Link
           href="/"
