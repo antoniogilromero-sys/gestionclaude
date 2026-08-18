@@ -23,6 +23,16 @@ export default async function AdministracionPage() {
         Gestiones administrativas
       </h2>
       <Link
+        href="/balance"
+        className="block bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5"
+      >
+        <b className="block text-[16px] font-semibold mb-[3px]">Balance del club</b>
+        <span className="text-sm text-mute">
+          Ingresos (cuotas, facturas) y gastos (nóminas, piscina, pistas,
+          seguro, ropa, ligas...) mes a mes, con el saldo.
+        </span>
+      </Link>
+      <Link
         href="/facturas"
         className="block bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5"
       >

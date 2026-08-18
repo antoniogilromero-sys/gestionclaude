@@ -357,6 +357,30 @@ Dos piezas nuevas sobre la integración de Strava, agosto 2026:
   `device_watts` es `true`, igual criterio que las métricas avanzadas: no
   mostrar una estimación de Strava como si fuera un dato real de sensor.
 
+## Ampliación de alcance: Balance del club
+
+`/balance` (dentro de Administración, solo director) es dinero real, no
+estimaciones — a propósito distinto de `/pagos` (que sigue siendo un
+cálculo del coste de nómina según tarifas × horas del reparto, no un
+gasto registrado). Antón pidió explícitamente que las nóminas se anoten
+a mano como cualquier gasto, no que se calculen solas desde Reparto —
+así el balance solo cuenta dinero que de verdad ha entrado o salido.
+
+- Tabla nueva `movimientos_club` (`docs/migracion_balance.sql`): tipo
+  ingreso/gasto, categoría, concepto libre, importe, fecha. RLS
+  director-only, igual que `facturas` y `pagos_extra`.
+- **No duplica `facturas` ni `pagos_extra`** — esas tablas siguen siendo
+  la fuente de verdad de facturación y nóminas extra respectivamente. El
+  balance las lee y sube a los totales del mes (de solo lectura ahí,
+  marcadas "Factura"/"Nómina extra"), pero se gestionan y se borran desde
+  sus propios apartados, no desde `/balance`.
+- Categorías de gasto fijas, confirmadas por Antón: Nóminas entrenadores,
+  Piscina, Pistas de atletismo, Seguro anual, Ropa deportiva, Liga de
+  Talentos/Triatlón Adultos, Otros gastos. Ingreso: Cuotas de socios,
+  Otros ingresos. Si pide una categoría nueva, añadirla a
+  `INGRESO_CATEGORIAS`/`GASTO_CATEGORIAS` en `BalanceView.tsx` — son un
+  array fijo en el código, no una tabla, a propósito (pocas y estables).
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que
