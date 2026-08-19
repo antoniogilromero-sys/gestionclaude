@@ -381,6 +381,35 @@ así el balance solo cuenta dinero que de verdad ha entrado o salido.
   `INGRESO_CATEGORIAS`/`GASTO_CATEGORIAS` en `BalanceView.tsx` — son un
   array fijo en el código, no una tabla, a propósito (pocas y estables).
 
+## Ampliación de alcance: Liga de Talentos
+
+`/liga-talentos` (solo director, confirmado explícitamente: "solo lo
+quiero ver yo") es un seguimiento aparte del catálogo fijo de tests del
+club — a propósito no reutiliza `tipos_test`/`resultados`, porque aquí
+las pruebas son las que Antón decida sobre la marcha (texto libre en
+`liga_talentos_marcas.prueba`), no un catálogo cerrado de 20 pruebas.
+
+- `liga_talentos_marcas`: una prueba, un tiempo (ej. "Natación 300m").
+  Se muestra como tabla ancha (filas = deportistas, columnas = cada
+  prueba distinta que haya), con la mejor marca de cada columna
+  resaltada — mismo formato que el Excel de origen de Antón, a
+  propósito, para poder comparar de un vistazo.
+- `liga_talentos_carreras`: carreras con tramos de duatlón (carrera, T1,
+  bici, T2, carrera) y tiempo total. `deportista_id` es opcional y hay un
+  campo `equipo` porque algunos resultados son de un equipo de relevos,
+  no de un deportista suelto (ej. "Relevo Parejas Mixtos"). Se agrupa por
+  nombre de carrera y se ordena por tiempo total — el más rápido primero,
+  con medallas 🥇🥈🥉 en los tres primeros.
+- Es de **solo visualización por ahora** (sin formulario de alta en la
+  app) — Antón confirmó que de momento prefiere pasar los datos y que se
+  carguen por SQL en vez de tener que rellenar un formulario cada vez.
+  Si más adelante pide meter datos él mismo desde el móvil, hay que
+  añadir un formulario, no está construido todavía.
+- Al cargar tiempos desde un Excel/ODS, cuidado con los "TIEMPO TOTAL"
+  que vienen mal formateados por Excel (ej. "33:58:00" en vez de "33:58"
+  cuando el total supera cierto minutaje) — mejor recalcular el total
+  sumando los tramos que fiarse del texto de la celda.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que
