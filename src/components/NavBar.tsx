@@ -41,6 +41,7 @@ const ENTRENADOR_ITEMS: NavItem[] = [
   { href: "/entrenamiento-diario", label: "Entreno diario" },
   { href: "/tests", label: "Registrar test" },
   { href: "/grupos", label: "Grupos" },
+  { href: "/deportistas", label: "Deportistas" },
   { href: "/competiciones", label: "Competiciones" },
   { href: "/rankings", label: "Rankings" },
 ];

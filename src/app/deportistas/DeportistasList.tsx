@@ -18,9 +18,11 @@ type Grupo = { id: number; nombre: string };
 export function DeportistasList({
   deportistas,
   grupos,
+  esDirector,
 }: {
   deportistas: Deportista[];
   grupos: Grupo[];
+  esDirector: boolean;
 }) {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
@@ -122,15 +124,17 @@ export function DeportistasList({
         <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute">
           Deportistas ({deportistas.length})
         </h2>
-        <button
-          onClick={() => setMostrarAlta((v) => !v)}
-          className="font-display text-xs tracking-[.08em] uppercase text-signal shrink-0"
-        >
-          {mostrarAlta ? "Cancelar" : "+ Alta"}
-        </button>
+        {esDirector && (
+          <button
+            onClick={() => setMostrarAlta((v) => !v)}
+            className="font-display text-xs tracking-[.08em] uppercase text-signal shrink-0"
+          >
+            {mostrarAlta ? "Cancelar" : "+ Alta"}
+          </button>
+        )}
       </div>
 
-      {mostrarAlta && (
+      {esDirector && mostrarAlta && (
         <div className="bg-surf border border-edge rounded-[10px] p-3.5 mb-3.5">
           <div className="grid grid-cols-2 gap-2.5">
             <input
@@ -187,37 +191,41 @@ export function DeportistasList({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <b className="block text-[15px] font-medium truncate">{d.nombre}</b>
-                <button
-                  onClick={() => setEditandoDatos(d.id)}
-                  className="shrink-0 text-mute text-xs underline"
-                >
-                  editar
-                </button>
+                {esDirector && (
+                  <button
+                    onClick={() => setEditandoDatos(d.id)}
+                    className="shrink-0 text-mute text-xs underline"
+                  >
+                    editar
+                  </button>
+                )}
               </div>
               <span className="text-xs text-mute">
                 {d.ref ?? "sin ref"} · {d.categoria ?? "sin categoría"}
                 {!d.activo && " · de baja"}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                onClick={() => copiarEnlaceStrava(d.id)}
-                title="Copiar enlace para conectar Strava"
-                className="bg-transparent border border-edge text-mute rounded-lg min-h-[44px] px-2.5 flex items-center justify-center font-display text-xs tracking-[.04em] cursor-pointer"
-              >
-                {copiadoId === d.id ? "Copiado ✓" : "Enlace Strava"}
-              </button>
-              <button
-                disabled={cargando === d.id}
-                onClick={() => onCambiarActivo(d.id, !d.activo)}
-                className="bg-transparent border border-edge text-chalk rounded-lg min-h-[44px] px-3 flex items-center justify-center font-display text-xs tracking-[.06em] uppercase cursor-pointer disabled:opacity-60"
-              >
-                {d.activo ? "Dar de baja" : "Reactivar"}
-              </button>
-            </div>
+            {esDirector && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => copiarEnlaceStrava(d.id)}
+                  title="Copiar enlace para conectar Strava"
+                  className="bg-transparent border border-edge text-mute rounded-lg min-h-[44px] px-2.5 flex items-center justify-center font-display text-xs tracking-[.04em] cursor-pointer"
+                >
+                  {copiadoId === d.id ? "Copiado ✓" : "Enlace Strava"}
+                </button>
+                <button
+                  disabled={cargando === d.id}
+                  onClick={() => onCambiarActivo(d.id, !d.activo)}
+                  className="bg-transparent border border-edge text-chalk rounded-lg min-h-[44px] px-3 flex items-center justify-center font-display text-xs tracking-[.06em] uppercase cursor-pointer disabled:opacity-60"
+                >
+                  {d.activo ? "Dar de baja" : "Reactivar"}
+                </button>
+              </div>
+            )}
           </div>
 
-          {editandoDatos === d.id && (
+          {esDirector && editandoDatos === d.id && (
             <EditorDatos
               refInicial={d.ref ?? ""}
               nombreInicial={d.nombre}
@@ -228,7 +236,7 @@ export function DeportistasList({
             />
           )}
 
-          {editandoGrupos === d.id ? (
+          {esDirector && editandoGrupos === d.id ? (
             <EditorGrupos
               grupos={grupos}
               grupoIdsIniciales={d.grupoIds}
@@ -237,9 +245,9 @@ export function DeportistasList({
               onCancelar={() => setEditandoGrupos(null)}
             />
           ) : (
-            <button
-              onClick={() => setEditandoGrupos(d.id)}
-              className="w-full text-left bg-deep border border-edge rounded-lg p-2 text-sm text-chalk"
+            <div
+              onClick={() => esDirector && setEditandoGrupos(d.id)}
+              className={`w-full text-left bg-deep border border-edge rounded-lg p-2 text-sm text-chalk ${esDirector ? "cursor-pointer" : ""}`}
             >
               {d.grupoIds.length === 0 ? (
                 <span className="text-mute">Sin grupo asignado</span>
@@ -249,7 +257,7 @@ export function DeportistasList({
                   .filter(Boolean)
                   .join(" · ")
               )}
-            </button>
+            </div>
           )}
         </div>
       ))}

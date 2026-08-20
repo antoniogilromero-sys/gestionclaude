@@ -15,7 +15,8 @@ export default async function DeportistasPage() {
     .select("nombre, rol")
     .eq("id", user.id)
     .single();
-  if (!perfil || perfil.rol !== "director") redirect("/");
+  if (!perfil || perfil.rol === "pendiente") redirect("/");
+  const esDirector = perfil.rol === "director";
 
   const [{ data: deportistas }, { data: grupos }, { data: depGrupos }] = await Promise.all([
     supabase
@@ -40,7 +41,11 @@ export default async function DeportistasPage() {
 
   return (
     <AppShell nombre={perfil.nombre} rol={perfil.rol}>
-      <DeportistasList deportistas={deportistasConGrupos} grupos={grupos ?? []} />
+      <DeportistasList
+        deportistas={deportistasConGrupos}
+        grupos={grupos ?? []}
+        esDirector={esDirector}
+      />
     </AppShell>
   );
 }

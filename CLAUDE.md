@@ -456,6 +456,35 @@ después de que se le confirmara que antes esto no pasaba solo.
   el fallo solo queda en los logs de Vercel. El director siempre puede
   dar de alta a mano desde `/deportistas` si hace falta.
 
+## Ampliación de alcance: los entrenadores ven los perfiles de deportistas
+
+`/deportistas` (agosto 2026) dejó de ser solo-director: Antón pidió
+explícitamente que los entrenadores pudieran ver el grupo de natación de
+cada deportista desde su perfil. Como esa página no tiene ningún dato
+personal sensible (solo nombre, ref, categoría y grupos — nada de
+DNI/domicilio/teléfono, coherente con "sin datos personales" del encargo
+original), se abrió en modo solo-lectura en vez de crear una vista
+paralela:
+
+- La página ahora deja pasar a cualquier `aprobado()` (no solo
+  `rol === "director"`) y calcula `esDirector` para pasarlo a
+  `DeportistasList`.
+- `DeportistasList` oculta con `esDirector &&` todo lo que modifica datos
+  para el entrenador: el botón "+ Alta", "editar" (datos), "Enlace
+  Strava", "Dar de baja/Reactivar" y el editor de grupos (el bloque de
+  grupos se queda como texto de solo lectura, sin `onClick`). El
+  entrenador ve nombre, ref, categoría y grupos de natación de cada
+  deportista, nada más.
+- Las server actions (`actualizarGrupos`, `cambiarActivo`,
+  `actualizarDatos`, `altaDeportista`) ya tenían `requireDirector()` desde
+  antes — la vista solo-lectura es defensa en profundidad de la UI, no
+  la única barrera.
+- Se añadió `/deportistas` a `ENTRENADOR_ITEMS` en `NavBar.tsx` (antes
+  solo estaba en `DIRECTOR_ITEMS`). `/grupos` (listado inverso: por grupo
+  → sus deportistas) ya era visible para el entrenador desde antes; esto
+  añade el sentido contrario (por deportista → sus grupos), que es lo
+  que se pidió como "perfil".
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que
