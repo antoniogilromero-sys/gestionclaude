@@ -521,6 +521,57 @@ ejecutarlo en Supabase):
   a mano los que de verdad sean la misma persona (mover sus
   grupos/resultados/tests al que se quede).
 
+## Ampliación de alcance: sincronización completa de Inscripciones (no solo altas)
+
+**Bug encontrado revisando esto (agosto 2026), probablemente la causa
+real de "varios apuntados y no se han actualizado":** el Apps Script
+(`docs/apps_script_inscripciones.gs`) llevaba apuntando a
+`https://gestionclaude.vercel.app/...`, un dominio que da 404 — la app
+real está en `triatlonalpedrete.vercel.app` (confirmado también en
+`src/app/strava-conectar/[id]/page.tsx` y en el propio correo de
+bienvenida). Apps Script no avisa de un 404 salvo que alguien mire los
+registros de ejecución a mano, así que ninguna respuesta nueva del
+formulario llegaba a la app desde que se instaló — todo lo que hay
+cargado hasta ahora entró por la carga manual del histórico, no por el
+webhook en vivo. Corregido el dominio en el script y en
+`docs/COMO_ACTIVAR_GOOGLE.md`.
+
+Aprovechando que había que arreglar eso, Antón pidió además que
+Administración > Inscripciones sea **siempre un espejo exacto** del
+Google Sheet — no solo que se añadan altas nuevas, sino que lo que se
+borre o cambie en la hoja también se refleje, y sin duplicados. Por eso
+además del webhook de una fila suelta (`/api/inscripciones/webhook`, se
+mantiene como red de seguridad) existe ahora
+`/api/inscripciones/sincronizar`:
+
+- El Apps Script, en vez de mandar solo la respuesta que acaba de
+  llegar, **relee la hoja entera** (`leerTodasLasFilas`) y manda todas
+  las filas de golpe cada vez que entra una respuesta nueva
+  (`sincronizarTodoAhora`, también se puede ejecutar a mano desde el
+  editor de Apps Script sin esperar a una respuesta nueva).
+- El endpoint hace insertar/actualizar/**borrar**: cualquier
+  inscripción que ya no esté en la hoja se borra de la tabla (no toca al
+  deportista vinculado, solo el registro administrativo). El
+  emparejamiento es por nombre normalizado
+  (`normalizarNombre` en `src/lib/inscripciones.ts`, mismo criterio
+  unaccent+lower+trim que el resto del proyecto) — no hay ningún id
+  estable que venga de Google Sheets.
+- **Guardia de seguridad**: si llegan menos de `MINIMO_FILAS` (10) filas
+  válidas, el endpoint rechaza la petición sin tocar nada, por si el
+  Apps Script no llegó a leer bien la hoja — así un fallo de lectura no
+  puede borrar sin querer toda la tabla.
+- Procesa las filas en lotes de 8 en paralelo (`TAMANO_LOTE`) para no
+  encadenar ~100 idas y vueltas seguidas a Supabase; tiene
+  `export const maxDuration = 60` por margen, ya que este endpoint no lo
+  llama nadie esperando una respuesta rápida en pantalla (lo llama Apps
+  Script en segundo plano).
+- Cada fila procesada pasa también por `deportista_id_o_alta` (igual que
+  el webhook de una fila), así que sigue dando de alta y vinculando
+  deportistas automáticamente.
+- `src/lib/inscripciones.ts` saca a un sitio común el parseo de fecha,
+  limpieza de campos y normalización de nombre que antes solo vivían
+  dentro del webhook de una fila — los dos endpoints los comparten ahora.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que

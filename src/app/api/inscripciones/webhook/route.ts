@@ -1,38 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { filaDesdeBody } from "@/lib/inscripciones";
 
-// Recibe cada respuesta nueva del Google Forms de inscripción, enviada por
-// el Apps Script de la hoja de respuestas (ver docs/apps_script_inscripciones.gs).
+// Recibe una respuesta suelta del Google Forms de inscripción, enviada por
+// el disparador `onFormSubmit` del Apps Script (ver
+// docs/apps_script_inscripciones.gs). Se mantiene como red de seguridad
+// por si el Apps Script no llegara a disparar la sincronización completa
+// (`/api/inscripciones/sincronizar`, que es la que usa el Apps Script
+// desde agosto 2026) — pero el flujo normal ya no depende solo de esto.
 // Nunca lanza: siempre responde con un JSON { error } o { ok: true }, para
 // que el Apps Script pueda saber si algo falló sin que Vercel oculte el motivo.
-
-function parseFecha(valor: string | undefined): string | null {
-  if (!valor) return null;
-  const iso = valor.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (iso) {
-    const [, y, m, d] = iso;
-    return fechaValida(y, m, d) ? valor : null;
-  }
-  const dmy = valor.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (dmy) {
-    const [, d, m, y] = dmy;
-    if (!fechaValida(y, m, d)) return null;
-    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-  }
-  return null;
-}
-
-// Algunas fechas del Excel original vienen mal escritas (ej. "8/29/0013",
-// mes 29 o año a cuatro dígitos incompleto) — en vez de que eso rompa el
-// insert entero con un error de Postgres, se descarta esa fecha en
-// concreto y se deja en blanco, para no perder el resto de los datos de
-// esa persona.
-function fechaValida(y: string, m: string, d: string): boolean {
-  const anio = Number(y);
-  const mes = Number(m);
-  const dia = Number(d);
-  return anio >= 1920 && anio <= 2026 && mes >= 1 && mes <= 12 && dia >= 1 && dia <= 31;
-}
 
 export async function POST(request: NextRequest) {
   const secretEsperado = process.env.INSCRIPCIONES_WEBHOOK_SECRET;
@@ -52,9 +29,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
-  const email = typeof body.email === "string" ? body.email.trim() : "";
-  const nombreCompleto = typeof body.nombreCompleto === "string" ? body.nombreCompleto.trim() : "";
-  if (!nombreCompleto) {
+  const fila = filaDesdeBody(body);
+  if (!fila) {
     return NextResponse.json({ error: "Falta el nombre completo" }, { status: 400 });
   }
 
@@ -62,18 +38,18 @@ export async function POST(request: NextRequest) {
   const { data: inscripcion, error } = await supabase
     .from("inscripciones")
     .insert({
-      email: email || null,
-      nombre_completo: nombreCompleto,
-      dni: typeof body.dni === "string" ? body.dni.trim() || null : null,
-      fecha_nacimiento: parseFecha(typeof body.fechaNacimiento === "string" ? body.fechaNacimiento : undefined),
-      domicilio: typeof body.domicilio === "string" ? body.domicilio.trim() || null : null,
-      talla_camiseta: typeof body.tallaCamiseta === "string" ? body.tallaCamiseta.trim() || null : null,
-      dias_piscina: typeof body.diasPiscina === "string" ? body.diasPiscina.trim() || null : null,
-      proteccion_datos: typeof body.proteccionDatos === "string" ? body.proteccionDatos.trim() || null : null,
-      derechos_imagen: typeof body.derechosImagen === "string" ? body.derechosImagen.trim() || null : null,
-      telefono: typeof body.telefono === "string" ? body.telefono.trim() || null : null,
-      email2: typeof body.email2 === "string" ? body.email2.trim() || null : null,
-      tarifa: typeof body.tarifa === "string" ? body.tarifa.trim() || null : null,
+      email: fila.email,
+      nombre_completo: fila.nombreCompleto,
+      dni: fila.dni,
+      fecha_nacimiento: fila.fechaNacimiento,
+      domicilio: fila.domicilio,
+      talla_camiseta: fila.tallaCamiseta,
+      dias_piscina: fila.diasPiscina,
+      proteccion_datos: fila.proteccionDatos,
+      derechos_imagen: fila.derechosImagen,
+      telefono: fila.telefono,
+      email2: fila.email2,
+      tarifa: fila.tarifa,
     })
     .select("id")
     .single();
@@ -89,7 +65,7 @@ export async function POST(request: NextRequest) {
   // así un espacio de más o un acento distinto no crea un duplicado.
   try {
     const { data: deportistaId, error: errorFn } = await supabase.rpc("deportista_id_o_alta", {
-      p_nombre: nombreCompleto,
+      p_nombre: fila.nombreCompleto,
     });
     if (errorFn) throw errorFn;
     if (deportistaId) {

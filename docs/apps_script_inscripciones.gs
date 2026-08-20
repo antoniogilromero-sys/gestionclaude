@@ -1,21 +1,32 @@
-// Google Apps Script — envía cada respuesta nueva del Forms de
-// inscripción a la app del club, y de paso manda un correo de
-// bienvenida automático a quien se acaba de apuntar (desde tu propia
-// cuenta de Gmail, sin que tengas que hacer nada).
+// Google Apps Script — cada vez que llega una respuesta nueva del Forms
+// de inscripción: 1) manda un correo de bienvenida a quien se acaba de
+// apuntar, y 2) relee la hoja ENTERA y la manda a la app del club para
+// que Administración > Inscripciones sea siempre un espejo exacto del
+// Google Sheet (añade lo nuevo, actualiza lo que haya cambiado y borra
+// lo que ya no esté en la hoja — evita duplicados).
 //
 // CÓMO INSTALARLO (una sola vez):
 // 1. Abre la hoja de cálculo "Form_Responses" (donde caen las respuestas).
 // 2. Menú Extensiones > Apps Script.
 // 3. Borra lo que haya en el editor y pega este archivo entero.
-// 4. Sustituye WEBHOOK_URL y WEBHOOK_SECRET por los valores reales (te
-//    los doy yo cuando despliegue la parte de la app).
+// 4. Sustituye WEBHOOK_SECRET por el valor real (el mismo secreto que ya
+//    tenías puesto si lo estás actualizando, o el que te dé Antón/Claude
+//    la primera vez).
 // 5. Arriba a la izquierda, en el desplegable de funciones, elige
 //    `instalarDisparador` y pulsa "Ejecutar" UNA VEZ — te pedirá
 //    autorización, acéptala. Esto deja el envío automático funcionando
-//    para todas las respuestas nuevas a partir de ahora (las que ya
-//    estaban antes de instalar esto no se reenvían solas).
+//    para todas las respuestas nuevas a partir de ahora.
+//
+// IMPORTANTE si ya tenías este script instalado antes de agosto 2026:
+// la URL apuntaba por error a "gestionclaude.vercel.app" (un dominio que
+// no existe, da 404) en vez de "triatlonalpedrete.vercel.app" — así que
+// ninguna respuesta nueva del formulario ha llegado nunca a la app desde
+// que se instaló, aunque el script se ejecutara "bien" (Apps Script no
+// avisa de un 404, solo lo deja en los registros de ejecución). Pega
+// este archivo actualizado entero y vuelve a ejecutar
+// `instalarDisparador` para corregirlo.
 
-var WEBHOOK_URL = "https://gestionclaude.vercel.app/api/inscripciones/webhook";
+var WEBHOOK_URL_SYNC = "https://triatlonalpedrete.vercel.app/api/inscripciones/sincronizar";
 var WEBHOOK_SECRET = "PON_AQUI_EL_SECRETO";
 
 function instalarDisparador() {
@@ -40,38 +51,103 @@ function buscar(namedValues, empiezaPor) {
   return "";
 }
 
-function alRecibirRespuesta(e) {
-  var nv = e.namedValues;
-  var payload = {
-    email: buscar(nv, "EMAIL"),
-    nombreCompleto: buscar(nv, "NOMBRE"),
-    dni: buscar(nv, "DNI"),
-    fechaNacimiento: buscar(nv, "FECHA DE"),
-    domicilio: buscar(nv, "DOMICILIO"),
-    tallaCamiseta: buscar(nv, "TALLA"),
-    diasPiscina: buscar(nv, "USO DE PISCI"),
-    proteccionDatos: buscar(nv, "PROTECCION"),
-    derechosImagen: buscar(nv, "DERECHOS"),
-    telefono: buscar(nv, "TELEFONO"),
-    email2: buscar(nv, "EMAIL 2"),
-    tarifa: buscar(nv, "TARIFA"),
+// Igual que `buscar`, pero para cuando no tenemos `namedValues` (solo al
+// disparador de un formulario recién enviado) sino que estamos leyendo
+// la hoja entera con la fila de cabeceras aparte.
+function indiceColumna(cabeceras, empiezaPor) {
+  for (var i = 0; i < cabeceras.length; i++) {
+    if (String(cabeceras[i]).toUpperCase().indexOf(empiezaPor.toUpperCase()) === 0) return i;
+  }
+  return -1;
+}
+
+// Lee TODA la hoja de respuestas (todas las filas, no solo la que acaba
+// de llegar) y la convierte en el mismo formato de objeto que espera la
+// app, uno por persona.
+function leerTodasLasFilas() {
+  var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  var datos = hoja.getDataRange().getValues();
+  if (datos.length < 2) return [];
+  var cabeceras = datos[0];
+
+  var idx = {
+    email: indiceColumna(cabeceras, "EMAIL"),
+    nombreCompleto: indiceColumna(cabeceras, "NOMBRE"),
+    dni: indiceColumna(cabeceras, "DNI"),
+    fechaNacimiento: indiceColumna(cabeceras, "FECHA DE"),
+    domicilio: indiceColumna(cabeceras, "DOMICILIO"),
+    tallaCamiseta: indiceColumna(cabeceras, "TALLA"),
+    diasPiscina: indiceColumna(cabeceras, "USO DE PISCI"),
+    proteccionDatos: indiceColumna(cabeceras, "PROTECCION"),
+    derechosImagen: indiceColumna(cabeceras, "DERECHOS"),
+    telefono: indiceColumna(cabeceras, "TELEFONO"),
+    email2: indiceColumna(cabeceras, "EMAIL 2"),
+    tarifa: indiceColumna(cabeceras, "TARIFA"),
   };
 
-  var respuesta = UrlFetchApp.fetch(WEBHOOK_URL, {
+  function valorDe(fila, clave) {
+    var i = idx[clave];
+    if (i < 0 || i >= fila.length) return "";
+    var v = fila[i];
+    if (v instanceof Date) {
+      return Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd");
+    }
+    return v === null || v === undefined ? "" : String(v);
+  }
+
+  var filas = [];
+  for (var f = 1; f < datos.length; f++) {
+    var fila = datos[f];
+    var nombreCompleto = valorDe(fila, "nombreCompleto");
+    if (!nombreCompleto) continue; // fila en blanco al final de la hoja
+    filas.push({
+      email: valorDe(fila, "email"),
+      nombreCompleto: nombreCompleto,
+      dni: valorDe(fila, "dni"),
+      fechaNacimiento: valorDe(fila, "fechaNacimiento"),
+      domicilio: valorDe(fila, "domicilio"),
+      tallaCamiseta: valorDe(fila, "tallaCamiseta"),
+      diasPiscina: valorDe(fila, "diasPiscina"),
+      proteccionDatos: valorDe(fila, "proteccionDatos"),
+      derechosImagen: valorDe(fila, "derechosImagen"),
+      telefono: valorDe(fila, "telefono"),
+      email2: valorDe(fila, "email2"),
+      tarifa: valorDe(fila, "tarifa"),
+    });
+  }
+  return filas;
+}
+
+// Manda la hoja entera a la app para que la sincronice (inserta lo
+// nuevo, actualiza lo que cambió, borra lo que ya no esté). Se puede
+// ejecutar también a mano desde el editor de Apps Script eligiendo esta
+// función en el desplegable y pulsando "Ejecutar", sin esperar a que
+// llegue una respuesta nueva.
+function sincronizarTodoAhora() {
+  var filas = leerTodasLasFilas();
+  var respuesta = UrlFetchApp.fetch(WEBHOOK_URL_SYNC, {
     method: "post",
     contentType: "application/json",
     headers: { Authorization: "Bearer " + WEBHOOK_SECRET },
-    payload: JSON.stringify(payload),
+    payload: JSON.stringify({ filas: filas }),
     muteHttpExceptions: true,
   });
-
   if (respuesta.getResponseCode() !== 200) {
-    // Deja constancia en los registros de ejecución (Apps Script > Ejecuciones)
-    // para poder ver qué falló sin tener que adivinarlo.
-    Logger.log("Fallo al enviar inscripción: " + respuesta.getContentText());
+    Logger.log("Fallo al sincronizar inscripciones: " + respuesta.getContentText());
+  } else {
+    Logger.log("Sincronización OK: " + respuesta.getContentText());
   }
+}
 
-  enviarBienvenida(payload.email || payload.email2, payload.nombreCompleto);
+function alRecibirRespuesta(e) {
+  var nv = e.namedValues;
+  var email = buscar(nv, "EMAIL");
+  var email2 = buscar(nv, "EMAIL 2");
+  var nombreCompleto = buscar(nv, "NOMBRE");
+
+  sincronizarTodoAhora();
+
+  enviarBienvenida(email || email2, nombreCompleto);
 }
 
 // Correo de bienvenida automático, mandado desde tu propia cuenta de

@@ -61,7 +61,7 @@ es quién a la hora de aprobar altas.
 
 ## Paso 3 · Comprobar que funciona
 
-1. Entra en `https://gestionclaude.vercel.app` (mejor en una ventana de
+1. Entra en `https://triatlonalpedrete.vercel.app` (mejor en una ventana de
    incógnito, para que no te reconozca ya).
 2. Pulsa **"Entrar con Google"**.
 3. Elige tu cuenta.
