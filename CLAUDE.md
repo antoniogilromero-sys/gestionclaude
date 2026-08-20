@@ -485,6 +485,42 @@ paralela:
   añade el sentido contrario (por deportista → sus grupos), que es lo
   que se pidió como "perfil".
 
+## Ampliación de alcance: vincular inscripciones con su deportista, sin duplicar
+
+Antón detectó dos problemas en `/inscripciones` (agosto 2026) tras cargar
+el histórico: casi nada salía como "Vinculada" aunque el deportista ya
+existiera, y a veces se duplicaba el deportista. Causa real (revisando
+`src/app/api/inscripciones/webhook/route.ts`):
+
+- El alta automática comparaba nombres con
+  `.filter("nombre", "ilike", nombreCompleto)` — sin comodines `%` eso es
+  una **igualdad exacta** salvo mayúsculas/minúsculas, no una búsqueda
+  flexible. Un espacio doble, un acento distinto o un espacio final
+  (habitual en datos de formulario) hacía que no encontrara al
+  deportista que ya existía y creara uno nuevo → duplicado.
+- El webhook nunca escribía `inscripciones.deportista_id` — ni al crear
+  el deportista ni al encontrarlo ya existente — así que toda
+  inscripción salía "Sin vincular" pasara lo que pasara.
+
+Arreglo (`docs/migracion_matching_deportistas.sql`, Antón tiene que
+ejecutarlo en Supabase):
+
+- Función `deportista_id_o_alta(nombre)`, `security definer`, que busca
+  con `unaccent(lower(trim(nombre)))` (mismo criterio que todas las
+  cargas de este proyecto) y solo si no encuentra a nadie da de alta uno
+  nuevo — y siempre devuelve el id, que el webhook usa para rellenar
+  `inscripciones.deportista_id` justo después de insertar la
+  inscripción.
+- Un `update` de backfill en el mismo archivo vincula con ese criterio
+  todas las inscripciones que ya estaban guardadas (históricas y las que
+  habían entrado en vivo desde que existe el alta automática).
+- Una consulta de diagnóstico agrupa `deportistas` por nombre
+  normalizado para encontrar duplicados ya existentes — **no los
+  fusiona sola**, porque dos deportistas reales podrían coincidir en
+  nombre por casualidad; hay que revisar la lista con Antón y fusionar
+  a mano los que de verdad sean la misma persona (mover sus
+  grupos/resultados/tests al que se quede).
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que

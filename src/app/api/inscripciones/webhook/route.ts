@@ -59,42 +59,50 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
-  const { error } = await supabase.from("inscripciones").insert({
-    email: email || null,
-    nombre_completo: nombreCompleto,
-    dni: typeof body.dni === "string" ? body.dni.trim() || null : null,
-    fecha_nacimiento: parseFecha(typeof body.fechaNacimiento === "string" ? body.fechaNacimiento : undefined),
-    domicilio: typeof body.domicilio === "string" ? body.domicilio.trim() || null : null,
-    talla_camiseta: typeof body.tallaCamiseta === "string" ? body.tallaCamiseta.trim() || null : null,
-    dias_piscina: typeof body.diasPiscina === "string" ? body.diasPiscina.trim() || null : null,
-    proteccion_datos: typeof body.proteccionDatos === "string" ? body.proteccionDatos.trim() || null : null,
-    derechos_imagen: typeof body.derechosImagen === "string" ? body.derechosImagen.trim() || null : null,
-    telefono: typeof body.telefono === "string" ? body.telefono.trim() || null : null,
-    email2: typeof body.email2 === "string" ? body.email2.trim() || null : null,
-    tarifa: typeof body.tarifa === "string" ? body.tarifa.trim() || null : null,
-  });
+  const { data: inscripcion, error } = await supabase
+    .from("inscripciones")
+    .insert({
+      email: email || null,
+      nombre_completo: nombreCompleto,
+      dni: typeof body.dni === "string" ? body.dni.trim() || null : null,
+      fecha_nacimiento: parseFecha(typeof body.fechaNacimiento === "string" ? body.fechaNacimiento : undefined),
+      domicilio: typeof body.domicilio === "string" ? body.domicilio.trim() || null : null,
+      talla_camiseta: typeof body.tallaCamiseta === "string" ? body.tallaCamiseta.trim() || null : null,
+      dias_piscina: typeof body.diasPiscina === "string" ? body.diasPiscina.trim() || null : null,
+      proteccion_datos: typeof body.proteccionDatos === "string" ? body.proteccionDatos.trim() || null : null,
+      derechos_imagen: typeof body.derechosImagen === "string" ? body.derechosImagen.trim() || null : null,
+      telefono: typeof body.telefono === "string" ? body.telefono.trim() || null : null,
+      email2: typeof body.email2 === "string" ? body.email2.trim() || null : null,
+      tarifa: typeof body.tarifa === "string" ? body.tarifa.trim() || null : null,
+    })
+    .select("id")
+    .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Da de alta al deportista automáticamente (sin grupo ni categoría —
-  // eso lo rellena el director luego con el botón "editar" en
-  // /deportistas). No duplica: si ya existe alguien con ese nombre
-  // (mismo criterio que las cargas manuales de este proyecto:
-  // unaccent+lower), no crea una fila nueva.
+  // Da de alta al deportista automáticamente si no existe ya (sin grupo
+  // ni categoría — eso lo rellena el director luego con el botón
+  // "editar" en /deportistas), y vincula la inscripción con él para que
+  // salga "Vinculada" en /inscripciones en vez de quedarse suelta.
+  // `deportista_id_o_alta` (docs/migracion_matching_deportistas.sql)
+  // compara nombres con unaccent+lower+trim, no con igualdad exacta —
+  // así un espacio de más o un acento distinto no crea un duplicado.
   try {
-    const { data: existente } = await supabase
-      .from("deportistas")
-      .select("id")
-      .filter("nombre", "ilike", nombreCompleto)
-      .maybeSingle();
-    if (!existente) {
-      await supabase.from("deportistas").insert({ nombre: nombreCompleto, activo: true });
+    const { data: deportistaId, error: errorFn } = await supabase.rpc("deportista_id_o_alta", {
+      p_nombre: nombreCompleto,
+    });
+    if (errorFn) throw errorFn;
+    if (deportistaId) {
+      await supabase
+        .from("inscripciones")
+        .update({ deportista_id: deportistaId })
+        .eq("id", inscripcion.id);
     }
   } catch (e) {
     // No hace fallar el webhook por esto: la inscripción ya se guardó,
-    // que es lo importante. Si falla el alta automática, el director
-    // siempre puede darlo de alta a mano desde /deportistas.
-    console.error("Alta automática de deportista fallida:", e);
+    // que es lo importante. Si falla el alta/vínculo automático, el
+    // director siempre puede darlo de alta y vincularlo a mano.
+    console.error("Alta/vínculo automático de deportista fallido:", e);
   }
 
   return NextResponse.json({ ok: true });
