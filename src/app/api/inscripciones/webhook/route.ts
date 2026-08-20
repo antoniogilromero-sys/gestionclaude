@@ -75,5 +75,27 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Da de alta al deportista automáticamente (sin grupo ni categoría —
+  // eso lo rellena el director luego con el botón "editar" en
+  // /deportistas). No duplica: si ya existe alguien con ese nombre
+  // (mismo criterio que las cargas manuales de este proyecto:
+  // unaccent+lower), no crea una fila nueva.
+  try {
+    const { data: existente } = await supabase
+      .from("deportistas")
+      .select("id")
+      .filter("nombre", "ilike", nombreCompleto)
+      .maybeSingle();
+    if (!existente) {
+      await supabase.from("deportistas").insert({ nombre: nombreCompleto, activo: true });
+    }
+  } catch (e) {
+    // No hace fallar el webhook por esto: la inscripción ya se guardó,
+    // que es lo importante. Si falla el alta automática, el director
+    // siempre puede darlo de alta a mano desde /deportistas.
+    console.error("Alta automática de deportista fallida:", e);
+  }
+
   return NextResponse.json({ ok: true });
 }

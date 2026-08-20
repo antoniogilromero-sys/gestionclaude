@@ -47,6 +47,25 @@ export async function cambiarActivo(deportistaId: number, activo: boolean): Prom
   return { ok: true };
 }
 
+export async function actualizarDatos(
+  deportistaId: number,
+  input: { ref: string; nombre: string; categoria: string },
+): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+  if (!input.nombre.trim()) return { error: "Falta el nombre" };
+  const { error } = await r.supabase
+    .from("deportistas")
+    .update({
+      ref: input.ref.trim() || null,
+      nombre: input.nombre.trim(),
+      categoria: input.categoria.trim() || null,
+    })
+    .eq("id", deportistaId);
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
 export async function altaDeportista(input: {
   ref: string;
   nombre: string;

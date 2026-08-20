@@ -432,6 +432,30 @@ servidor). Antón preguntó por conectar la app con WhatsApp e Instagram:
   bienvenida automático (Apps Script) sigue siendo el único canal
   realmente automatizado que tiene el club.
 
+## Ampliación de alcance: alta automática de deportista al inscribirse
+
+`/api/inscripciones/webhook` (agosto 2026) ahora, además de guardar la
+inscripción y mandar el correo de bienvenida, **da de alta al deportista
+automáticamente** en `deportistas` — Antón lo pidió explícitamente
+después de que se le confirmara que antes esto no pasaba solo.
+
+- Se crea **sin categoría ni grupo** (eso no se puede inferir del
+  formulario) — el director lo rellena después con el botón "editar"
+  nuevo en `/deportistas` (nombre/ref/categoría — antes solo eran
+  editables los grupos, no estos tres campos, así que se añadió
+  `actualizarDatos` en `deportistas/actions.ts` a la vez que esto).
+- **No duplica**: si ya existe un deportista con ese nombre exacto
+  (`ilike`, no distingue mayúsculas pero sí acentos — no usa
+  `unaccent()` porque el webhook usa el cliente JS de Supabase, no SQL
+  crudo), no crea una fila nueva. No es infalible (un acento distinto sí
+  colaría un duplicado), pero es un filtro razonable para un proceso
+  automático — el director sigue pudiendo fusionar duplicados a mano si
+  se cuelan, como se ha hecho antes en este proyecto.
+- Si el alta automática falla por cualquier motivo, **no rompe el
+  webhook**: la inscripción y el correo de bienvenida se guardan igual,
+  el fallo solo queda en los logs de Vercel. El director siempre puede
+  dar de alta a mano desde `/deportistas` si hace falta.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que

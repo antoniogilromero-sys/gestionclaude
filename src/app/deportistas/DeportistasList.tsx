@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { altaDeportista, cambiarActivo, actualizarGrupos } from "./actions";
+import { altaDeportista, cambiarActivo, actualizarGrupos, actualizarDatos } from "./actions";
 
 type Deportista = {
   id: number;
@@ -27,6 +27,7 @@ export function DeportistasList({
   const [cargando, setCargando] = useState<number | null>(null);
   const [copiadoId, setCopiadoId] = useState<number | null>(null);
   const [editandoGrupos, setEditandoGrupos] = useState<number | null>(null);
+  const [editandoDatos, setEditandoDatos] = useState<number | null>(null);
   const [mostrarAlta, setMostrarAlta] = useState(false);
   const [nuevoRef, setNuevoRef] = useState("");
   const [nuevoNombre, setNuevoNombre] = useState("");
@@ -66,6 +67,18 @@ export function DeportistasList({
     await navigator.clipboard.writeText(url);
     setCopiadoId(id);
     setTimeout(() => setCopiadoId((v) => (v === id ? null : v)), 2000);
+  }
+
+  async function onGuardarDatos(id: number, datos: { ref: string; nombre: string; categoria: string }) {
+    setCargando(id);
+    setError(null);
+    const resultado = await actualizarDatos(id, datos);
+    if ("error" in resultado) setError(resultado.error);
+    else {
+      setEditandoDatos(null);
+      router.refresh();
+    }
+    setCargando(null);
   }
 
   async function onCambiarActivo(id: number, activo: boolean) {
@@ -172,9 +185,17 @@ export function DeportistasList({
         >
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="min-w-0">
-              <b className="block text-[15px] font-medium truncate">{d.nombre}</b>
+              <div className="flex items-center gap-1.5">
+                <b className="block text-[15px] font-medium truncate">{d.nombre}</b>
+                <button
+                  onClick={() => setEditandoDatos(d.id)}
+                  className="shrink-0 text-mute text-xs underline"
+                >
+                  editar
+                </button>
+              </div>
               <span className="text-xs text-mute">
-                {d.ref ?? "sin ref"} · {d.categoria ?? "?"}
+                {d.ref ?? "sin ref"} · {d.categoria ?? "sin categoría"}
                 {!d.activo && " · de baja"}
               </span>
             </div>
@@ -195,6 +216,17 @@ export function DeportistasList({
               </button>
             </div>
           </div>
+
+          {editandoDatos === d.id && (
+            <EditorDatos
+              refInicial={d.ref ?? ""}
+              nombreInicial={d.nombre}
+              categoriaInicial={d.categoria ?? ""}
+              cargando={cargando === d.id}
+              onGuardar={(datos) => onGuardarDatos(d.id, datos)}
+              onCancelar={() => setEditandoDatos(null)}
+            />
+          )}
 
           {editandoGrupos === d.id ? (
             <EditorGrupos
@@ -290,6 +322,69 @@ function EditorGrupos({
           type="button"
           disabled={cargando}
           onClick={() => onGuardar(seleccionados)}
+          className="flex-1 bg-signal text-[#160800] rounded-lg min-h-[38px] font-display text-xs tracking-[.08em] uppercase font-semibold cursor-pointer disabled:opacity-60"
+        >
+          {cargando ? "Guardando…" : "Guardar"}
+        </button>
+        <button
+          type="button"
+          disabled={cargando}
+          onClick={onCancelar}
+          className="flex-1 bg-transparent border border-edge text-chalk rounded-lg min-h-[38px] font-display text-xs tracking-[.08em] uppercase cursor-pointer disabled:opacity-60"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EditorDatos({
+  refInicial,
+  nombreInicial,
+  categoriaInicial,
+  cargando,
+  onGuardar,
+  onCancelar,
+}: {
+  refInicial: string;
+  nombreInicial: string;
+  categoriaInicial: string;
+  cargando: boolean;
+  onGuardar: (datos: { ref: string; nombre: string; categoria: string }) => void;
+  onCancelar: () => void;
+}) {
+  const [ref, setRef] = useState(refInicial);
+  const [nombre, setNombre] = useState(nombreInicial);
+  const [categoria, setCategoria] = useState(categoriaInicial);
+
+  return (
+    <div className="bg-deep border border-edge rounded-lg p-2.5 mb-2.5">
+      <div className="grid grid-cols-2 gap-2 mb-2">
+        <input
+          placeholder="Ref (D081)"
+          value={ref}
+          onChange={(e) => setRef(e.target.value)}
+          className="w-full bg-surf border border-edge text-chalk rounded-lg p-2 text-sm"
+        />
+        <input
+          placeholder="Categoría"
+          value={categoria}
+          onChange={(e) => setCategoria(e.target.value)}
+          className="w-full bg-surf border border-edge text-chalk rounded-lg p-2 text-sm"
+        />
+      </div>
+      <input
+        placeholder="Nombre completo"
+        value={nombre}
+        onChange={(e) => setNombre(e.target.value)}
+        className="w-full bg-surf border border-edge text-chalk rounded-lg p-2 text-sm mb-2"
+      />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={cargando}
+          onClick={() => onGuardar({ ref, nombre, categoria })}
           className="flex-1 bg-signal text-[#160800] rounded-lg min-h-[38px] font-display text-xs tracking-[.08em] uppercase font-semibold cursor-pointer disabled:opacity-60"
         >
           {cargando ? "Guardando…" : "Guardar"}
