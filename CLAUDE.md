@@ -410,6 +410,28 @@ las pruebas son las que Antón decida sobre la marcha (texto libre en
   cuando el total supera cierto minutaje) — mejor recalcular el total
   sumando los tramos que fiarse del texto de la celda.
 
+## Ampliación de alcance: imagen de Rankings para Instagram
+
+En `/rankings`, botón "📸 Descargar imagen para Instagram" —genera una
+imagen cuadrada (1080×1080, `generarImagenRanking` en
+`RankingsClient.tsx`) con el top 8 de la prueba/año/categoría
+seleccionados, usando el `<canvas>` del navegador (sin librerías, sin
+servidor). Antón preguntó por conectar la app con WhatsApp e Instagram:
+
+- **Instagram**: se descartó publicar automáticamente (exige cuenta de
+  empresa vinculada a Facebook + revisión de Meta) a favor de esto —
+  genera la imagen, el director la sube él mismo. No hay ninguna cuenta
+  de Instagram conectada a la app, ni se guarda ni se envía la imagen a
+  ningún sitio, solo se descarga.
+- **WhatsApp**: Antón pidió mensajes automáticos, pero eso exige la API
+  de WhatsApp Business (verificación de empresa por Meta, número
+  verificado, plantillas aprobadas, normalmente con coste recurrente por
+  mensaje a través de un proveedor tipo Twilio) — se le explicó el
+  alcance real y **no se ha construido nada**, queda pendiente si decide
+  seguir adelante sabiendo el coste/tiempo que implica. El correo de
+  bienvenida automático (Apps Script) sigue siendo el único canal
+  realmente automatizado que tiene el club.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que

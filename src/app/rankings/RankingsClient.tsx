@@ -51,6 +51,93 @@ function formatValor(m: Marca) {
 
 const MEDALLA: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
+// Genera una imagen cuadrada (1080x1080, formato Instagram) con el ranking
+// actual, para descargar y subir a redes — no publica nada solo, el
+// director decide si la sube y cuándo.
+async function generarImagenRanking(
+  test: TipoTest,
+  filas: Marca[],
+  categoria: string,
+  anio: number,
+  color: string,
+) {
+  const size = 1080;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  ctx.fillStyle = "#071c26";
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, size, 16);
+
+  const logo = new Image();
+  logo.src = "/logo-club.png";
+  await new Promise((resolve) => {
+    logo.onload = resolve;
+    logo.onerror = resolve;
+  });
+  if (logo.complete && logo.naturalWidth > 0) {
+    ctx.drawImage(logo, size / 2 - 55, 70, 110, 110);
+  }
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#7fa5b0";
+  ctx.font = "700 26px Arial";
+  ctx.fillText("C.D.E. TRIATLÓN ALPEDRETE", size / 2, 225);
+
+  ctx.fillStyle = "#eaf4f6";
+  ctx.font = "800 50px Arial";
+  ctx.fillText(test.nombre.toUpperCase(), size / 2, 285);
+
+  ctx.fillStyle = color;
+  ctx.font = "700 30px Arial";
+  ctx.fillText(categoria === "todas" ? `Temporada ${anio}` : `${categoria} · ${anio}`, size / 2, 330);
+
+  const top = filas.slice(0, 8);
+  let y = 430;
+  const rowH = 78;
+  top.forEach((m, i) => {
+    const medalla = MEDALLA[i + 1] ?? `${i + 1}.`;
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#eaf4f6";
+    ctx.font = "700 36px Arial";
+    ctx.fillText(`${medalla}  ${m.deportista}`, 90, y);
+    ctx.textAlign = "right";
+    ctx.fillStyle = color;
+    ctx.font = "800 38px Arial";
+    ctx.fillText(formatValor(m), size - 90, y);
+    y += rowH;
+  });
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#7fa5b0";
+  ctx.font = "500 22px Arial";
+  ctx.fillText(
+    test.mejor_es === "menor" ? "Más bajo es mejor" : "Más alto es mejor",
+    size / 2,
+    size - 50,
+  );
+
+  return new Promise<void>((resolve) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        resolve();
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ranking-${test.nombre.replace(/\s+/g, "-")}-${anio}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      resolve();
+    }, "image/png");
+  });
+}
+
 export function RankingsClient({
   tiposTest,
   marcasIniciales,
@@ -68,6 +155,7 @@ export function RankingsClient({
   const [marcas, setMarcas] = useState<Marca[]>(marcasIniciales);
   const [cargando, setCargando] = useState(false);
   const [errorCarga, setErrorCarga] = useState<string | null>(error);
+  const [generandoImagen, setGenerandoImagen] = useState(false);
 
   useEffect(() => {
     if (anio === anioInicial) {
@@ -189,6 +277,20 @@ export function RankingsClient({
         <p className="text-xs text-mute mb-3.5">
           {test.mejor_es === "menor" ? "Más bajo es mejor" : "Más alto es mejor"}
         </p>
+      )}
+
+      {test && filas.length > 0 && (
+        <button
+          onClick={async () => {
+            setGenerandoImagen(true);
+            await generarImagenRanking(test, filas, categoria, anio, color);
+            setGenerandoImagen(false);
+          }}
+          disabled={generandoImagen}
+          className="w-full bg-transparent border border-edge text-chalk rounded-[9px] py-2.5 font-display text-xs tracking-[.08em] uppercase cursor-pointer mb-3.5 disabled:opacity-60"
+        >
+          {generandoImagen ? "Generando…" : "📸 Descargar imagen para Instagram"}
+        </button>
       )}
 
       {errorCarga ? (
