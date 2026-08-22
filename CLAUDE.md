@@ -574,6 +574,23 @@ mantiene como red de seguridad) existe ahora
 
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
+- **Pegar un SQL grande con acentos/ñ en el SQL Editor de Supabase puede
+  corromper esos caracteres** (mojibake: "García" se guarda como
+  "GarcÃa", "Gómez" como "GÃ³mez"). Pasó al cargar el histórico de
+  inscripciones (agosto 2026): el nombre corrupto no coincidía con el ya
+  existente en `deportistas` ni siquiera con `unaccent()` (esa función
+  quita acentos de verdad, no arregla un símbolo "Ã" que es una letra
+  distinta), así que se creaban personas duplicadas sin que ninguna
+  comparación por nombre lo detectara. El arreglo, si vuelve a pasar:
+  `update tabla set columna = convert_from(convert_to(columna, 'LATIN1'), 'UTF8') where columna like '%Ã%'`
+  en cada columna de texto afectada — revierte exactamente esta
+  corrupción (UTF-8 releído como Latin-1). Después hay que repetir la
+  fusión de duplicados (`nombres_parecidos`/`fusionar_deportistas`,
+  `docs/migracion_detectar_duplicados.sql`), porque los que antes no
+  coincidían por el símbolo raro ahora sí. La sincronización en vivo
+  desde el Google Forms (`/api/inscripciones/sincronizar`) no debería
+  sufrir esto — va por JSON sobre HTTP, sin el paso de copiar/pegar un
+  bloque de SQL a mano que fue lo que lo causó aquí.
 - **Supabase corta las consultas en 1000 filas.** Cualquier listado que
   pueda crecer con las temporadas (sobre todo el export a Excel, que es el
   respaldo del club) tiene que paginar con `.range()`, o saldrá incompleto
