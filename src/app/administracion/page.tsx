@@ -33,6 +33,16 @@ export default async function AdministracionPage() {
         </span>
       </Link>
       <Link
+        href="/cuotas"
+        className="block bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5"
+      >
+        <b className="block text-[16px] font-semibold mb-[3px]">Cuotas por Stripe</b>
+        <span className="text-sm text-mute">
+          Quién paga la cuota mensual online (44€/30€) y el enlace para compartir con las
+          familias.
+        </span>
+      </Link>
+      <Link
         href="/facturas"
         className="block bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5"
       >

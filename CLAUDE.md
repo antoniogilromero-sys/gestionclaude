@@ -622,6 +622,58 @@ Decisiones:
 - Cada ruta enlaza a `strava.com/activities/{id}` para ver el trazado
   sobre el mapa real de Strava — la app no dibuja mapas propios.
 
+## Ampliación de alcance: cuota mensual de socios por Stripe
+
+Antón pidió poder cobrar la cuota del club online en vez de perseguir
+transferencias/SEPA a mano. Hay dos importes únicos en todo el club, 44€
+y 30€ al mes (confirmado explícitamente, no hace falta más granularidad
+de precios).
+
+- **`/cuota`** — página pública, sin login (igual que
+  `/horario-publico` y `/strava-conectar/[id]`): la familia escribe el
+  nombre del deportista, elige 44 o 30 €/mes, y se le redirige a Stripe
+  Checkout en modo **suscripción** (cobro automático cada mes hasta que
+  se cancele). El enlace se comparte a mano (WhatsApp, email...), no hay
+  ningún sitio de la app que lo enlace públicamente a propósito.
+- **Los precios se crean "al vuelo"** con `price_data` en la sesión de
+  Checkout (`/api/cuotas/crear-sesion`) en vez de tener productos
+  predefinidos en el Dashboard de Stripe — así Antón no tiene que
+  configurar nada en Stripe aparte de las claves de API; los dos
+  importes están fijados en el código
+  (`IMPORTES_VALIDOS` en esa misma ruta).
+- **`/api/stripe/webhook`** confirma los pagos de verdad: cuando se
+  completa el checkout, cuando se cancela una suscripción, o cuando
+  falla un cobro (`impago`). Guarda/actualiza `cuotas_stripe`
+  (`docs/migracion_cuotas_stripe.sql`) usando la clave de servicio — la
+  tabla no tiene política de insert/update, solo de lectura para el
+  director (mismo patrón que `strava_conexiones`).
+- **`/cuotas`** (dentro de Administración, solo director) — lista quién
+  paga, cuánto y en qué estado (activa/cancelada/impago), con el total
+  mensual recaudado ahora mismo. No sustituye a `/balance`: de momento
+  son dos sitios separados (si más adelante Antón quiere que las cuotas
+  de Stripe suban también al total de `/balance` automáticamente, hay
+  que sumarlas ahí explícitamente — no está hecho todavía).
+- **No se ha metido esto en `/facturas`** — son cosas distintas: las
+  facturas son documentos formales numerados que emite el club (con NIF,
+  IVA exento, etc.), las cuotas de Stripe son un cobro recurrente
+  informal. Si más adelante Antón quiere generar factura automática por
+  cada cobro de cuota, es una pieza nueva, no está construida.
+
+### Cuenta de Stripe: lo que tiene que hacer Antón, no algo que yo pueda hacer
+
+Como con Strava, Claude no puede crear la cuenta de Stripe ni vincular
+la cuenta bancaria del club — Antón ya tiene la cuenta creada pero
+**sin cuenta bancaria vinculada todavía**, así que de momento solo puede
+funcionar en modo prueba (`sk_test_...`), no cobrar dinero real
+(`sk_live_...`) hasta que Stripe termine de verificar el club.
+
+Hacen falta dos variables de entorno en Vercel:
+- `STRIPE_SECRET_KEY` — Dashboard de Stripe > Developers > API keys.
+- `STRIPE_WEBHOOK_SECRET` — Dashboard de Stripe > Developers > Webhooks
+  > Add endpoint, URL `https://triatlonalpedrete.vercel.app/api/stripe/webhook`,
+  eventos `checkout.session.completed`, `customer.subscription.updated`,
+  `customer.subscription.deleted` > Signing secret.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Pegar un SQL grande con acentos/ñ en el SQL Editor de Supabase puede

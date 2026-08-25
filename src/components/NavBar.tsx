@@ -25,6 +25,7 @@ const DIRECTOR_ITEMS: NavItem[] = [
     label: "Administración",
     tambien: [
       "/balance",
+      "/cuotas",
       "/facturas",
       "/pedidos",
       "/jornadas",
