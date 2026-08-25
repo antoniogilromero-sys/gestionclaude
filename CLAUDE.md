@@ -600,13 +600,19 @@ Decisiones:
   `GravelRide`, `Handcycle`) → carretera. `disciplinaDeStrava()` (la
   función que ya existía) no sirve para esto porque mete todo el
   ciclismo en un único cajón sin distinguir montaña de carretera.
-- **No hay deduplicación de "misma ruta"**: cada salida real es una fila
-  (clave primaria = id de la actividad en Strava, que es único). Dos
-  entrenamientos por el mismo sitio salen como dos filas distintas —
-  intentar reconocer "es la misma ruta" exigiría comparar trazados GPS,
-  fuera de alcance para este proyecto. La pantalla deja filtrar por tipo
-  y buscar por nombre para que sea fácil de todos modos encontrar algo
-  ya hecho antes.
+- **Se agrupan por distancia y desnivel parecidos, no por nombre ni por
+  GPS** (`agruparRutas` en `RutasClient.tsx`, agosto 2026, pedido
+  explícito de Antón tras verlo desplegado): dos salidas del mismo tipo
+  cuentan como "la misma ruta" si su distancia no difiere más de un 10%
+  (mínimo 1 km) y su desnivel no difiere más de un 20% (mínimo 30 m) de
+  la media del grupo. Es aproximado a propósito — reconocer la ruta de
+  verdad exigiría comparar trazados GPS, fuera de alcance — así que dos
+  rutas distintas de tamaño parecido pueden acabar juntas en el mismo
+  grupo. La tabla en sí (`rutas_strava`) sigue guardando una fila por
+  salida real (clave primaria = id de actividad de Strava); el
+  agrupamiento es solo de cara a la pantalla, no toca los datos. Cada
+  grupo se despliega para ver las salidas sueltas que lo componen (quién,
+  cuándo, enlace a Strava).
 - Sincronización manual (botón, solo director), no automática — mismo
   motivo que el resto de Strava en este proyecto: sin cron ni workers,
   para no gastar cupo de la API sin que nadie lo haya pedido. Cada

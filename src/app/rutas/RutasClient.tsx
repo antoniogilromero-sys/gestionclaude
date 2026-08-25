@@ -14,6 +14,16 @@ type Ruta = {
   deportista: string;
 };
 
+type GrupoRuta = {
+  clave: string;
+  tipo: Ruta["tipo"];
+  distanciaMin: number;
+  distanciaMax: number;
+  desnivelMin: number;
+  desnivelMax: number;
+  rutas: Ruta[];
+};
+
 const COLOR_TIPO: Record<Ruta["tipo"], string> = {
   carretera: "#43C6E0",
   montana: "#A8D84A",
@@ -27,10 +37,72 @@ function fmtFecha(iso: string) {
   return new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+// Agrupa salidas de un mismo tipo (carretera/montaña) por distancia y
+// desnivel parecidos — dos rutas cuentan como "la misma" si su distancia
+// no difiere más de un 10% (mínimo 1 km) y su desnivel no difiere más de
+// un 20% (mínimo 30 m) de la media del grupo. Aproximado a propósito
+// (Antón lo pidió así): dos rutas distintas de tamaño parecido pueden
+// acabar en el mismo grupo, pero es mucho más legible que una fila por
+// cada salida suelta.
+function agruparRutas(rutas: Ruta[]): GrupoRuta[] {
+  const grupos: {
+    tipo: Ruta["tipo"];
+    sumaDistancia: number;
+    sumaDesnivel: number;
+    n: number;
+    rutas: Ruta[];
+  }[] = [];
+
+  const ordenadas = [...rutas].sort((a, b) => (a.distanciaKm ?? 0) - (b.distanciaKm ?? 0));
+
+  for (const r of ordenadas) {
+    const distancia = r.distanciaKm ?? 0;
+    const desnivel = r.desnivelM ?? 0;
+    const tolDistancia = Math.max(1, distancia * 0.1);
+    const tolDesnivel = Math.max(30, desnivel * 0.2);
+
+    const grupo = grupos.find((g) => {
+      if (g.tipo !== r.tipo) return false;
+      const distanciaProm = g.sumaDistancia / g.n;
+      const desnivelProm = g.sumaDesnivel / g.n;
+      return (
+        Math.abs(distancia - distanciaProm) <= tolDistancia &&
+        Math.abs(desnivel - desnivelProm) <= tolDesnivel
+      );
+    });
+
+    if (grupo) {
+      grupo.sumaDistancia += distancia;
+      grupo.sumaDesnivel += desnivel;
+      grupo.n += 1;
+      grupo.rutas.push(r);
+    } else {
+      grupos.push({ tipo: r.tipo, sumaDistancia: distancia, sumaDesnivel: desnivel, n: 1, rutas: [r] });
+    }
+  }
+
+  return grupos
+    .map((g, i) => {
+      const distancias = g.rutas.map((r) => r.distanciaKm ?? 0);
+      const desniveles = g.rutas.map((r) => r.desnivelM ?? 0);
+      return {
+        clave: `${g.tipo}-${i}`,
+        tipo: g.tipo,
+        distanciaMin: Math.min(...distancias),
+        distanciaMax: Math.max(...distancias),
+        desnivelMin: Math.min(...desniveles),
+        desnivelMax: Math.max(...desniveles),
+        rutas: g.rutas.sort((a, b) => (a.fecha < b.fecha ? 1 : -1)),
+      };
+    })
+    .sort((a, b) => b.rutas.length - a.rutas.length || a.distanciaMin - b.distanciaMin);
+}
+
 export function RutasClient({ rutas, esDirector }: { rutas: Ruta[]; esDirector: boolean }) {
   const router = useRouter();
   const [tipo, setTipo] = useState<"todas" | "carretera" | "montana">("todas");
   const [busqueda, setBusqueda] = useState("");
+  const [abierto, setAbierto] = useState<string | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +115,8 @@ export function RutasClient({ rutas, esDirector }: { rutas: Ruta[]; esDirector: 
       return true;
     });
   }, [rutas, tipo, busqueda]);
+
+  const grupos = useMemo(() => agruparRutas(filtradas), [filtradas]);
 
   async function onSincronizar() {
     setSincronizando(true);
@@ -76,8 +150,8 @@ export function RutasClient({ rutas, esDirector }: { rutas: Ruta[]; esDirector: 
       </div>
 
       <p className="text-xs text-mute leading-relaxed mb-3.5">
-        Salidas de ciclismo reales de quienes tienen Strava conectado, de los últimos 90 días de
-        cada sincronización. {esDirector && "Pulsa \"Sincronizar rutas\" para traer las nuevas."}
+        Salidas de ciclismo reales de quienes tienen Strava conectado, agrupadas por distancia y
+        desnivel parecidos. {esDirector && "Pulsa \"Sincronizar rutas\" para traer las nuevas."}
       </p>
 
       {mensaje && <p className="text-signal text-sm mb-3">{mensaje}</p>}
@@ -102,13 +176,13 @@ export function RutasClient({ rutas, esDirector }: { rutas: Ruta[]; esDirector: 
       </div>
 
       <input
-        placeholder="Buscar por nombre de la ruta…"
+        placeholder="Buscar por nombre de alguna salida…"
         value={busqueda}
         onChange={(e) => setBusqueda(e.target.value)}
         className="w-full bg-deep border border-edge text-chalk rounded-lg p-[11px] text-sm mb-3.5"
       />
 
-      {filtradas.length === 0 ? (
+      {grupos.length === 0 ? (
         <div className="text-center py-9 px-5 text-mute text-sm leading-relaxed">
           <b className="block text-chalk text-base mb-[5px] font-medium">Aquí no hay nada todavía</b>
           {esDirector
@@ -116,31 +190,67 @@ export function RutasClient({ rutas, esDirector }: { rutas: Ruta[]; esDirector: 
             : "Pídele al director que sincronice rutas desde Strava."}
         </div>
       ) : (
-        filtradas.map((r) => (
-          <a
-            key={r.id}
-            href={`https://www.strava.com/activities/${r.id}`}
-            target="_blank"
-            rel="noreferrer"
-            className="block bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5"
-          >
-            <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
-              <span
-                className="font-display text-[11px] tracking-[.06em] uppercase px-[7px] py-[2px] rounded-[5px]"
-                style={{ backgroundColor: `${COLOR_TIPO[r.tipo]}25`, color: COLOR_TIPO[r.tipo] }}
+        grupos.map((g) => {
+          const abiertoAqui = abierto === g.clave;
+          const rangoDistancia =
+            g.distanciaMax - g.distanciaMin < 0.5
+              ? `${g.distanciaMin.toFixed(1)} km`
+              : `${g.distanciaMin.toFixed(1)}–${g.distanciaMax.toFixed(1)} km`;
+          const rangoDesnivel =
+            g.desnivelMax - g.desnivelMin < 20
+              ? `${Math.round(g.desnivelMin)} m`
+              : `${Math.round(g.desnivelMin)}–${Math.round(g.desnivelMax)} m`;
+          return (
+            <div key={g.clave} className="bg-surf border border-edge rounded-[10px] mb-2.5 overflow-hidden">
+              <button
+                onClick={() => setAbierto(abiertoAqui ? null : g.clave)}
+                className="w-full flex items-center justify-between gap-2 text-left p-3.5 cursor-pointer"
               >
-                {LABEL_TIPO[r.tipo]}
-              </span>
-              <span className="text-xs text-mute">{fmtFecha(r.fecha)}</span>
-              <span className="text-xs text-mute">· {r.deportista}</span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                    <span
+                      className="font-display text-[11px] tracking-[.06em] uppercase px-[7px] py-[2px] rounded-[5px]"
+                      style={{ backgroundColor: `${COLOR_TIPO[g.tipo]}25`, color: COLOR_TIPO[g.tipo] }}
+                    >
+                      {LABEL_TIPO[g.tipo]}
+                    </span>
+                    <span className="text-xs text-mute">
+                      {g.rutas.length} {g.rutas.length === 1 ? "salida" : "salidas"}
+                    </span>
+                  </div>
+                  <b className="block text-[15px] font-medium truncate">
+                    {rangoDistancia} · ▲ {rangoDesnivel}
+                  </b>
+                </div>
+                <span className="text-mute text-xs shrink-0">{abiertoAqui ? "ocultar" : "ver"}</span>
+              </button>
+
+              {abiertoAqui && (
+                <div className="border-t border-edge">
+                  {g.rutas.map((r) => (
+                    <a
+                      key={r.id}
+                      href={`https://www.strava.com/activities/${r.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block px-3.5 py-2.5 border-b border-edge last:border-b-0"
+                    >
+                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                        <span className="text-xs text-mute">{fmtFecha(r.fecha)}</span>
+                        <span className="text-xs text-mute">· {r.deportista}</span>
+                      </div>
+                      <span className="block text-sm font-medium mb-0.5">{r.nombre}</span>
+                      <div className="flex gap-4 text-xs text-mute">
+                        {r.distanciaKm != null && <span>{r.distanciaKm.toFixed(1)} km</span>}
+                        {r.desnivelM != null && <span>▲ {Math.round(r.desnivelM)} m</span>}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
-            <b className="block text-[15px] font-medium mb-1">{r.nombre}</b>
-            <div className="flex gap-4 text-[13px] text-mute">
-              {r.distanciaKm != null && <span>{r.distanciaKm.toFixed(1)} km</span>}
-              {r.desnivelM != null && <span>▲ {Math.round(r.desnivelM)} m</span>}
-            </div>
-          </a>
-        ))
+          );
+        })
       )}
     </div>
   );
