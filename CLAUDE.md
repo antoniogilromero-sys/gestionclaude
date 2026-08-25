@@ -572,6 +572,50 @@ mantiene como red de seguridad) existe ahora
   limpieza de campos y normalización de nombre que antes solo vivían
   dentro del webhook de una fila — los dos endpoints los comparten ahora.
 
+## Ampliación de alcance: biblioteca de rutas (desde Strava)
+
+`/rutas` (director y entrenador, agosto 2026) es una biblioteca de
+salidas de ciclismo — carretera y montaña — pero **no se rellena a
+mano**: se genera pulsando "Sincronizar rutas", que recorre a TODOS los
+deportistas con Strava conectado (`strava_conexiones`) y guarda sus
+salidas de ciclismo reales de los últimos 90 días
+(`sincronizarRutasClub` en `src/lib/strava.ts`, tabla `rutas_strava`,
+`docs/migracion_rutas.sql`). Antón lo pidió explícitamente así: "que se
+vayan generando de Strava, de las rutas ya realizadas por los
+integrantes del club que tengan sincronizado" — no quería un catálogo
+manual.
+
+Decisiones:
+- **No reutiliza `strava_actividades`** (la tabla de métricas avanzadas
+  de `/analisis`) aunque se parezcan — esa tabla se sincroniza
+  deportista a deportista desde su Ficha y descarga el stream segundo a
+  segundo de carrera/ciclismo para GAP/deriva de FC, cosa que aquí
+  sobra (una biblioteca de rutas no necesita eso) y saldría caro en
+  peticiones a Strava si se hiciera para todo el club de golpe.
+  `rutas_strava` es una tabla mucho más ligera: solo nombre, distancia,
+  desnivel, quién la hizo y fecha.
+- **Distingue carretera de montaña por el `type` de Strava**
+  (`TIPO_A_RUTA` en `src/lib/strava.ts`): `MountainBikeRide` → montaña,
+  el resto de tipos de bici (`Ride`, `VirtualRide`, `EBikeRide`,
+  `GravelRide`, `Handcycle`) → carretera. `disciplinaDeStrava()` (la
+  función que ya existía) no sirve para esto porque mete todo el
+  ciclismo en un único cajón sin distinguir montaña de carretera.
+- **No hay deduplicación de "misma ruta"**: cada salida real es una fila
+  (clave primaria = id de la actividad en Strava, que es único). Dos
+  entrenamientos por el mismo sitio salen como dos filas distintas —
+  intentar reconocer "es la misma ruta" exigiría comparar trazados GPS,
+  fuera de alcance para este proyecto. La pantalla deja filtrar por tipo
+  y buscar por nombre para que sea fácil de todos modos encontrar algo
+  ya hecho antes.
+- Sincronización manual (botón, solo director), no automática — mismo
+  motivo que el resto de Strava en este proyecto: sin cron ni workers,
+  para no gastar cupo de la API sin que nadie lo haya pedido. Cada
+  pulsación trae hasta 90 días atrás por deportista; pulsarlo varias
+  veces no duplica nada (`upsert` por id de actividad), así que la
+  biblioteca solo crece con el tiempo según se va pulsando.
+- Cada ruta enlaza a `strava.com/activities/{id}` para ver el trazado
+  sobre el mapa real de Strava — la app no dibuja mapas propios.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Pegar un SQL grande con acentos/ñ en el SQL Editor de Supabase puede

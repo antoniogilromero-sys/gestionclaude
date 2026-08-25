@@ -389,3 +389,86 @@ export async function sincronizarActividadesStrava(deportistaId: number): Promis
 
   return { ok: true, sincronizadas };
 }
+
+// -------------------------------------------------- BIBLIOTECA DE RUTAS
+
+// Solo estos tipos de actividad de Strava cuentan como "ciclismo" para
+// la biblioteca de rutas — mismo criterio que TIPO_A_DISCIPLINA, pero
+// aquí además hace falta distinguir carretera de montaña, cosa que
+// disciplinaDeStrava() no hace (todo lo mete en "ciclismo").
+const TIPO_A_RUTA: Record<string, "carretera" | "montana"> = {
+  Ride: "carretera",
+  VirtualRide: "carretera",
+  EBikeRide: "carretera",
+  GravelRide: "carretera",
+  Handcycle: "carretera",
+  MountainBikeRide: "montana",
+};
+
+type ActividadRutaCruda = {
+  id: number;
+  name: string;
+  type: string;
+  distance: number;
+  start_date_local: string;
+  total_elevation_gain: number;
+};
+
+// Recorre TODOS los deportistas con Strava conectado y guarda sus
+// salidas de ciclismo de los últimos 90 días en `rutas_strava`, para que
+// la biblioteca de /rutas se alimente sola en vez de rellenarse a mano.
+// Pensada para lanzarse solo cuando el director pulsa "Sincronizar" en
+// /rutas, no en cada carga de página — igual que sincronizarActividadesStrava.
+export async function sincronizarRutasClub(): Promise<ResultadoSincronizacion> {
+  const supabase = createAdminClient();
+  const { data: conexiones, error: errorConexiones } = await supabase
+    .from("strava_conexiones")
+    .select("deportista_id");
+  if (errorConexiones) return { ok: false, sincronizadas: 0, error: errorConexiones.message };
+  if (!conexiones || conexiones.length === 0) {
+    return { ok: true, sincronizadas: 0 };
+  }
+
+  const noventaDiasAtras = Math.floor(Date.now() / 1000) - 90 * 24 * 60 * 60;
+
+  let sincronizadas = 0;
+  const errores: string[] = [];
+
+  await Promise.all(
+    conexiones.map(async ({ deportista_id }) => {
+      const token = await tokenValido(deportista_id);
+      if (!token) return; // conexión rota para este deportista: se salta, no rompe el resto
+
+      const res = await fetch(
+        `${STRAVA_API}/athlete/activities?after=${noventaDiasAtras}&per_page=100`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!res.ok) {
+        errores.push(`Deportista ${deportista_id}: ${await res.text()}`);
+        return;
+      }
+      const crudas: ActividadRutaCruda[] = await res.json();
+
+      for (const a of crudas) {
+        const tipo = TIPO_A_RUTA[a.type];
+        if (!tipo) continue; // no es ciclismo: no entra en la biblioteca de rutas
+
+        const { error } = await supabase.from("rutas_strava").upsert({
+          id: a.id,
+          deportista_id,
+          tipo,
+          nombre: a.name,
+          distancia_km: Math.round((a.distance / 1000) * 100) / 100,
+          desnivel_m: a.total_elevation_gain,
+          fecha: a.start_date_local,
+        });
+        if (!error) sincronizadas += 1;
+      }
+    }),
+  );
+
+  if (errores.length > 0 && sincronizadas === 0) {
+    return { ok: false, sincronizadas: 0, error: errores.join(" | ") };
+  }
+  return { ok: true, sincronizadas };
+}

@@ -13,6 +13,7 @@ const DIRECTOR_ITEMS: NavItem[] = [
   { href: "/tests", label: "Registrar test" },
   { href: "/rankings", label: "Rankings" },
   { href: "/liga-talentos", label: "Liga de Talentos" },
+  { href: "/rutas", label: "Rutas" },
   { href: "/grupos", label: "Grupos" },
   { href: "/competiciones", label: "Competiciones" },
   { href: "/resultados", label: "Resultados" },
@@ -44,6 +45,7 @@ const ENTRENADOR_ITEMS: NavItem[] = [
   { href: "/deportistas", label: "Deportistas" },
   { href: "/competiciones", label: "Competiciones" },
   { href: "/rankings", label: "Rankings" },
+  { href: "/rutas", label: "Rutas" },
 ];
 
 export function NavBar({
