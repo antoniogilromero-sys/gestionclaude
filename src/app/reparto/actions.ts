@@ -37,30 +37,15 @@ export async function copiarSemanaAnterior(
 ): Promise<{ error: string } | { copiado: boolean; filas: number }> {
   const supabase = await createClient();
 
-  const { data: origen, error: eOrigen } = await supabase
-    .from("asignaciones")
-    .select("grupo_id, entrenador_id")
-    .eq("semana", semanaOrigen);
-  if (eOrigen) return { error: eOrigen.message };
+  // Borra e inserta dentro de una sola función de Postgres (atómico): si
+  // el paso de insertar fallara, no se llega a borrar la semana destino.
+  // Antes esto se hacía en dos pasos sueltos desde aquí y un fallo a
+  // mitad dejaba la semana destino vacía sin poder deshacerlo.
+  const { data: filas, error } = await supabase.rpc("copiar_asignaciones_semana", {
+    p_semana_destino: semanaDestino,
+    p_semana_origen: semanaOrigen,
+  });
+  if (error) return { error: error.message };
 
-  if (!origen || origen.length === 0) {
-    // No hay nada que copiar: no tocamos la semana destino para no borrarla por error.
-    return { copiado: false, filas: 0 };
-  }
-
-  const { error: eDel } = await supabase
-    .from("asignaciones")
-    .delete()
-    .eq("semana", semanaDestino);
-  if (eDel) return { error: eDel.message };
-
-  const filas = origen.map((r) => ({
-    semana: semanaDestino,
-    grupo_id: r.grupo_id,
-    entrenador_id: r.entrenador_id,
-  }));
-  const { error: eIns } = await supabase.from("asignaciones").insert(filas);
-  if (eIns) return { error: eIns.message };
-
-  return { copiado: true, filas: filas.length };
+  return { copiado: (filas ?? 0) > 0, filas: filas ?? 0 };
 }

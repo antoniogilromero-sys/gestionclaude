@@ -674,6 +674,43 @@ Hacen falta dos variables de entorno en Vercel:
   eventos `checkout.session.completed`, `customer.subscription.updated`,
   `customer.subscription.deleted` > Signing secret.
 
+## Revisión completa de la app (agosto 2026)
+
+Antón pidió una pasada entera comprobando que todo funciona bien, casi
+un mes después de ir añadiendo cosas sin parar. Se revisó: permisos de
+cada pantalla contra su guard real, políticas RLS de cada tabla que usa
+el código, el patrón "nunca `throw` en una server action", el límite de
+1000 filas de Supabase en listados que pueden crecer, y las páginas
+públicas en directo (`/horario-publico`, `/cuota`). Un hallazgo real:
+
+- **`copiarSemanaAnterior` en `/reparto` no era atómico**: borraba las
+  asignaciones de la semana destino y luego insertaba las copiadas, en
+  dos pasos sueltos desde el navegador — si el segundo fallaba, la
+  semana destino se quedaba vacía sin forma de deshacerlo. Arreglado con
+  una función de Postgres (`copiar_asignaciones_semana`,
+  `docs/migracion_copiar_asignaciones_atomico.sql`) que hace las dos
+  cosas dentro de una sola transacción, mismo espíritu que
+  `set_grupos_deportista` y que `publicarSesion` (crea borrador, publica
+  al final).
+
+Cosas que se miraron y están bien tal cual, por si alguien se pregunta
+lo mismo más adelante:
+- `emitirFactura`, `publicarSesion` y las acciones de `/reparto` no
+  comprueban `rol === "director"` en el propio código — dependen solo de
+  la política RLS (`es_director()` en `facturas`/`sesiones`/
+  `asignaciones`). Confirmado que esas políticas sí existen y sí
+  bloquean a un entrenador, así que no es un agujero de seguridad, solo
+  un estilo distinto al resto de `actions.ts` (que sí comprueban el rol
+  antes, para dar un mensaje de error más claro que el que devuelve
+  Postgres). No es urgente, pero si se toca alguno de esos archivos, más
+  vale unificarlo al patrón `requireDirector()` de los demás.
+- `resultados_calc` (la vista) no tiene `security_invoker`, así que en
+  teoría podría no respetar el RLS de quien pregunta si algún día se
+  consulta desde una pantalla de entrenador — hoy no pasa porque las 4
+  pantallas que la usan (`/analisis`, `/analisis/informe/[id]`,
+  `/resultados`, su export) son todas solo-director. Si se abre esa vista
+  a entrenadores algún día, revisar esto primero.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Pegar un SQL grande con acentos/ñ en el SQL Editor de Supabase puede
