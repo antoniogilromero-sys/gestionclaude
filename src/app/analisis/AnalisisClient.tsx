@@ -16,6 +16,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { fmtTiempo, fmtFecha } from "@/lib/formato";
 import { sincronizarStrava, actualizarPerfilFisiologico } from "./actions";
+import { calcularCargaEntrenamiento, type PuntoCarga } from "@/lib/stravaMetricas";
 
 type Deportista = {
   id: number;
@@ -308,6 +309,7 @@ function FichaIndividual({
         <>
           <ResumenStravaCard resumen={strava} />
           <MetricasAvanzadasStrava deportistaId={deportistaId!} />
+          <CargaEntrenamiento deportistaId={deportistaId!} />
           {datosGrafico.length > 1 && (
             <p className="text-xs text-mute -mt-2 mb-3.5">
               Compara el volumen de Strava de arriba con la evolución de la
@@ -997,6 +999,106 @@ function MetricasAvanzadasStrava({ deportistaId }: { deportistaId: number }) {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// CTL/ATL/TSB (carga de entrenamiento) calculados a partir del TSS de
+// cada actividad ya guardado en strava_actividades (ciclismo/carrera con
+// FTP, más el TSS fijo de 35 para natación — ver src/lib/strava.ts). Se
+// piden hasta 120 días atrás: hacen falta al menos ~42 días de datos
+// para que la curva de CTL tenga sentido, no solo las últimas sesiones.
+function CargaEntrenamiento({ deportistaId }: { deportistaId: number }) {
+  const [puntos, setPuntos] = useState<PuntoCarga[]>([]);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    setCargando(true);
+    const supabase = createClient();
+    const hace120Dias = new Date();
+    hace120Dias.setDate(hace120Dias.getDate() - 120);
+    supabase
+      .from("strava_actividades")
+      .select("fecha, tss")
+      .eq("deportista_id", deportistaId)
+      .gte("fecha", hace120Dias.toISOString())
+      .order("fecha", { ascending: true })
+      .then(({ data }) => {
+        setPuntos(calcularCargaEntrenamiento((data ?? []) as { fecha: string; tss: number | null }[]));
+        setCargando(false);
+      });
+  }, [deportistaId]);
+
+  if (cargando) return null;
+  if (puntos.length < 2) {
+    return (
+      <div className="bg-surf border border-edge rounded-[10px] p-3.5 mb-3.5">
+        <b className="font-display text-[12px] tracking-[.1em] uppercase text-mute block mb-2">
+          Carga de entrenamiento
+        </b>
+        <p className="text-mute text-xs leading-relaxed">
+          Hace falta sincronizar más actividades (arriba, en &quot;Métricas
+          avanzadas&quot;) para poder calcular la curva de forma.
+        </p>
+      </div>
+    );
+  }
+
+  const ultimo = puntos[puntos.length - 1];
+  const formaTexto =
+    ultimo.tsb > 5 ? "fresco" : ultimo.tsb < -20 ? "muy fatigado" : ultimo.tsb < -10 ? "fatigado" : "en carga";
+  const datos = puntos.map((p) => ({
+    ...p,
+    fechaLabel: new Date(p.fecha + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }),
+  }));
+
+  return (
+    <div className="bg-surf border border-edge rounded-[10px] p-3.5 mb-3.5">
+      <b className="font-display text-[12px] tracking-[.1em] uppercase text-mute block mb-2">
+        Carga de entrenamiento
+      </b>
+      <div className="flex gap-4 mb-3">
+        <div>
+          <span className="text-mute text-[10px] uppercase tracking-[.04em] block">CTL (forma física)</span>
+          <span className="text-chalk font-medium text-lg">{ultimo.ctl}</span>
+        </div>
+        <div>
+          <span className="text-mute text-[10px] uppercase tracking-[.04em] block">ATL (fatiga)</span>
+          <span className="text-chalk font-medium text-lg">{ultimo.atl}</span>
+        </div>
+        <div>
+          <span className="text-mute text-[10px] uppercase tracking-[.04em] block">TSB (forma)</span>
+          <span className="text-chalk font-medium text-lg">
+            {ultimo.tsb} <span className="text-mute text-xs font-normal">({formaTexto})</span>
+          </span>
+        </div>
+      </div>
+      <div style={{ width: "100%", height: 200 }}>
+        <ResponsiveContainer>
+          <LineChart data={datos} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke="#1B4C60" strokeDasharray="0" vertical={false} />
+            <XAxis
+              dataKey="fechaLabel"
+              tick={{ fill: "#7FA5B0", fontSize: 10 }}
+              axisLine={{ stroke: "#1B4C60" }}
+              tickLine={false}
+              interval="preserveStartEnd"
+            />
+            <YAxis tick={{ fill: "#7FA5B0", fontSize: 10 }} axisLine={false} tickLine={false} width={32} />
+            <Tooltip
+              contentStyle={{ background: "#0E2E3D", border: "1px solid #1B4C60", borderRadius: 8, fontSize: 12 }}
+              labelStyle={{ color: "#7FA5B0" }}
+            />
+            <Line type="monotone" dataKey="ctl" name="CTL" stroke="#43C6E0" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="atl" name="ATL" stroke="#FF9145" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="tsb" name="TSB" stroke="#A8D84A" strokeWidth={1.5} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="text-mute text-[11px] leading-relaxed mt-2">
+        CTL = carga de las últimas ~6 semanas · ATL = carga de la última semana · TSB = CTL − ATL
+        (positivo, fresco; muy negativo, fatigado).
+      </p>
     </div>
   );
 }

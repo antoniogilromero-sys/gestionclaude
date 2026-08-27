@@ -343,7 +343,13 @@ export async function sincronizarActividadesStrava(deportistaId: number): Promis
     const potenciaNormalizada = a.device_watts ? a.weighted_average_watts ?? null : null;
     const intensidadIF = calcularIF(potenciaNormalizada, ftp);
     const variabilidadVI = calcularVI(potenciaNormalizada, potenciaMedia);
-    const tss = calcularTSS(a.moving_time, potenciaNormalizada, ftp);
+    // Natación no tiene FTP ni fórmula de TSS real implementada — Antón
+    // pidió explícitamente meter un TSS fijo de 35 por cada sesión de
+    // natación en vez de dejarla fuera de la carga de entrenamiento
+    // (CTL/ATL/TSB en /analisis). Es una estimación fija a propósito, no
+    // un cálculo real — por eso no varía con la duración ni la
+    // intensidad de la sesión, a diferencia del de ciclismo/carrera.
+    const tss = disciplina === "natacion" ? 35 : calcularTSS(a.moving_time, potenciaNormalizada, ftp);
 
     let ritmoGap: number | null = null;
     let derivaFc: number | null = null;

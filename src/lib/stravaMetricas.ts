@@ -108,3 +108,59 @@ export function calcularDerivaFC(puntos: PuntoStream[]): number | null {
   if (r1 == null || r2 == null || r1 === 0) return null;
   return ((r1 - r2) / r1) * 100;
 }
+
+// ------------------------------------------ CARGA DE ENTRENAMIENTO (PMC)
+
+// CTL/ATL/TSB — el "gráfico de gestión del rendimiento" (Performance
+// Management Chart) que hizo popular TrainingPeaks, modelo de Banister
+// (impulso-respuesta) simplificado con medias móviles exponenciales:
+//   - CTL ("Forma física"): media móvil exponencial de 42 días del TSS
+//     diario — carga acumulada de las últimas ~6 semanas.
+//   - ATL ("Fatiga"): lo mismo a 7 días — sube y baja mucho más rápido.
+//   - TSB ("Forma"): CTL − ATL. Positivo = fresco/descansado, muy
+//     negativo = muy fatigado, cerca de cero = en plena carga.
+// Ambas arrancan en 0 el primer día con datos (simplificación estándar:
+// no se conoce la carga de antes de esa fecha).
+export type PuntoCarga = {
+  fecha: string; // YYYY-MM-DD
+  tss: number;
+  ctl: number;
+  atl: number;
+  tsb: number;
+};
+
+export function calcularCargaEntrenamiento(
+  actividades: { fecha: string; tss: number | null }[],
+): PuntoCarga[] {
+  const tssPorDia = new Map<string, number>();
+  for (const a of actividades) {
+    if (a.tss == null) continue;
+    const dia = a.fecha.slice(0, 10);
+    tssPorDia.set(dia, (tssPorDia.get(dia) ?? 0) + a.tss);
+  }
+  if (tssPorDia.size === 0) return [];
+
+  const dias = [...tssPorDia.keys()].sort();
+  const cursor = new Date(dias[0] + "T00:00:00");
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+
+  const puntos: PuntoCarga[] = [];
+  let ctl = 0;
+  let atl = 0;
+  while (cursor <= hoy) {
+    const clave = cursor.toISOString().slice(0, 10);
+    const tssDia = tssPorDia.get(clave) ?? 0;
+    ctl += (tssDia - ctl) / 42;
+    atl += (tssDia - atl) / 7;
+    puntos.push({
+      fecha: clave,
+      tss: Math.round(tssDia * 10) / 10,
+      ctl: Math.round(ctl * 10) / 10,
+      atl: Math.round(atl * 10) / 10,
+      tsb: Math.round((ctl - atl) * 10) / 10,
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return puntos;
+}

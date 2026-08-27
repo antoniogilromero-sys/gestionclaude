@@ -711,6 +711,38 @@ lo mismo más adelante:
   `/resultados`, su export) son todas solo-director. Si se abre esa vista
   a entrenadores algún día, revisar esto primero.
 
+## Ampliación de alcance: carga de entrenamiento (CTL/ATL/TSB)
+
+Antón pidió, dentro de `/analisis` (Ficha del deportista), la curva de
+gestión del rendimiento que hace popular TrainingPeaks: CTL ("forma
+física", media móvil exponencial de 42 días del TSS diario), ATL
+("fatiga", lo mismo a 7 días) y TSB (CTL − ATL, "forma"). No hacía falta
+construir nada nuevo de Strava para esto — el TSS por actividad ya se
+guardaba en `strava_actividades` desde las métricas avanzadas
+(ciclismo/carrera con FTP). Lo que faltaba era juntar esos TSS día a día
+en la media móvil, que es pura función matemática
+(`calcularCargaEntrenamiento` en `src/lib/stravaMetricas.ts`) — sin
+tocar la base de datos ni pedir nada nuevo a Strava.
+
+- **Natación no tiene fórmula de TSS real** (no hay FTP de natación ni
+  potenciómetro). Antón pidió explícitamente meter un **TSS fijo de 35
+  por cada sesión de natación** en vez de dejarla fuera de la carga
+  total — es una estimación deliberada, no un cálculo real, y así queda
+  comentado en `sincronizarActividadesStrava`
+  (`src/lib/strava.ts`) para que no se confunda con las demás disciplinas
+  el día que alguien lo revise.
+- El componente `CargaEntrenamiento` (en `AnalisisClient.tsx`) pide hasta
+  120 días atrás de `strava_actividades` — hacen falta bastantes semanas
+  de datos sincronizados para que la curva de CTL tenga sentido, no
+  solo las últimas sesiones. Si no hay suficiente, avisa en vez de
+  enseñar un gráfico vacío o engañoso.
+- CTL/ATL arrancan en 0 el primer día con datos de esa persona
+  (simplificación estándar del propio modelo: no se conoce su carga de
+  antes de esa fecha) — así que la curva de los primeros ~42 días
+  siempre sube desde cero, no es un error.
+- Mismo botón "Sincronizar" de siempre (dentro de "Métricas avanzadas")
+  alimenta esta curva — no hay un botón aparte.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Pegar un SQL grande con acentos/ñ en el SQL Editor de Supabase puede
