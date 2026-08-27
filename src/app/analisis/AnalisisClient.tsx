@@ -308,7 +308,6 @@ function FichaIndividual({
       {!stravaCargando && strava?.conectado && (
         <>
           <ResumenStravaCard resumen={strava} />
-          <MetricasAvanzadasStrava deportistaId={deportistaId!} />
           <CargaEntrenamiento deportistaId={deportistaId!} />
           {datosGrafico.length > 1 && (
             <p className="text-xs text-mute -mt-2 mb-3.5">
@@ -878,22 +877,13 @@ function Campo({
   );
 }
 
-type ActividadDetalle = {
-  id: number;
-  disciplina: DisciplinaStrava;
-  nombre: string;
-  fecha: string;
-  potencia_media_w: number | null;
-  potencia_normalizada_w: number | null;
-  intensidad_if: number | null;
-  variabilidad_vi: number | null;
-  tss: number | null;
-  ritmo_gap_s_km: number | null;
-  deriva_fc_pct: number | null;
-};
-
-function MetricasAvanzadasStrava({ deportistaId }: { deportistaId: number }) {
-  const [actividades, setActividades] = useState<ActividadDetalle[]>([]);
+// CTL/ATL/TSB (carga de entrenamiento) calculados a partir del TSS de
+// cada actividad ya guardado en strava_actividades (ciclismo/carrera con
+// FTP, más el TSS fijo de 35 para natación — ver src/lib/strava.ts). Se
+// piden hasta 120 días atrás: hacen falta al menos ~42 días de datos
+// para que la curva de CTL tenga sentido, no solo las últimas sesiones.
+function CargaEntrenamiento({ deportistaId }: { deportistaId: number }) {
+  const [puntos, setPuntos] = useState<PuntoCarga[]>([]);
   const [cargando, setCargando] = useState(true);
   const [sincronizando, setSincronizando] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -901,16 +891,16 @@ function MetricasAvanzadasStrava({ deportistaId }: { deportistaId: number }) {
   const cargar = useCallback(() => {
     setCargando(true);
     const supabase = createClient();
+    const hace120Dias = new Date();
+    hace120Dias.setDate(hace120Dias.getDate() - 120);
     supabase
       .from("strava_actividades")
-      .select(
-        "id, disciplina, nombre, fecha, potencia_media_w, potencia_normalizada_w, intensidad_if, variabilidad_vi, tss, ritmo_gap_s_km, deriva_fc_pct",
-      )
+      .select("fecha, tss")
       .eq("deportista_id", deportistaId)
-      .order("fecha", { ascending: false })
-      .limit(15)
+      .gte("fecha", hace120Dias.toISOString())
+      .order("fecha", { ascending: true })
       .then(({ data }) => {
-        setActividades((data ?? []) as ActividadDetalle[]);
+        setPuntos(calcularCargaEntrenamiento((data ?? []) as { fecha: string; tss: number | null }[]));
         setCargando(false);
       });
   }, [deportistaId]);
@@ -932,113 +922,30 @@ function MetricasAvanzadasStrava({ deportistaId }: { deportistaId: number }) {
     }
   }
 
-  const hayAlgunaMetrica = actividades.some(
-    (a) => a.tss != null || a.ritmo_gap_s_km != null || a.deriva_fc_pct != null,
+  const botonSincronizar = (
+    <button
+      type="button"
+      onClick={onSincronizar}
+      disabled={sincronizando}
+      className="shrink-0 bg-transparent border border-edge text-mute rounded-lg px-2.5 py-1 text-[11px] cursor-pointer disabled:opacity-60"
+    >
+      {sincronizando ? "Sincronizando…" : "Sincronizar"}
+    </button>
   );
-
-  return (
-    <div className="bg-surf border border-edge rounded-[10px] p-3.5 mb-3.5">
-      <div className="flex items-center justify-between mb-2.5 gap-2">
-        <b className="font-display text-[12px] tracking-[.1em] uppercase text-mute">
-          Métricas avanzadas
-        </b>
-        <button
-          type="button"
-          onClick={onSincronizar}
-          disabled={sincronizando}
-          className="shrink-0 bg-transparent border border-edge text-mute rounded-lg px-2.5 py-1 text-[11px] cursor-pointer disabled:opacity-60"
-        >
-          {sincronizando ? "Sincronizando…" : "Sincronizar"}
-        </button>
-      </div>
-      {mensaje && <p className="text-xs text-mute mb-2">{mensaje}</p>}
-
-      {cargando ? (
-        <p className="text-mute text-xs py-3 text-center">Cargando…</p>
-      ) : actividades.length === 0 ? (
-        <p className="text-mute text-xs leading-relaxed">
-          Todavía no hay nada sincronizado. Pulsa &quot;Sincronizar&quot; para
-          calcular NP/IF/VI/TSS (si hay potenciómetro) y GAP/deriva de FC en
-          carrera y ciclismo de los últimos 60 días.
-        </p>
-      ) : (
-        <>
-          {!hayAlgunaMetrica && (
-            <p className="text-mute text-xs leading-relaxed mb-2">
-              No se ha podido calcular ninguna métrica avanzada en estas
-              actividades — probablemente entrena sin potenciómetro y las
-              sesiones son cortas para medir deriva de FC. Es normal con
-              reloj GPS/pulsómetro básico, no es un fallo.
-            </p>
-          )}
-          <div className="flex flex-col gap-1.5">
-            {actividades.map((a) => (
-              <div key={a.id} className="text-xs border-b border-edge/50 pb-1.5 last:border-0">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-chalk truncate">{a.nombre}</span>
-                  <span className="text-mute shrink-0">{fmtFechaCorta(a.fecha)}</span>
-                </div>
-                {(a.tss != null || a.ritmo_gap_s_km != null || a.deriva_fc_pct != null) && (
-                  <div className="text-mute mt-0.5 flex flex-wrap gap-x-3">
-                    {a.tss != null && <span>TSS {a.tss.toFixed(0)}</span>}
-                    {a.intensidad_if != null && <span>IF {a.intensidad_if.toFixed(2)}</span>}
-                    {a.variabilidad_vi != null && <span>VI {a.variabilidad_vi.toFixed(2)}</span>}
-                    {a.potencia_normalizada_w != null && (
-                      <span>NP {Math.round(a.potencia_normalizada_w)} W</span>
-                    )}
-                    {a.ritmo_gap_s_km != null && <span>GAP {fmtMinSeg(a.ritmo_gap_s_km)} /km</span>}
-                    {a.deriva_fc_pct != null && (
-                      <span className={a.deriva_fc_pct > 5 ? "text-run" : ""}>
-                        Deriva FC {a.deriva_fc_pct.toFixed(1)}%
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// CTL/ATL/TSB (carga de entrenamiento) calculados a partir del TSS de
-// cada actividad ya guardado en strava_actividades (ciclismo/carrera con
-// FTP, más el TSS fijo de 35 para natación — ver src/lib/strava.ts). Se
-// piden hasta 120 días atrás: hacen falta al menos ~42 días de datos
-// para que la curva de CTL tenga sentido, no solo las últimas sesiones.
-function CargaEntrenamiento({ deportistaId }: { deportistaId: number }) {
-  const [puntos, setPuntos] = useState<PuntoCarga[]>([]);
-  const [cargando, setCargando] = useState(true);
-
-  useEffect(() => {
-    setCargando(true);
-    const supabase = createClient();
-    const hace120Dias = new Date();
-    hace120Dias.setDate(hace120Dias.getDate() - 120);
-    supabase
-      .from("strava_actividades")
-      .select("fecha, tss")
-      .eq("deportista_id", deportistaId)
-      .gte("fecha", hace120Dias.toISOString())
-      .order("fecha", { ascending: true })
-      .then(({ data }) => {
-        setPuntos(calcularCargaEntrenamiento((data ?? []) as { fecha: string; tss: number | null }[]));
-        setCargando(false);
-      });
-  }, [deportistaId]);
 
   if (cargando) return null;
   if (puntos.length < 2) {
     return (
       <div className="bg-surf border border-edge rounded-[10px] p-3.5 mb-3.5">
-        <b className="font-display text-[12px] tracking-[.1em] uppercase text-mute block mb-2">
-          Carga de entrenamiento
-        </b>
+        <div className="flex items-center justify-between mb-2 gap-2">
+          <b className="font-display text-[12px] tracking-[.1em] uppercase text-mute">
+            Carga de entrenamiento
+          </b>
+          {botonSincronizar}
+        </div>
+        {mensaje && <p className="text-xs text-mute mb-2">{mensaje}</p>}
         <p className="text-mute text-xs leading-relaxed">
-          Hace falta sincronizar más actividades (arriba, en &quot;Métricas
-          avanzadas&quot;) para poder calcular la curva de forma.
+          Hace falta sincronizar más actividades para poder calcular la curva de forma.
         </p>
       </div>
     );
@@ -1054,9 +961,13 @@ function CargaEntrenamiento({ deportistaId }: { deportistaId: number }) {
 
   return (
     <div className="bg-surf border border-edge rounded-[10px] p-3.5 mb-3.5">
-      <b className="font-display text-[12px] tracking-[.1em] uppercase text-mute block mb-2">
-        Carga de entrenamiento
-      </b>
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <b className="font-display text-[12px] tracking-[.1em] uppercase text-mute">
+          Carga de entrenamiento
+        </b>
+        {botonSincronizar}
+      </div>
+      {mensaje && <p className="text-xs text-mute mb-2">{mensaje}</p>}
       <div className="flex gap-4 mb-3">
         <div>
           <span className="text-mute text-[10px] uppercase tracking-[.04em] block">CTL (forma física)</span>

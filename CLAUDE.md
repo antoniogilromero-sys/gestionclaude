@@ -742,6 +742,15 @@ tocar la base de datos ni pedir nada nuevo a Strava.
   siempre sube desde cero, no es un error.
 - Mismo botón "Sincronizar" de siempre (dentro de "Métricas avanzadas")
   alimenta esta curva — no hay un botón aparte.
+- **Actualización**: Antón pidió quitar la lista visible de "Métricas
+  avanzadas" (el detalle NP/IF/VI/TSS/GAP/deriva actividad por
+  actividad) — no le hacía falta verla, solo la curva de forma. El
+  cálculo y el guardado siguen pasando igual (`strava_actividades` sigue
+  llenándose al pulsar "Sincronizar", que ahora vive dentro de la propia
+  tarjeta "Carga de entrenamiento"), solo se quitó el componente
+  `MetricasAvanzadasStrava` de `AnalisisClient.tsx` — si algún día hace
+  falta volver a mostrar ese detalle actividad por actividad, está en el
+  historial de git, no hay que rehacerlo desde cero.
 
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
