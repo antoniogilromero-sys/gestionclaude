@@ -243,6 +243,11 @@ carrera). Decisiones tomadas:
   terceras). Si esto se vuelve a pedir, no es un olvido: haría falta una
   integración aparte con la API de Garmin (u otro fabricante), fuera de
   alcance por ahora.
+- **Lo mismo pasa con la HRV (variabilidad de la frecuencia cardíaca,
+  agosto 2026)**: aunque el reloj la mida, Strava no la expone en su
+  API — viviría en Garmin Connect (u Oura/Whoop), que exige su propio
+  alta de desarrollador y normalmente aprobación aparte por ser un dato
+  de salud, no de entrenamiento. No construido, mismo motivo que SWOLF.
 - La ventana de sincronización son los últimos 60 días, hasta 50
   actividades por sincronización — límite deliberado para no disparar el
   número de peticiones a Strava en una sola pulsación del botón.
