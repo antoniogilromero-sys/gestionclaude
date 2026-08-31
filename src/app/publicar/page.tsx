@@ -15,7 +15,7 @@ export default async function PublicarPage() {
     .select("nombre, rol")
     .eq("id", user.id)
     .single();
-  if (!perfil || perfil.rol !== "director") redirect("/");
+  if (!perfil || perfil.rol === "pendiente") redirect("/");
 
   const { data: grupos } = await supabase
     .from("grupos")

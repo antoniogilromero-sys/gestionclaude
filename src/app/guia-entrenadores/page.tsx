@@ -80,17 +80,22 @@ export default async function GuiaEntrenadoresPage() {
 
       <Seccion n="02" titulo="Entrenamientos">
         <p>
-          Las sesiones que tú publicas: contenido del entreno, material
-          necesario y a qué grupos va dirigido.
+          Las sesiones de entreno: contenido, material necesario y a qué
+          grupos va dirigido. Ahora <b className="text-chalk">cada entrenador puede publicar las suyas</b>,
+          no solo la dirección técnica.
         </p>
         <Bloque label="Puede">
           <Item ok>Leer el contenido completo de cada sesión publicada.</Item>
           <Item ok>Marcar como vista una sesión, para que quede constancia de que la ha leído.</Item>
+          <Item ok>Publicar sus propios entrenamientos (botón &quot;+ Publicar&quot;) — pensado sobre todo para subir los sábados por la tarde/noche lo que se va a hacer.</Item>
         </Bloque>
         <Bloque label="No puede">
-          <Item>Ver los borradores que aún estés preparando — solo lo ya publicado.</Item>
-          <Item>Editar ni publicar sesiones — eso sigue siendo solo tuyo.</Item>
+          <Item>Ver los borradores de otra persona que aún no se hayan publicado.</Item>
+          <Item>Editar ni borrar ninguna sesión ya publicada, ni la suya ni la de otro — la app no tiene botón de editar, solo de publicar una nueva.</Item>
         </Bloque>
+        <Tip>
+          Cada sesión de la lista muestra ahora quién la publicó, para que se sepa de quién es cada una.
+        </Tip>
       </Seccion>
 
       <Seccion n="03" titulo="Entreno diario">
@@ -196,7 +201,7 @@ export default async function GuiaEntrenadoresPage() {
           <tbody>
             {[
               ["Reparto", "Solo lectura"],
-              ["Entrenamientos", "Solo lo publicado"],
+              ["Entrenamientos", "Puede publicar los suyos"],
               ["Entreno diario", "Últimos 7 días + RPE"],
               ["Registrar test", "Alta de resultados"],
               ["Grupos", "Consulta"],
@@ -217,7 +222,7 @@ export default async function GuiaEntrenadoresPage() {
       <div className="bg-surf2 border border-edge rounded-[10px] p-4">
         <b className="block text-[15px] font-medium mb-1">Lo que ningún entrenador ve</b>
         <p className="text-sm text-mute leading-relaxed">
-          Publicar · Análisis (histórico de tests, perfil fisiológico, Strava
+          Análisis (histórico de tests, perfil fisiológico, Strava
           avanzado, carga de entrenamiento) · Resultados (listado completo y
           exportación) · Equipo · Liga de Talentos · todo Administración
           (Balance, Facturas, Pedidos, Jornadas, Pagos, Horarios,

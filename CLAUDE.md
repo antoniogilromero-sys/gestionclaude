@@ -757,6 +757,42 @@ tocar la base de datos ni pedir nada nuevo a Strava.
   falta volver a mostrar ese detalle actividad por actividad, está en el
   historial de git, no hay que rehacerlo desde cero.
 
+## Ampliación de alcance: los entrenadores publican sus propios entrenamientos
+
+`/publicar` (agosto 2026) dejó de ser solo del director — Antón pidió
+explícitamente que cada entrenador pueda subir los entrenamientos que va
+a realizar, pensado sobre todo para que lo hagan los sábados por la
+tarde/noche de cara a su sesión. **No se puso ninguna restricción técnica
+de día/hora** — es solo el hábito que va a tener el equipo, no algo que
+la app bloquee fuera de ese horario; si en algún momento Antón quiere que
+de verdad se bloquee fuera de esa franja, es una pieza nueva.
+
+- RLS (`docs/migracion_publicar_entrenadores.sql`): se añadieron dos
+  políticas nuevas en vez de tocar la que ya había — `p_ses_admin`
+  (director, `for all`) se queda igual, y se suma
+  `p_ses_crear_aprobado` (cualquier `aprobado()` puede insertar una
+  sesión nueva) y `p_ses_actualizar_propia` (puede actualizar **solo la
+  que él mismo creó** — necesario porque `publicarSesion` la crea como
+  borrador y la marca "publicada" en un segundo paso; sin esto un
+  entrenador podría crear la sesión pero no llegar a publicarla). Mismo
+  patrón en `sesion_grupo` con `p_sesgr_crear_aprobado`. Las políticas
+  RLS se combinan con OR, así que el director sigue pudiendo
+  editar/borrar cualquier sesión de cualquiera, igual que siempre.
+- **No hay ningún botón de editar ni borrar sesiones en la app**, ni
+  para el director ni para el entrenador — la política de actualizar
+  la propia sesión existe solo para que el flujo interno
+  borrador→publicar funcione, no porque haya pensado un formulario de
+  edición. Si algún día se pide editar entrenamientos ya publicados,
+  hace falta construir esa pantalla, la RLS ya lo permitiría para el
+  autor pero el director seguiría necesitando una vía aparte (no es su
+  propio `autor_id`).
+- `/entrenamientos` ahora muestra "Publicado por X" en cada tarjeta
+  (antes no hacía falta, porque siempre era el director) — se une a
+  `perfiles` por `autor_id` con el alias `autor:perfiles!sesiones_autor_id_fkey(nombre)`.
+- `/publicar` se añadió a `ENTRENADOR_ITEMS` en `NavBar.tsx`, y el botón
+  "+ Publicar" de `/entrenamientos` ya no está condicionado a
+  `esDirector`.
+
 ## Página temporal: guía de la reunión de entrenadores
 
 `/guia-entrenadores` (agosto 2026) es un caso especial: una guía de qué

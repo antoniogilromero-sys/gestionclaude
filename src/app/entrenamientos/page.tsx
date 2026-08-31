@@ -28,7 +28,7 @@ export default async function EntrenamientosPage() {
   let query = supabase
     .from("sesiones")
     .select(
-      "id, fecha, titulo, disciplina, material, publicada, sesion_grupo(grupos(nombre)), sesion_vista(entrenador_id, perfiles(nombre))",
+      "id, fecha, titulo, disciplina, material, publicada, autor:perfiles!sesiones_autor_id_fkey(nombre), sesion_grupo(grupos(nombre)), sesion_vista(entrenador_id, perfiles(nombre))",
     )
     .order("fecha", { ascending: false });
 
@@ -43,14 +43,12 @@ export default async function EntrenamientosPage() {
           <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute">
             Entrenamientos
           </h2>
-          {esDirector && (
-            <Link
-              href="/publicar"
-              className="font-display text-xs tracking-[.08em] uppercase text-signal"
-            >
-              + Publicar
-            </Link>
-          )}
+          <Link
+            href="/publicar"
+            className="font-display text-xs tracking-[.08em] uppercase text-signal"
+          >
+            + Publicar
+          </Link>
         </div>
         {(!sesiones || sesiones.length === 0) && (
           <div className="text-center py-9 px-5 text-mute text-sm leading-relaxed">
@@ -72,6 +70,8 @@ export default async function EntrenamientosPage() {
           )
             .map((v) => v.perfiles?.nombre)
             .filter(Boolean);
+          const autor = (s.autor as unknown as { nombre: string } | { nombre: string }[] | null);
+          const autorNombre = Array.isArray(autor) ? autor[0]?.nombre : autor?.nombre;
           return (
             <Link
               key={s.id}
@@ -95,6 +95,9 @@ export default async function EntrenamientosPage() {
                 )}
               </div>
               <h3 className="text-[16px] font-semibold">{s.titulo}</h3>
+              {autorNombre && (
+                <div className="text-xs text-mute mt-1">Publicado por {autorNombre}</div>
+              )}
               {s.material && (
                 <div className="text-xs text-mute mt-1">material: {s.material}</div>
               )}
