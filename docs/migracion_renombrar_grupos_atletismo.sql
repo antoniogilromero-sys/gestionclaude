@@ -17,19 +17,22 @@
 -- Los 3 grupos de Carrera del JUEVES (Intermedio/Avanzado/Mayores) NO se
 -- tocan, siguen exactamente igual.
 --
--- Ojo: asumo que los 4 comparten el mismo horario que ya ten­ían los de
--- antes (18:00-19:00 lunes) porque no me diste uno nuevo — si es otro,
--- dímelo y lo corrijo.
+-- El horario real es 18:30-19:30, no 18:00-19:00 como tenían guardado
+-- los 3 grupos viejos del lunes (Antón lo confirmó tras verlo en la
+-- app) — se corrige aquí de paso para los 4.
 
-update grupos set nombre = 'Atletismo 1A Lunes' where nombre = 'Carrera Iniciación';
-update grupos set nombre = 'Atletismo 2 Lunes'  where nombre = 'Carrera Medio';
-update grupos set nombre = 'Atletismo 3 Lunes'  where nombre = 'Carrera Adultos';
+update grupos set nombre = 'Atletismo 1A Lunes', hora_inicio = '18:30', hora_fin = '19:30'
+  where nombre = 'Carrera Iniciación';
+update grupos set nombre = 'Atletismo 2 Lunes', hora_inicio = '18:30', hora_fin = '19:30'
+  where nombre = 'Carrera Medio';
+update grupos set nombre = 'Atletismo 3 Lunes', hora_inicio = '18:30', hora_fin = '19:30'
+  where nombre = 'Carrera Adultos';
 
 insert into grupos (nombre, disciplina, dias, hora_inicio, hora_fin)
-values ('Atletismo 1B Lunes', 'carrera', array['lunes'], '18:00', '19:00');
+values ('Atletismo 1B Lunes', 'carrera', array['lunes'], '18:30', '19:30');
 
 -- Comprueba que ha quedado bien: deberían salir los 4 grupos nuevos del
--- lunes, más los 3 de Carrera del jueves sin tocar.
+-- lunes con 18:30-19:30, más los 3 de Carrera del jueves sin tocar.
 select id, nombre, disciplina, dias, hora_inicio, hora_fin, activo
 from grupos
 where disciplina = 'carrera'
