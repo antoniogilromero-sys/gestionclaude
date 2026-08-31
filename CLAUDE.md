@@ -757,6 +757,35 @@ tocar la base de datos ni pedir nada nuevo a Strava.
   falta volver a mostrar ese detalle actividad por actividad, está en el
   historial de git, no hay que rehacerlo desde cero.
 
+## Página temporal: guía de la reunión de entrenadores
+
+`/guia-entrenadores` (agosto 2026) es un caso especial: una guía de qué
+puede ver y hacer un entrenador en cada sección de la app, pensada para
+la reunión de Antón con su equipo el 1 de septiembre de 2026. El
+director la ve siempre; a los entrenadores **solo se les abre durante
+una ventana de 24 horas** (1-sep 16:00 → 2-sep 16:00, hora de España),
+fuera de eso la página les devuelve un aviso de "no disponible" en vez
+de redirigirles fuera — así no hace falta que Antón se acuerde de
+quitarla a mano ni de tocar permisos el día después.
+
+- Las horas están escritas en UTC en el código
+  (`VENTANA_INICIO`/`VENTANA_FIN` en `src/app/guia-entrenadores/page.tsx`)
+  porque España está en horario de verano (CEST, UTC+2) en septiembre:
+  16:00 hora de España = 14:00 UTC. Si esto se reutiliza para otra fecha
+  fuera del horario de verano (finales de octubre en adelante), el
+  desfase pasa a ser de solo 1 hora (CET, UTC+1) — hay que recalcular,
+  no copiar el mismo `+2` sin pensarlo.
+- A propósito **no se ha añadido al menú** (`NavBar.tsx`): es un enlace
+  que Antón comparte directamente con los entrenadores para la reunión,
+  no una sección permanente. Si en el futuro se usa este mismo patrón
+  para otra guía puntual, plantearse entonces si merece la pena
+  parametrizar las fechas en vez de tenerlas fijas en el código.
+- El contenido está deliberadamente duplicado del texto del propio
+  código de la app (qué ve cada rol en cada pantalla) en vez de leerlo
+  de algún sitio dinámico — es una foto fija de agosto 2026. Si los
+  permisos de los entrenadores cambian más adelante, esta página se
+  queda desactualizada y no se entera nadie automáticamente.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Pegar un SQL grande con acentos/ñ en el SQL Editor de Supabase puede
