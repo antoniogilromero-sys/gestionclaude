@@ -61,18 +61,46 @@ function ritmoOVelocidad(a: Actividad): string | null {
 }
 
 export function EntrenamientoDiarioClient({ deportistas }: { deportistas: DeportistaConActividad[] }) {
+  const [abiertoId, setAbiertoId] = useState<number | null>(null);
+
   return (
     <div>
-      {deportistas.map((d) => (
-        <div key={d.deportistaId} className="mb-5">
-          <h3 className="font-display text-[13px] tracking-[.1em] uppercase text-signal mb-2">
-            {d.nombre}
-          </h3>
-          {d.actividades.map((a) => (
-            <ActividadCard key={a.id} deportistaId={d.deportistaId} actividad={a} />
-          ))}
-        </div>
-      ))}
+      {deportistas.map((d) => {
+        const abierto = abiertoId === d.deportistaId;
+        return (
+          <div key={d.deportistaId} className="mb-2.5">
+            <button
+              onClick={() => setAbiertoId(abierto ? null : d.deportistaId)}
+              aria-expanded={abierto}
+              className="w-full flex items-center justify-between gap-2 bg-surf border border-edge rounded-[10px] px-3.5 py-3.5 text-left cursor-pointer min-h-[44px]"
+            >
+              <span className="text-[15px] font-medium">{d.nombre}</span>
+              <span className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-mute">
+                  {d.actividades.length === 0
+                    ? "sin actividad"
+                    : `${d.actividades.length} ${d.actividades.length === 1 ? "sesión" : "sesiones"}`}
+                </span>
+                <span className="text-mute text-xs">{abierto ? "▲" : "▼"}</span>
+              </span>
+            </button>
+
+            {abierto && (
+              <div className="mt-2.5">
+                {d.actividades.length === 0 ? (
+                  <p className="text-mute text-xs text-center py-5">
+                    Sin actividad en los últimos 7 días.
+                  </p>
+                ) : (
+                  d.actividades.map((a) => (
+                    <ActividadCard key={a.id} deportistaId={d.deportistaId} actividad={a} />
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

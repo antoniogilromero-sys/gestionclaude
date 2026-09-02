@@ -38,9 +38,7 @@ export default async function EntrenamientoDiarioPage() {
     }),
   );
 
-  const conActividad = resumenes
-    .filter((r) => r.actividades.length > 0)
-    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const deportistas = resumenes.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   return (
     <AppShell nombre={perfil.nombre} rol={perfil.rol}>
@@ -48,15 +46,15 @@ export default async function EntrenamientoDiarioPage() {
         Entrenamiento diario
       </h2>
       <p className="text-xs text-mute mb-3.5">
-        Últimos 7 días de quienes tienen Strava conectado. Apunta aquí la percepción del esfuerzo
-        (RPE) de cada sesión.
+        Deportistas con Strava conectado. Pincha en uno para ver sus entrenos de los últimos 7 días
+        y apuntar la percepción del esfuerzo (RPE) de cada sesión.
       </p>
-      {conActividad.length === 0 ? (
+      {deportistas.length === 0 ? (
         <p className="text-mute text-sm text-center py-9">
-          Nadie con Strava conectado tiene actividad en los últimos 7 días.
+          Todavía nadie tiene Strava conectado.
         </p>
       ) : (
-        <EntrenamientoDiarioClient deportistas={conActividad} />
+        <EntrenamientoDiarioClient deportistas={deportistas} />
       )}
     </AppShell>
   );
