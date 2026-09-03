@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
-import { obtenerResumenStrava } from "@/lib/strava";
 import { EntrenamientoDiarioClient } from "./EntrenamientoDiarioClient";
 
 export default async function EntrenamientoDiarioPage() {
@@ -18,6 +17,12 @@ export default async function EntrenamientoDiarioPage() {
     .single();
   if (!perfil || perfil.rol === "pendiente") redirect("/");
 
+  // Solo la lista de quién tiene Strava conectado — nada de Strava en sí.
+  // Los entrenos de cada uno se piden en directo justo al pinchar en su
+  // nombre (ver EntrenamientoDiarioClient), para que siempre sea lo más
+  // reciente en ese momento, no lo que hubiera cuando se abrió la
+  // página. Con muchos conectados, además, la página carga mucho más
+  // rápido así que pidiendo Strava de todos de golpe.
   const [{ data: conexiones }, { data: rpes }] = await Promise.all([
     supabase.from("strava_conexiones").select("deportista_id, deportistas(nombre)"),
     supabase.from("strava_rpe").select("strava_actividad_id, rpe, notas"),
@@ -25,20 +30,13 @@ export default async function EntrenamientoDiarioPage() {
 
   const rpeMap = new Map((rpes ?? []).map((r) => [r.strava_actividad_id, { rpe: r.rpe, notas: r.notas }]));
 
-  const haceUnaSemana = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const resumenes = await Promise.all(
-    (conexiones ?? []).map(async (c) => {
-      const resumen = await obtenerResumenStrava(c.deportista_id);
+  const deportistas = (conexiones ?? [])
+    .map((c) => {
       const nombreRel = c.deportistas as unknown as { nombre: string } | { nombre: string }[] | null;
       const nombre = Array.isArray(nombreRel) ? (nombreRel[0]?.nombre ?? "?") : (nombreRel?.nombre ?? "?");
-      const actividades = resumen.actividades
-        .filter((a) => new Date(a.fecha).getTime() >= haceUnaSemana)
-        .map((a) => ({ ...a, rpeGuardado: rpeMap.get(a.id) ?? null }));
-      return { deportistaId: c.deportista_id, nombre, actividades };
-    }),
-  );
-
-  const deportistas = resumenes.sort((a, b) => a.nombre.localeCompare(b.nombre));
+      return { deportistaId: c.deportista_id, nombre };
+    })
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   return (
     <AppShell nombre={perfil.nombre} rol={perfil.rol}>
@@ -46,15 +44,18 @@ export default async function EntrenamientoDiarioPage() {
         Entrenamiento diario
       </h2>
       <p className="text-xs text-mute mb-3.5">
-        Deportistas con Strava conectado. Pincha en uno para ver sus entrenos de los últimos 7 días
-        y apuntar la percepción del esfuerzo (RPE) de cada sesión.
+        Deportistas con Strava conectado. Pincha en uno para pedir en directo sus entrenos de los
+        últimos 7 días y apuntar la percepción del esfuerzo (RPE) de cada sesión.
       </p>
       {deportistas.length === 0 ? (
         <p className="text-mute text-sm text-center py-9">
           Todavía nadie tiene Strava conectado.
         </p>
       ) : (
-        <EntrenamientoDiarioClient deportistas={deportistas} />
+        <EntrenamientoDiarioClient
+          deportistas={deportistas}
+          rpes={Object.fromEntries(rpeMap)}
+        />
       )}
     </AppShell>
   );

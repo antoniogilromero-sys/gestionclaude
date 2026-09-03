@@ -19,14 +19,12 @@ type Actividad = {
   fc_max: number | null;
   potencia_media_w: number | null;
   potencia_max_w: number | null;
-  rpeGuardado: { rpe: number; notas: string | null } | null;
 };
 
-type DeportistaConActividad = {
-  deportistaId: number;
-  nombre: string;
-  actividades: Actividad[];
-};
+type ActividadConRpe = Actividad & { rpeGuardado: { rpe: number; notas: string | null } | null };
+
+type Deportista = { deportistaId: number; nombre: string };
+type RpeGuardado = { rpe: number; notas: string | null };
 
 const COLOR_DISC: Record<Disciplina, string> = {
   natacion: "#43C6E0",
@@ -60,42 +58,93 @@ function ritmoOVelocidad(a: Actividad): string | null {
   return null;
 }
 
-export function EntrenamientoDiarioClient({ deportistas }: { deportistas: DeportistaConActividad[] }) {
+// Un solo botón de recarga a mano dentro de cada persona, además de la
+// carga automática al desplegar — por si se anota un entreno nuevo
+// mientras la tienes abierta.
+type Estado = "sin_cargar" | "cargando" | "ok" | "error";
+
+export function EntrenamientoDiarioClient({
+  deportistas,
+  rpes,
+}: {
+  deportistas: Deportista[];
+  rpes: Record<number, RpeGuardado>;
+}) {
   const [abiertoId, setAbiertoId] = useState<number | null>(null);
+  const [estados, setEstados] = useState<Record<number, Estado>>({});
+  const [actividadesPorDeportista, setActividadesPorDeportista] = useState<
+    Record<number, ActividadConRpe[]>
+  >({});
+
+  async function cargar(deportistaId: number) {
+    setEstados((s) => ({ ...s, [deportistaId]: "cargando" }));
+    try {
+      const res = await fetch(`/api/strava/resumen?deportistaId=${deportistaId}`);
+      const data = await res.json();
+      if (!res.ok || !("actividades" in data)) throw new Error(data?.error ?? "Fallo al pedir Strava");
+
+      const haceUnaSemana = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const actividades: ActividadConRpe[] = (data.actividades as Actividad[])
+        .filter((a) => new Date(a.fecha).getTime() >= haceUnaSemana)
+        .map((a) => ({ ...a, rpeGuardado: rpes[a.id] ?? null }));
+
+      setActividadesPorDeportista((s) => ({ ...s, [deportistaId]: actividades }));
+      setEstados((s) => ({ ...s, [deportistaId]: "ok" }));
+    } catch {
+      setEstados((s) => ({ ...s, [deportistaId]: "error" }));
+    }
+  }
+
+  function onClickDeportista(deportistaId: number) {
+    const abrir = abiertoId !== deportistaId;
+    setAbiertoId(abrir ? deportistaId : null);
+    // Pide siempre datos frescos al abrir — no se queda con lo que
+    // hubiera cargado la última vez que se abrió esta persona.
+    if (abrir) cargar(deportistaId);
+  }
 
   return (
     <div>
       {deportistas.map((d) => {
         const abierto = abiertoId === d.deportistaId;
+        const estado = estados[d.deportistaId] ?? "sin_cargar";
+        const actividades = actividadesPorDeportista[d.deportistaId] ?? [];
         return (
           <div key={d.deportistaId} className="mb-2.5">
             <button
-              onClick={() => setAbiertoId(abierto ? null : d.deportistaId)}
+              onClick={() => onClickDeportista(d.deportistaId)}
               aria-expanded={abierto}
               className="w-full flex items-center justify-between gap-2 bg-surf border border-edge rounded-[10px] px-3.5 py-3.5 text-left cursor-pointer min-h-[44px]"
             >
               <span className="text-[15px] font-medium">{d.nombre}</span>
-              <span className="flex items-center gap-2 shrink-0">
-                <span className="text-xs text-mute">
-                  {d.actividades.length === 0
-                    ? "sin actividad"
-                    : `${d.actividades.length} ${d.actividades.length === 1 ? "sesión" : "sesiones"}`}
-                </span>
-                <span className="text-mute text-xs">{abierto ? "▲" : "▼"}</span>
-              </span>
+              <span className="text-mute text-xs shrink-0">{abierto ? "▲" : "▼"}</span>
             </button>
 
             {abierto && (
               <div className="mt-2.5">
-                {d.actividades.length === 0 ? (
+                {estado === "cargando" && (
+                  <p className="text-mute text-xs text-center py-5">Pidiendo datos a Strava…</p>
+                )}
+                {estado === "error" && (
+                  <div className="text-center py-5">
+                    <p className="text-run text-xs mb-2">No se ha podido cargar Strava.</p>
+                    <button
+                      onClick={() => cargar(d.deportistaId)}
+                      className="text-signal text-xs underline cursor-pointer"
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                )}
+                {estado === "ok" && actividades.length === 0 && (
                   <p className="text-mute text-xs text-center py-5">
                     Sin actividad en los últimos 7 días.
                   </p>
-                ) : (
-                  d.actividades.map((a) => (
-                    <ActividadCard key={a.id} deportistaId={d.deportistaId} actividad={a} />
-                  ))
                 )}
+                {estado === "ok" &&
+                  actividades.map((a) => (
+                    <ActividadCard key={a.id} deportistaId={d.deportistaId} actividad={a} />
+                  ))}
               </div>
             )}
           </div>
@@ -105,7 +154,7 @@ export function EntrenamientoDiarioClient({ deportistas }: { deportistas: Deport
   );
 }
 
-function ActividadCard({ deportistaId, actividad }: { deportistaId: number; actividad: Actividad }) {
+function ActividadCard({ deportistaId, actividad }: { deportistaId: number; actividad: ActividadConRpe }) {
   const [editando, setEditando] = useState(false);
   const [rpe, setRpe] = useState(actividad.rpeGuardado?.rpe ?? 0);
   const [notas, setNotas] = useState(actividad.rpeGuardado?.notas ?? "");

@@ -822,6 +822,30 @@ quitarla a mano ni de tocar permisos el día después.
   permisos de los entrenadores cambian más adelante, esta página se
   queda desactualizada y no se entera nadie automáticamente.
 
+## Ampliación de alcance: entrenamiento diario, listado desplegable con datos en directo
+
+`/entrenamiento-diario` (agosto 2026) cambió dos veces seguidas:
+
+1. Primero pasó de enseñar de golpe los entrenos de todos los
+   conectados a un **listado vertical** de nombres que se despliegan al
+   pinchar (pedido explícito de Antón, "como TrainingPeaks").
+2. Antón detectó que al pinchar en alguien veía datos desactualizados —
+   la causa real: la página pedía a Strava los entrenos de **todos** los
+   conectados de golpe al cargar, así que si la dejabas abierta un rato
+   y luego pinchabas en alguien, veías la foto de cuando se abrió la
+   página, no el momento del clic.
+
+Arreglado pasando la petición a Strava a **bajo demanda**: `page.tsx`
+ahora solo trae la lista de quién tiene Strava conectado (sin llamar a
+Strava en absoluto) más el mapa de RPE ya guardados (consulta a
+Supabase, no a Strava). `EntrenamientoDiarioClient.tsx` pide
+`/api/strava/resumen?deportistaId=X` (la misma API que ya usaba
+`/analisis`) **justo al pinchar** en una persona, cada vez — nunca
+reutiliza una carga anterior de la misma persona, así que reabrir a
+alguien siempre trae lo último de verdad. De paso la página carga mucho
+más rápido con muchos conectados, porque ya no dispara N peticiones a
+Strava de golpe al entrar.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Pegar un SQL grande con acentos/ñ en el SQL Editor de Supabase puede
