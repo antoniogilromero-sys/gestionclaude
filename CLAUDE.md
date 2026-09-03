@@ -792,6 +792,20 @@ de verdad se bloquee fuera de esa franja, es una pieza nueva.
 - `/publicar` se añadió a `ENTRENADOR_ITEMS` en `NavBar.tsx`, y el botón
   "+ Publicar" de `/entrenamientos` ya no está condicionado a
   `esDirector`.
+- **Bug real encontrado al probarlo (agosto 2026)**: a los entrenadores
+  les fallaba publicar con "new row violates row-level security policy
+  for table sesiones", incluso con `p_ses_crear_aprobado` ya puesta.
+  Motivo: `publicarSesion` hace `insert(...).select("id")`, que exige
+  permiso de **lectura** sobre la fila recién insertada, no solo de
+  escritura — y `p_ses_leer` decía "el director ve todo, el entrenador
+  solo lo publicado", pero en ese instante la sesión es todavía un
+  borrador (`publicada = false`). Arreglado con una política de lectura
+  más, `p_ses_leer_propia` (`docs/migracion_publicar_entrenadores_lectura_propia.sql`):
+  cualquiera puede leer **su propia** sesión sin importar si está
+  publicada. Si algún día se añade otra tabla con este mismo patrón de
+  "crear borrador → publicar en un segundo paso" para no-directores, hay
+  que acordarse de esta misma trampa: la política de INSERT no basta si
+  el código hace `.select()` justo después.
 
 ## Página temporal: guía de la reunión de entrenadores
 
