@@ -71,6 +71,7 @@ export function RepartoGrid({
   semana,
   semanaAnterior,
   semanaSiguiente,
+  puedeAvanzar,
   grupos,
   entrenadores,
   asignacionesIniciales,
@@ -80,6 +81,7 @@ export function RepartoGrid({
   semana: string;
   semanaAnterior: string;
   semanaSiguiente: string;
+  puedeAvanzar: boolean;
   grupos: Grupo[];
   entrenadores: Entrenador[];
   asignacionesIniciales: Asignacion[];
@@ -183,14 +185,29 @@ export function RepartoGrid({
         <div className="font-display text-sm tracking-[.08em] uppercase text-mute">
           Semana del {formatSemana(semana)}
         </div>
-        <Link
-          href={`/reparto?semana=${semanaSiguiente}`}
-          className="text-mute hover:text-chalk px-2 py-1"
-          aria-label="Semana siguiente"
-        >
-          →
-        </Link>
+        {puedeAvanzar ? (
+          <Link
+            href={`/reparto?semana=${semanaSiguiente}`}
+            className="text-mute hover:text-chalk px-2 py-1"
+            aria-label="Semana siguiente"
+          >
+            →
+          </Link>
+        ) : (
+          <span
+            className="text-edge px-2 py-1 select-none"
+            aria-hidden="true"
+            title="El reparto de la semana que viene se abre el sábado anterior"
+          >
+            →
+          </span>
+        )}
       </div>
+      {!puedeAvanzar && !esDirector && (
+        <p className="text-mute text-[12px] text-center -mt-1.5 mb-3">
+          El reparto de la semana siguiente se abre el sábado anterior.
+        </p>
+      )}
 
       {esDirector && (
         <>

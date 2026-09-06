@@ -27,12 +27,26 @@ export default async function RepartoPage({
   const params = await searchParams;
   const base = params.semana ? parseLocalDate(params.semana) : new Date();
   const semanaDate = lunesDe(base);
+
+  // Ventana del entrenador: solo ve hasta la semana que "se abre" el
+  // sábado anterior, es decir 2 días antes de su lunes. El director no
+  // tiene límite. (Ej.: la semana del lunes 14 se abre el sábado 12.)
+  const hoy = new Date();
+  const maxLunesEntrenador = lunesDe(
+    new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 2),
+  );
+  if (!esDirector && semanaDate.getTime() > maxLunesEntrenador.getTime()) {
+    redirect(`/reparto?semana=${toISODateLocal(maxLunesEntrenador)}`);
+  }
+
   const semana = toISODateLocal(semanaDate);
 
   const anteriorDate = new Date(semanaDate);
   anteriorDate.setDate(semanaDate.getDate() - 7);
   const siguienteDate = new Date(semanaDate);
   siguienteDate.setDate(semanaDate.getDate() + 7);
+  const puedeAvanzar =
+    esDirector || siguienteDate.getTime() <= maxLunesEntrenador.getTime();
 
   // El coste semanal (sueldos) es un dato solo para el director — a un
   // entrenador no le hace falta ver lo que cobra el resto del equipo, así
@@ -69,6 +83,7 @@ export default async function RepartoPage({
         semana={semana}
         semanaAnterior={toISODateLocal(anteriorDate)}
         semanaSiguiente={toISODateLocal(siguienteDate)}
+        puedeAvanzar={puedeAvanzar}
         grupos={grupos ?? []}
         entrenadores={entrenadores ?? []}
         asignacionesIniciales={asignaciones ?? []}

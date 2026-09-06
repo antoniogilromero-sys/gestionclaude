@@ -153,6 +153,14 @@ Registrar test, Grupos y Competiciones (dentro de Análisis).
     devuelve solo `id, nombre` del equipo técnico activo). Mismo patrón
     que `mejores_marcas`: abrir una rendija sin exponer email/teléfono de
     `perfiles`. Antón la ejecuta a mano en Supabase.
+  - **Ventana de semanas para el entrenador**: el entrenador solo puede
+    ver el reparto hasta la semana que "se abre" el **sábado anterior**
+    (`maxLunesEntrenador = lunesDe(hoy + 2 días)` en `reparto/page.tsx`).
+    Si pide una semana más adelante por URL, `redirect` a esa semana
+    tope; el `→` de "semana siguiente" se oculta (`puedeAvanzar`). El
+    director no tiene límite. Es un tope de UI (la RLS de `asignaciones`
+    sigue siendo `aprobado()` para leer), no una frontera de seguridad —
+    Antón lo pidió para que el equipo no vea repartos a medio hacer.
 - **Competiciones se separó de `/analisis` a su propia ruta
   `/competiciones`**, visible para ambos roles, porque `/analisis`
   entero sigue siendo solo-director (Ficha y Grupo tocan el histórico de
