@@ -896,3 +896,56 @@ Strava de golpe al entrar.
   `{ error: string } | <resultado>` en vez de lanzar, y quien las llama
   comprueba `"error" in resultado`. Si añades una action nueva, sigue este
   patrón o el mensaje de error nunca llegará a la pantalla en Vercel.
+
+## Ampliación de alcance: "Adultos Competición" a las 20h (septiembre 2026)
+
+Antón pidió que en `/reparto` el turno de adultos de las 20:00 del
+**martes** sea un solo grupo, no los tres niveles. Migración
+`docs/migracion_adultos_competicion_20h.sql` (Antón la ejecuta a mano en
+Supabase — pregúntale si ya lo ha hecho):
+
+- Crea `Martes Competición 20h` y `Jueves Competición 20h` (natación,
+  20:00–21:00).
+- Marca `activo = false` (no borra) en `Martes Bajo 20h`,
+  `Martes Medio 20h`, `Martes Avanzado 20h` y en el grupo antiguo
+  `Adultos competicion` del `schema.sql` original. Mismo criterio que la
+  reorganización de atletismo: ocultar en vez de borrar para no perder el
+  histórico de `asignaciones`.
+- Mueve los nadadores de los 3 grupos viejos del martes a
+  `Martes Competición 20h` (en `deportista_grupo`).
+- **El jueves 20h queda asimétrico a propósito**: sigue teniendo
+  `Jueves Bajo/Medio/Avanzado 20h` *además* del nuevo
+  `Jueves Competición 20h`. Antón lo confirmó explícitamente — no es un
+  descuido, no "termines" el cambio quitando también esos tres.
+
+## Ampliación de alcance: orden manual de los grupos en /reparto
+
+`grupos` tiene una columna `orden` (int, default 1000) —
+`docs/migracion_orden_grupos.sql`, Antón la ejecuta a mano en Supabase.
+`/reparto`, `/grupos`, `/deportistas`, `/publicar` y `/pagos` piden los
+grupos con `.order("orden").order("id")` (antes era solo `.order("id")`,
+por antigüedad). `/reparto` **sigue agrupando por deporte en secciones**
+(Carrera, Natación, Fuerza, Ciclismo — el orden de las secciones es el
+del `orden` más bajo de cada disciplina); el `orden` solo coloca los
+grupos *dentro* de su sección. No se puede intercalar disciplinas por día
+sin rehacer esa pantalla entera.
+
+Esa misma migración (septiembre 2026) hizo la reorganización que pidió
+Antón dándome el orden que quería ver:
+- Renombró los 4 grupos de atletismo del lunes → 3: `Lunes Atletismo
+  Peques` (junta los antiguos `Atletismo 1A Lunes` + `Atletismo 1B
+  Lunes`, moviendo a los del 1B), `Lunes Atletismo Medio` (2 Lunes),
+  `Lunes Atletismo Adultos` (3 Lunes).
+- `Carrera Intermedio`/`Carrera Avanzado` → `Jueves Atletismo
+  Medio`/`Jueves Atletismo Avanzado`. `Carrera Mayores` se queda igual.
+- `Ciclismo MTB Iniciación` → `Ciclismo MTB Peques`. `Jueves 18h` →
+  `Jueves Peques 18h`.
+- Grupo nuevo `Martes Fuerza 19h` (disciplina `fuerza`, que ya estaba
+  soportada en `costes.ts`/`sesiones` pero no tenía ningún grupo). Antón
+  quería fuerza también el jueves y luego se echó atrás: **solo martes**.
+- `Ciclismo Carretera` del domingo pasa a tener hora 09:00. Antón creó a
+  mano un grupo de carretera los sábados (nombre exacto sin confirmar; la
+  migración lo ordena por patrón `ciclismo + sabado + not ilike '%mtb%'`).
+- Ocultó (`activo = false`) los grupos de natación de la temporada pasada
+  (`Escuela jueves`, `Peques`, `Intermedio`, `Avanzado`) **solo si no
+  tenían a nadie apuntado**.

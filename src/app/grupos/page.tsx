@@ -18,7 +18,7 @@ export default async function GruposPage() {
   if (!perfil || perfil.rol === "pendiente") redirect("/");
 
   const [{ data: grupos }, { data: deportistas }, { data: depGrupos }] = await Promise.all([
-    supabase.from("grupos").select("id, nombre").eq("activo", true).order("id"),
+    supabase.from("grupos").select("id, nombre").eq("activo", true).order("orden").order("id"),
     supabase
       .from("deportistas")
       .select("id, nombre, categoria")

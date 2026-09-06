@@ -23,7 +23,7 @@ export default async function DeportistasPage() {
       .from("deportistas")
       .select("id, ref, nombre, categoria, activo")
       .order("nombre"),
-    supabase.from("grupos").select("id, nombre").eq("activo", true).order("id"),
+    supabase.from("grupos").select("id, nombre").eq("activo", true).order("orden").order("id"),
     supabase.from("deportista_grupo").select("deportista_id, grupo_id"),
   ]);
 

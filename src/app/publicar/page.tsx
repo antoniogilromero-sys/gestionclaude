@@ -21,6 +21,7 @@ export default async function PublicarPage() {
     .from("grupos")
     .select("id, nombre")
     .eq("activo", true)
+    .order("orden")
     .order("id");
 
   return (

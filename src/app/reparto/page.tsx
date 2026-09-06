@@ -42,6 +42,7 @@ export default async function RepartoPage({
       .from("grupos")
       .select("id, nombre, disciplina, dias, hora_inicio, hora_fin")
       .eq("activo", true)
+      .order("orden")
       .order("id"),
     supabase
       .from("perfiles")
