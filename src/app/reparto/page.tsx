@@ -40,7 +40,7 @@ export default async function RepartoPage({
   const [{ data: grupos }, { data: entrenadores }, { data: asignaciones }] = await Promise.all([
     supabase
       .from("grupos")
-      .select("id, nombre, disciplina, dias, hora_inicio, hora_fin")
+      .select("id, nombre, disciplina, dias, hora_inicio, hora_fin, orden")
       .eq("activo", true)
       .order("orden")
       .order("id"),

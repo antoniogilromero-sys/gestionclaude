@@ -20,6 +20,42 @@ function key(grupoId: number, entrenadorId: string) {
   return `${grupoId}:${entrenadorId}`;
 }
 
+const DIA_ORDEN: Record<string, number> = {
+  lunes: 1,
+  martes: 2,
+  miercoles: 3,
+  jueves: 4,
+  viernes: 5,
+  sabado: 6,
+  domingo: 7,
+};
+const DIA_LABEL: Record<string, string> = {
+  lunes: "Lunes",
+  martes: "Martes",
+  miercoles: "Miércoles",
+  jueves: "Jueves",
+  viernes: "Viernes",
+  sabado: "Sábado",
+  domingo: "Domingo",
+};
+
+// El día "principal" de un grupo es el primero de la semana en el que
+// entrena (los grupos que van martes y jueves salen bajo el martes).
+function diaPrincipal(g: Grupo) {
+  const idx = g.dias.map((d) => DIA_ORDEN[d] ?? 99);
+  return idx.length ? Math.min(...idx) : 99;
+}
+
+function ordenarGrupos(a: Grupo, b: Grupo) {
+  const da = diaPrincipal(a);
+  const db = diaPrincipal(b);
+  if (da !== db) return da - db;
+  const ha = a.hora_inicio ?? "99:99";
+  const hb = b.hora_inicio ?? "99:99";
+  if (ha !== hb) return ha < hb ? -1 : 1;
+  return (a.orden ?? 9999) - (b.orden ?? 9999) || a.id - b.id;
+}
+
 function formatSemana(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
   const inicio = new Date(y, m - 1, d);
@@ -101,8 +137,21 @@ export function RepartoGrid({
     (g) => !entrenadores.some((e) => asignado.has(key(g.id, e.id))),
   );
 
-  const disciplinas = [...new Set(grupos.map((g) => g.disciplina))];
   const sinEquipo = entrenadores.length === 0;
+
+  // Los grupos se muestran por día de la semana (Lunes → Domingo), y
+  // dentro de cada día por hora. El deporte va como etiqueta en cada
+  // grupo, no como sección.
+  const gruposOrdenados = [...grupos].sort(ordenarGrupos);
+  const porDia: { clave: number; label: string; grupos: Grupo[] }[] = [];
+  for (const g of gruposOrdenados) {
+    const clave = diaPrincipal(g);
+    const nombreDia = g.dias.find((d) => (DIA_ORDEN[d] ?? 99) === clave) ?? "";
+    const label = DIA_LABEL[nombreDia] ?? "Sin día fijo";
+    const ultimo = porDia[porDia.length - 1];
+    if (ultimo && ultimo.clave === clave) ultimo.grupos.push(g);
+    else porDia.push({ clave, label, grupos: [g] });
+  }
 
   return (
     <div>
@@ -167,18 +216,23 @@ export function RepartoGrid({
         </div>
       )}
 
-      {disciplinas.map((disc) => (
-        <div key={disc} className="mb-4">
-          <h2 className="font-display text-[13px] tracking-[.12em] uppercase text-mute mb-2 flex items-center gap-2">
-            <span className={`px-[7px] py-[2px] rounded-[5px] ${DISCIPLINA_TAG[disc] ?? "bg-edge text-chalk"}`}>
-              {DISCIPLINA_LABEL[disc] ?? disc}
-            </span>
+      {porDia.map((bloque) => (
+        <div key={bloque.clave} className="mb-4">
+          <h2 className="font-display text-[13px] tracking-[.12em] uppercase text-mute mb-2">
+            {bloque.label}
           </h2>
-          {grupos
-            .filter((g) => g.disciplina === disc)
-            .map((g) => (
+          {bloque.grupos.map((g) => (
               <article key={g.id} className="bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5">
-                <h3 className="text-[16px] font-semibold mb-[3px]">{g.nombre}</h3>
+                <div className="flex items-center gap-2 mb-[3px] flex-wrap">
+                  <h3 className="text-[16px] font-semibold">{g.nombre}</h3>
+                  <span
+                    className={`px-[7px] py-[2px] rounded-[5px] text-[11px] font-display tracking-[.06em] uppercase ${
+                      DISCIPLINA_TAG[g.disciplina] ?? "bg-edge text-chalk"
+                    }`}
+                  >
+                    {DISCIPLINA_LABEL[g.disciplina] ?? g.disciplina}
+                  </span>
+                </div>
                 <div className="text-xs text-mute mb-2.5">
                   {g.dias.join(" y ")} ·{" "}
                   {g.hora_inicio && g.hora_fin

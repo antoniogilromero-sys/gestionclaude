@@ -924,11 +924,17 @@ Supabase — pregúntale si ya lo ha hecho):
 `docs/migracion_orden_grupos.sql`, Antón la ejecuta a mano en Supabase.
 `/reparto`, `/grupos`, `/deportistas`, `/publicar` y `/pagos` piden los
 grupos con `.order("orden").order("id")` (antes era solo `.order("id")`,
-por antigüedad). `/reparto` **sigue agrupando por deporte en secciones**
-(Carrera, Natación, Fuerza, Ciclismo — el orden de las secciones es el
-del `orden` más bajo de cada disciplina); el `orden` solo coloca los
-grupos *dentro* de su sección. No se puede intercalar disciplinas por día
-sin rehacer esa pantalla entera.
+por antigüedad).
+
+`/reparto` **agrupa por día de la semana** (Lunes → Domingo), no por
+deporte — Antón lo pidió explícitamente así. El deporte va como etiqueta
+de color en cada tarjeta (`DISCIPLINA_TAG`/`DISCIPLINA_LABEL` de
+`costes.ts`). El orden lo calcula `RepartoGrid` en cliente:
+`diaPrincipal` (primer día de `dias`, así los grupos martes+jueves caen
+bajo el martes) → `hora_inicio` → `grupos.orden` → `id`. `costes.ts`
+`Grupo` lleva `orden?: number | null` y `reparto/page.tsx` lo pide en el
+`select`. Antes esta pantalla tenía secciones por disciplina; si se
+vuelve a tocar, no la devuelvas a ese formato.
 
 Esa misma migración (septiembre 2026) hizo la reorganización que pidió
 Antón dándome el orden que quería ver:

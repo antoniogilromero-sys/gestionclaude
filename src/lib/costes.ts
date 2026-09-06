@@ -18,6 +18,7 @@ export type Grupo = {
   dias: string[];
   hora_inicio: string | null;
   hora_fin: string | null;
+  orden?: number | null;
 };
 
 export type Tarifa = { entrenador_id: string; disciplina: string; euros_hora: number };
