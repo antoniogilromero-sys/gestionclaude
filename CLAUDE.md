@@ -913,10 +913,13 @@ Supabase — pregúntale si ya lo ha hecho):
   histórico de `asignaciones`.
 - Mueve los nadadores de los 3 grupos viejos del martes a
   `Martes Competición 20h` (en `deportista_grupo`).
-- **El jueves 20h queda asimétrico a propósito**: sigue teniendo
-  `Jueves Bajo/Medio/Avanzado 20h` *además* del nuevo
-  `Jueves Competición 20h`. Antón lo confirmó explícitamente — no es un
-  descuido, no "termines" el cambio quitando también esos tres.
+- **El jueves 20h**: al principio Antón quiso dejar
+  `Jueves Bajo/Medio/Avanzado 20h` además del nuevo
+  `Jueves Competición 20h`, y luego (septiembre 2026,
+  `docs/migracion_jueves_competicion_20h.sql`) cambió de idea: ahora el
+  jueves 20h queda **solo** con `Jueves Competición 20h`, igual que el
+  martes. Los otros tres están ocultos (`activo = false`) con sus
+  nadadores movidos a Competición.
 
 ## Ampliación de alcance: orden manual de los grupos en /reparto
 
