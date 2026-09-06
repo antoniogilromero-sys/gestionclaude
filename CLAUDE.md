@@ -138,10 +138,13 @@ Registrar test, Grupos y Competiciones (dentro de Análisis).
   personal (email/teléfono). Antón lo confirmó explícitamente al
   preguntarle — no dio por hecho que "ver reparto" incluyera sueldos
   ajenos. `RepartoGrid` recibe un `esDirector` que oculta esos dos
-  bloques y convierte los botones de asignar en `<span>` no clicables
-  para quien no sea director. La página también deja de pedir
+  bloques. La página también deja de pedir
   `tarifas_entrenador`/`personal_temporada` a la API si no es director,
-  no solo de mostrarlo (menos superficie, no solo CSS).
+  no solo de mostrarlo (menos superficie, no solo CSS). En la vista de
+  entrenador cada grupo muestra **solo los entrenadores asignados** a él
+  (chips sólidos) o "Sin entrenador asignado" — Antón lo pidió para la
+  logística (saber quién va a cada entreno). El director sigue viendo la
+  lista entera como botones para asignar/quitar.
 - **Competiciones se separó de `/analisis` a su propia ruta
   `/competiciones`**, visible para ambos roles, porque `/analisis`
   entero sigue siendo solo-director (Ficha y Grupo tocan el histórico de

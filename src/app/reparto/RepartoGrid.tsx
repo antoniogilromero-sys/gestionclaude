@@ -221,7 +221,11 @@ export function RepartoGrid({
           <h2 className="font-display text-[13px] tracking-[.12em] uppercase text-mute mb-2">
             {bloque.label}
           </h2>
-          {bloque.grupos.map((g) => (
+          {bloque.grupos.map((g) => {
+            const asignadosDelGrupo = entrenadores.filter((e) =>
+              asignado.has(key(g.id, e.id)),
+            );
+            return (
               <article key={g.id} className="bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5">
                 <div className="flex items-center gap-2 mb-[3px] flex-wrap">
                   <h3 className="text-[16px] font-semibold">{g.nombre}</h3>
@@ -240,41 +244,46 @@ export function RepartoGrid({
                     : "horario variable"}
                 </div>
                 <div className="flex flex-wrap gap-[7px]">
-                  {entrenadores.map((e) => {
-                    const activo = asignado.has(key(g.id, e.id));
-                    if (!esDirector) {
-                      // Solo lectura: mismo aspecto, sin poder tocarlo.
-                      return (
+                  {!esDirector ? (
+                    // Solo lectura: el entrenador ve solo quién va a este
+                    // grupo (para la logística), no la lista entera.
+                    asignadosDelGrupo.length > 0 ? (
+                      asignadosDelGrupo.map((e) => (
                         <span
                           key={e.id}
-                          className={`min-h-[44px] px-4 rounded-full border text-[14px] flex items-center select-none ${
-                            activo
-                              ? "bg-signal text-[#160800] border-signal font-semibold"
-                              : "bg-deep text-mute border-edge opacity-50"
-                          }`}
+                          className="min-h-[44px] px-4 rounded-full border text-[14px] flex items-center select-none bg-signal text-[#160800] border-signal font-semibold"
                         >
                           {e.nombre}
                         </span>
+                      ))
+                    ) : (
+                      <span className="text-[13px] text-mute italic py-2">
+                        Sin entrenador asignado
+                      </span>
+                    )
+                  ) : (
+                    entrenadores.map((e) => {
+                      const activo = asignado.has(key(g.id, e.id));
+                      return (
+                        <button
+                          key={e.id}
+                          onClick={() => toggle(g.id, e.id)}
+                          aria-pressed={activo}
+                          className={`min-h-[44px] px-4 rounded-full border text-[14px] cursor-pointer select-none ${
+                            activo
+                              ? "bg-signal text-[#160800] border-signal font-semibold"
+                              : "bg-deep text-mute border-edge"
+                          }`}
+                        >
+                          {e.nombre}
+                        </button>
                       );
-                    }
-                    return (
-                      <button
-                        key={e.id}
-                        onClick={() => toggle(g.id, e.id)}
-                        aria-pressed={activo}
-                        className={`min-h-[44px] px-4 rounded-full border text-[14px] cursor-pointer select-none ${
-                          activo
-                            ? "bg-signal text-[#160800] border-signal font-semibold"
-                            : "bg-deep text-mute border-edge"
-                        }`}
-                      >
-                        {e.nombre}
-                      </button>
-                    );
-                  })}
+                    })
+                  )}
                 </div>
               </article>
-            ))}
+            );
+          })}
         </div>
       ))}
 
