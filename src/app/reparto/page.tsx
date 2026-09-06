@@ -44,12 +44,10 @@ export default async function RepartoPage({
       .eq("activo", true)
       .order("orden")
       .order("id"),
-    supabase
-      .from("perfiles")
-      .select("id, nombre")
-      .in("rol", ["director", "entrenador"])
-      .eq("activo", true)
-      .order("nombre"),
+    // Via función (security definer): `perfiles` solo la lee entera el
+    // director, y aquí hace falta que el entrenador también vea el nombre
+    // del resto del equipo para saber quién va a cada grupo.
+    supabase.rpc("entrenadores_visibles"),
     supabase
       .from("asignaciones")
       .select("grupo_id, entrenador_id")

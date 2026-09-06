@@ -145,6 +145,14 @@ Registrar test, Grupos y Competiciones (dentro de Análisis).
   (chips sólidos) o "Sin entrenador asignado" — Antón lo pidió para la
   logística (saber quién va a cada entreno). El director sigue viendo la
   lista entera como botones para asignar/quitar.
+  - Para que el entrenador vea el **nombre** de los demás, `reparto/page.tsx`
+    ya no pide `perfiles` directamente (la RLS `p_perfil_propio` solo deja
+    al entrenador ver su propia fila → todos los grupos le salían "Sin
+    entrenador asignado") sino la función `entrenadores_visibles()`
+    (`docs/migracion_entrenadores_visibles.sql`, `security definer`,
+    devuelve solo `id, nombre` del equipo técnico activo). Mismo patrón
+    que `mejores_marcas`: abrir una rendija sin exponer email/teléfono de
+    `perfiles`. Antón la ejecuta a mano en Supabase.
 - **Competiciones se separó de `/analisis` a su propia ruta
   `/competiciones`**, visible para ambos roles, porque `/analisis`
   entero sigue siendo solo-director (Ficha y Grupo tocan el histórico de
