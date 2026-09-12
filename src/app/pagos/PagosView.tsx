@@ -194,44 +194,69 @@ export function PagosView({
         </p>
       )}
 
-      {filasPorSemana.map(({ semana, filas }, i) => (
-        <div key={semana} className="mb-5">
-          <h3 className="font-display text-[13px] tracking-[.12em] uppercase text-signal mb-2">
-            Semana {i + 1}
-          </h3>
-          <div className="overflow-x-auto -mx-[18px] px-[18px]">
-            <table className="w-full min-w-[480px] border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-edge">
-                  <th className="text-left py-2 pr-3 font-display text-[11px] tracking-[.08em] uppercase text-mute">
-                    Entrenador
-                  </th>
-                  {disciplinas.map((d) => (
-                    <th
-                      key={d}
-                      className="text-right py-2 pr-3 font-display text-[11px] tracking-[.08em] uppercase text-mute"
-                    >
-                      {DISCIPLINA_LABEL[d] ?? d}
+      {filasPorSemana.map(({ semana, filas }, i) => {
+        const esUltimaSemana = i === filasPorSemana.length - 1;
+        const costeSemana = filas.reduce((s, f) => s + f.coste, 0);
+        const incompletaSemana = filas.some((f) => !f.completo);
+        return (
+          <div key={semana} className="mb-5">
+            <h3 className="font-display text-[13px] tracking-[.12em] uppercase text-signal mb-2">
+              Semana {i + 1}
+            </h3>
+            <div className="overflow-x-auto -mx-[18px] px-[18px]">
+              <table className="w-full min-w-[480px] border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-edge">
+                    <th className="text-left py-2 pr-3 font-display text-[11px] tracking-[.08em] uppercase text-mute">
+                      Entrenador
                     </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filas.map((f) => (
-                  <tr key={f.entrenador.id} className="border-b border-edge/60">
-                    <td className="py-2 pr-3">{f.entrenador.nombre}</td>
                     {disciplinas.map((d) => (
-                      <td key={d} className="py-2 pr-3 text-right tabular-nums">
-                        {f.porDisciplina[d] ? f.porDisciplina[d] : "—"}
-                      </td>
+                      <th
+                        key={d}
+                        className="text-right py-2 pr-3 font-display text-[11px] tracking-[.08em] uppercase text-mute"
+                      >
+                        {DISCIPLINA_LABEL[d] ?? d}
+                      </th>
                     ))}
+                    <th className="text-right py-2 pr-3 font-display text-[11px] tracking-[.08em] uppercase text-mute">
+                      Coste
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filas.map((f) => (
+                    <tr key={f.entrenador.id} className="border-b border-edge/60">
+                      <td className="py-2 pr-3">{f.entrenador.nombre}</td>
+                      {disciplinas.map((d) => (
+                        <td key={d} className="py-2 pr-3 text-right tabular-nums">
+                          {f.porDisciplina[d] ? f.porDisciplina[d] : "—"}
+                        </td>
+                      ))}
+                      <td className="py-2 pr-3 text-right tabular-nums">
+                        {f.coste.toFixed(2)} €{!f.completo && "*"}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="border-t-2 border-edge">
+                    <td className="py-2 pr-3 font-display font-semibold">Coste semanal</td>
+                    <td colSpan={disciplinas.length} />
+                    <td className="py-2 pr-3 text-right font-display font-semibold tabular-nums">
+                      {costeSemana.toFixed(2)} €{incompletaSemana && "*"}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {esUltimaSemana && (
+              <p className="text-xs text-mute mt-2 italic">
+                Última semana del mes — el corte total del mes va justo debajo, después de esta
+                tabla.
+              </p>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {filasPorSemana.length === 0 && (
         <p className="text-mute text-sm mb-5">Este mes no tiene ningún reparto guardado.</p>

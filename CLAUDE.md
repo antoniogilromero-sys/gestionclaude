@@ -922,6 +922,21 @@ Gordillo" es justo el nombre que ya causó una ficha duplicada por un
 espacio doble en agosto 2026; no queríamos que esta excepción de pago
 dejara de aplicarse por el mismo motivo.
 
+## Ampliación de alcance: coste semanal visible + corte mensual
+
+`/pagos` (septiembre 2026) ya tenía la parte de fondo montada desde
+antes (agregaba las semanas del mes en una tabla de totales al final),
+pero cada bloque de "Semana N" solo enseñaba **horas** por disciplina,
+no el coste en euros — así que no se veía la progresión semana a
+semana, solo el cierre final. Se añadió una columna "Coste" y una fila
+"Coste semanal" a cada tabla de semana (`PagosView.tsx`), reutilizando
+el `coste`/`completo` que `calcularFilas` ya calculaba por entrenador
+pero no se mostraba a ese nivel. Justo debajo de la última semana del
+mes sigue la tabla "Total {mes}" que ya existía (agregado real de todas
+las semanas + pagos extra) — con esto la pantalla se lee de corrido:
+coste de cada semana, y al llegar a la última, el corte total del mes
+justo debajo.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Pegar un SQL grande con acentos/ñ en el SQL Editor de Supabase puede
