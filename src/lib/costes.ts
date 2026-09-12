@@ -96,3 +96,37 @@ export function horasSemanales(g: Grupo) {
   const horasPorSesion = (h2 * 60 + m2 - (h1 * 60 + m1)) / 60;
   return horasPorSesion * g.dias.length;
 }
+
+export type Asignacion = { grupo_id: number; entrenador_id: string };
+export type EntrenadorConNombre = { id: string; nombre: string };
+
+// Para un conjunto de asignaciones de UNA semana, cuánto le corresponde
+// a cada entrenador — compartido entre /reparto y /pagos para que las
+// dos pantallas calculen exactamente igual (misma tarifa, mismas horas,
+// mismas excepciones de grupo/entrenador a 0€).
+export function calcularFilas(
+  grupos: Grupo[],
+  entrenadores: EntrenadorConNombre[],
+  asignaciones: Asignacion[],
+  tarifas: Tarifa[],
+) {
+  return entrenadores.map((e) => {
+    const gruposDe = grupos.filter((g) =>
+      asignaciones.some((a) => a.grupo_id === g.id && a.entrenador_id === e.id),
+    );
+    const porDisciplina: Record<string, number> = {};
+    let coste = 0;
+    let completo = true;
+    for (const g of gruposDe) {
+      const h = horasSemanales(g);
+      const t = tarifaDe(e.id, g.disciplina, tarifas, g.nombre, e.nombre);
+      if (h == null || t == null) {
+        completo = false;
+        continue;
+      }
+      porDisciplina[g.disciplina] = (porDisciplina[g.disciplina] ?? 0) + h;
+      coste += h * t;
+    }
+    return { entrenador: e, porDisciplina, coste, completo };
+  });
+}

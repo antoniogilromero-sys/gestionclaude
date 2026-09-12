@@ -937,6 +937,29 @@ las semanas + pagos extra) — con esto la pantalla se lee de corrido:
 coste de cada semana, y al llegar a la última, el corte total del mes
 justo debajo.
 
+## Ampliación de alcance: corte mensual también en Reparto
+
+Antón pidió que el corte acumulado del mes saliera también en
+`/reparto`, justo debajo de "Coste semanal" (no solo en `/pagos`). Para
+que las dos pantallas calculen exactamente igual, se sacó `calcularFilas`
+(antes solo vivía dentro de `PagosView.tsx`) a `src/lib/costes.ts` como
+función compartida — recibe grupos, entrenadores, las asignaciones de
+una semana y las tarifas, y devuelve coste/horas por entrenador
+aplicando ya las excepciones de grupo y de grupo+entrenador a 0€.
+
+- `/reparto/page.tsx` ahora, **solo si eres director**, además de la
+  semana que se está viendo trae también todas las `asignaciones` del
+  mes natural en el que cae esa semana (mismo criterio de "mes" que
+  `/pagos`: del día 1 al último día del mes), agrupadas por semana.
+- El nuevo bloque "Corte del mes" en `RepartoGrid.tsx` sale justo
+  después de "Coste semanal", solo para director, sumando el coste de
+  cada semana ya guardada del mes con el mismo `calcularFilas` que usa
+  `/pagos` — si algún día cambia cómo se calcula el coste, se cambia en
+  un solo sitio y las dos pantallas se actualizan igual.
+- Es un corte por **mes natural centrado en la semana que estés
+  mirando**, no por "mes calendario actual" fijo — si navegas a una
+  semana de otro mes, el corte cambia también a ese mes.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Pegar un SQL grande con acentos/ñ en el SQL Editor de Supabase puede

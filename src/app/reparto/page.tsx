@@ -4,6 +4,13 @@ import { AppShell } from "@/components/AppShell";
 import { toISODateLocal, parseLocalDate, lunesDe } from "@/lib/date";
 import { RepartoGrid } from "./RepartoGrid";
 
+function primerDiaMes(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+function ultimoDiaMes(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+}
+
 export default async function RepartoPage({
   searchParams,
 }: {
@@ -69,11 +76,30 @@ export default async function RepartoPage({
   ]);
 
   let tarifas: { entrenador_id: string; disciplina: string; euros_hora: number }[] = [];
+  let asignacionesPorSemanaMes: { semana: string; asignaciones: { grupo_id: number; entrenador_id: string }[] }[] = [];
   if (esDirector) {
     const { data } = await supabase
       .from("tarifas_entrenador")
       .select("entrenador_id, disciplina, euros_hora");
     tarifas = data ?? [];
+
+    // Coste acumulado del mes en el que cae la semana que se está
+    // viendo — mismo criterio de mes natural que /pagos, para poder
+    // enseñar el corte total justo debajo del coste semanal.
+    const mesInicio = toISODateLocal(primerDiaMes(semanaDate));
+    const mesFin = toISODateLocal(ultimoDiaMes(semanaDate));
+    const { data: asignacionesMes } = await supabase
+      .from("asignaciones")
+      .select("semana, grupo_id, entrenador_id")
+      .gte("semana", mesInicio)
+      .lte("semana", mesFin)
+      .order("semana");
+
+    const semanasMes = [...new Set((asignacionesMes ?? []).map((a) => a.semana))].sort();
+    asignacionesPorSemanaMes = semanasMes.map((s) => ({
+      semana: s,
+      asignaciones: (asignacionesMes ?? []).filter((a) => a.semana === s),
+    }));
   }
 
   return (
@@ -88,6 +114,7 @@ export default async function RepartoPage({
         entrenadores={entrenadores ?? []}
         asignacionesIniciales={asignaciones ?? []}
         tarifas={tarifas}
+        asignacionesPorSemanaMes={asignacionesPorSemanaMes}
       />
     </AppShell>
   );

@@ -4,16 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  tarifaDe,
-  horasSemanales,
+  calcularFilas,
   DISCIPLINA_LABEL,
   type Grupo,
   type Tarifa,
+  type Asignacion,
 } from "@/lib/costes";
 import { crearPagoExtra, borrarPagoExtra } from "./actions";
 
 type Entrenador = { id: string; nombre: string; rol: "director" | "entrenador" };
-type Asignacion = { grupo_id: number; entrenador_id: string };
 type SemanaAsignaciones = { semana: string; asignaciones: Asignacion[] };
 type PagoExtra = { id: number; entrenador_id: string; concepto: string; importe: number };
 
@@ -22,33 +21,6 @@ function formatMes(iso: string) {
   const d = new Date(y, m - 1, 1);
   const texto = d.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
   return texto.charAt(0).toUpperCase() + texto.slice(1);
-}
-
-function calcularFilas(
-  grupos: Grupo[],
-  entrenadores: Entrenador[],
-  asignaciones: Asignacion[],
-  tarifas: Tarifa[],
-) {
-  return entrenadores.map((e) => {
-    const gruposDe = grupos.filter((g) =>
-      asignaciones.some((a) => a.grupo_id === g.id && a.entrenador_id === e.id),
-    );
-    const porDisciplina: Record<string, number> = {};
-    let coste = 0;
-    let completo = true;
-    for (const g of gruposDe) {
-      const h = horasSemanales(g);
-      const t = tarifaDe(e.id, g.disciplina, tarifas, g.nombre, e.nombre);
-      if (h == null || t == null) {
-        completo = false;
-        continue;
-      }
-      porDisciplina[g.disciplina] = (porDisciplina[g.disciplina] ?? 0) + h;
-      coste += h * t;
-    }
-    return { entrenador: e, porDisciplina, coste, completo };
-  });
 }
 
 export function PagosView({

@@ -7,6 +7,7 @@ import { setAsignacion, copiarSemanaAnterior } from "./actions";
 import {
   tarifaDe,
   horasSemanales,
+  calcularFilas,
   DISCIPLINA_LABEL,
   DISCIPLINA_TAG,
   type Grupo,
@@ -76,6 +77,7 @@ export function RepartoGrid({
   entrenadores,
   asignacionesIniciales,
   tarifas,
+  asignacionesPorSemanaMes,
 }: {
   esDirector: boolean;
   semana: string;
@@ -86,6 +88,7 @@ export function RepartoGrid({
   entrenadores: Entrenador[];
   asignacionesIniciales: Asignacion[];
   tarifas: Tarifa[];
+  asignacionesPorSemanaMes: { semana: string; asignaciones: Asignacion[] }[];
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -307,6 +310,91 @@ export function RepartoGrid({
       {esDirector && (
         <CosteSemanal grupos={grupos} entrenadores={entrenadores} asignado={asignado} tarifas={tarifas} />
       )}
+      {esDirector && (
+        <CosteMensual
+          grupos={grupos}
+          entrenadores={entrenadores}
+          tarifas={tarifas}
+          asignacionesPorSemanaMes={asignacionesPorSemanaMes}
+        />
+      )}
+    </div>
+  );
+}
+
+// Corte acumulado del mes en el que cae la semana que se está viendo,
+// justo debajo del coste semanal — mismo cálculo que usa /pagos
+// (calcularFilas, en src/lib/costes.ts) para que los dos coincidan
+// siempre. Solo se pide/renderiza para el director (ver page.tsx).
+function CosteMensual({
+  grupos,
+  entrenadores,
+  tarifas,
+  asignacionesPorSemanaMes,
+}: {
+  grupos: Grupo[];
+  entrenadores: Entrenador[];
+  tarifas: Tarifa[];
+  asignacionesPorSemanaMes: { semana: string; asignaciones: Asignacion[] }[];
+}) {
+  if (asignacionesPorSemanaMes.length === 0) return null;
+
+  const costeMes: Record<string, number> = {};
+  let huboIncompletos = false;
+  for (const { asignaciones } of asignacionesPorSemanaMes) {
+    for (const f of calcularFilas(grupos, entrenadores, asignaciones, tarifas)) {
+      if (f.coste === 0 && f.completo) continue;
+      costeMes[f.entrenador.id] = (costeMes[f.entrenador.id] ?? 0) + f.coste;
+      if (!f.completo) huboIncompletos = true;
+    }
+  }
+
+  const filas = entrenadores
+    .filter((e) => (costeMes[e.id] ?? 0) > 0)
+    .map((e) => ({ entrenador: e.nombre, coste: costeMes[e.id] ?? 0 }));
+  const totalMes = filas.reduce((s, f) => s + f.coste, 0);
+
+  if (filas.length === 0) return null;
+
+  return (
+    <div className="mt-4">
+      <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute mb-2.5">
+        Corte del mes
+      </h2>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr>
+              <th className="text-left font-display text-xs tracking-[.1em] uppercase text-mute border-b border-edge py-[7px] px-1.5">
+                Entrenador
+              </th>
+              <th className="text-right font-display text-xs tracking-[.1em] uppercase text-mute border-b border-edge py-[7px] px-1.5">
+                Coste
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map((f) => (
+              <tr key={f.entrenador}>
+                <td className="py-[9px] px-1.5 border-b border-edge/50">{f.entrenador}</td>
+                <td className="font-display text-right py-[9px] px-1.5 border-b border-edge/50">
+                  {f.coste.toFixed(2)} €
+                </td>
+              </tr>
+            ))}
+            <tr>
+              <td className="py-[9px] px-1.5 font-semibold">Total mes</td>
+              <td className="font-display text-right py-[9px] px-1.5 font-semibold">
+                {totalMes.toFixed(2)} €{huboIncompletos && "*"}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-mute mt-2">
+        Suma de todas las semanas guardadas del mes en el que cae la semana que estás viendo.
+        {huboIncompletos && " * Algún grupo sin horario fijo o sin tarifa no entra en el cálculo."}
+      </p>
     </div>
   );
 }
