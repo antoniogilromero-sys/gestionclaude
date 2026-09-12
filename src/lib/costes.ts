@@ -23,7 +23,22 @@ export type Grupo = {
 
 export type Tarifa = { entrenador_id: string; disciplina: string; euros_hora: number };
 
-export function tarifaDe(entrenadorId: string, disciplina: string, tarifas: Tarifa[]) {
+// Grupos que Antón pidió explícitamente dejar a 0€/hora para quien sea
+// que los cubra, sin excepción de entrenador — no es una tarifa general
+// ni una tarifa por entrenador, es una tarifa por GRUPO concreto (algo
+// que hasta ahora no hacía falta modelar). Comparación en minúsculas
+// para no depender de que el nombre esté escrito con las mayúsculas
+// exactas en la base de datos.
+const GRUPOS_SIN_PAGO = new Set(["martes avanzado 19h", "jueves avanzado 19h"]);
+
+export function tarifaDe(
+  entrenadorId: string,
+  disciplina: string,
+  tarifas: Tarifa[],
+  nombreGrupo?: string,
+) {
+  if (nombreGrupo && GRUPOS_SIN_PAGO.has(nombreGrupo.trim().toLowerCase())) return 0;
+
   const propia = tarifas.find(
     (t) => t.entrenador_id === entrenadorId && t.disciplina === disciplina,
   );

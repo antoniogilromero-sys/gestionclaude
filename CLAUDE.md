@@ -879,6 +879,35 @@ alguien siempre trae lo último de verdad. De paso la página carga mucho
 más rápido con muchos conectados, porque ya no dispara N peticiones a
 Strava de golpe al entrar.
 
+## Ampliación de alcance: grupos que se pagan a 0€, sin importar quién los cubra
+
+Antón pidió (septiembre 2026) que **Martes Avanzado 19h** y **Jueves
+Avanzado 19h** se paguen a 0€/hora al entrenador que sea, con carácter
+retroactivo desde siempre. Hasta ahora la tarifa solo se podía ajustar
+por disciplina (`TARIFA_GENERAL`) o por entrenador
+(`tarifas_entrenador`, ej. Celia cobra más) — nunca por un grupo
+concreto. `tarifaDe` (`src/lib/costes.ts`) admite ahora un cuarto
+argumento opcional, el nombre del grupo: si coincide (sin distinguir
+mayúsculas) con `GRUPOS_SIN_PAGO`, devuelve 0€ sin mirar tarifa general
+ni de entrenador. `/reparto` (`RepartoGrid.tsx`) y `/pagos`
+(`PagosView.tsx`) ya le pasan `g.nombre` en la llamada.
+
+**Por qué no hizo falta ninguna migración ni tocar datos viejos para
+que fuera "retroactivo"**: el coste de `/reparto` y `/pagos` no se
+guarda en ninguna tabla — se calcula al vuelo (horas × tarifa) para la
+semana que se esté mirando, pasada o futura. En cuanto se desplegó el
+cambio de código, cualquier semana anterior que se consulte ya sale con
+esos dos grupos a 0€, sin ningún dato que migrar. Esto es distinto de
+`movimientos_club` (Balance): esa tabla sí que guarda gastos ya
+introducidos a mano con el importe real que se pagó en su día — este
+cambio no toca ni debe tocar esas filas, porque son dinero que ya salió
+de verdad antes de que existiera esta regla.
+
+Si en el futuro se añaden más grupos con esta misma excepción, se
+añaden al `Set` `GRUPOS_SIN_PAGO` en `src/lib/costes.ts` — no hace
+falta ninguna migración de base de datos para esto, es una constante en
+el código.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Pegar un SQL grande con acentos/ñ en el SQL Editor de Supabase puede
