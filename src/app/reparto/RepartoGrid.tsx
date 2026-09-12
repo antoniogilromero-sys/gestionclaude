@@ -330,7 +330,7 @@ function CosteSemanal({
       let completo = true;
       for (const g of gruposDe) {
         const h = horasSemanales(g);
-        const t = tarifaDe(e.id, g.disciplina, tarifas, g.nombre);
+        const t = tarifaDe(e.id, g.disciplina, tarifas, g.nombre, e.nombre);
         if (h == null || t == null) {
           completo = false;
           continue;

@@ -908,6 +908,20 @@ añaden al `Set` `GRUPOS_SIN_PAGO` en `src/lib/costes.ts` — no hace
 falta ninguna migración de base de datos para esto, es una constante en
 el código.
 
+**Excepción más fina, misma semana**: además del caso anterior (grupo
+entero a 0€ sea quien sea), Antón pidió que **Diego Gil Gordillo en
+concreto** no cobre por dar **Atletismo 1A Lunes** ni **Atletismo 1B
+Lunes** — pero si otro entrenador cubre esos mismos grupos, cobra la
+tarifa normal. Es "persona + grupo", no "grupo entero" ni "persona en
+cualquier grupo", así que hizo falta una lista aparte:
+`GRUPO_ENTRENADOR_SIN_PAGO` en `src/lib/costes.ts`, comparando por
+nombre de grupo Y nombre de entrenador (`tarifaDe` ahora acepta un
+quinto argumento opcional, `nombreEntrenador`). La comparación colapsa
+espacios de más además de mayúsculas — a propósito, porque "Diego Gil
+Gordillo" es justo el nombre que ya causó una ficha duplicada por un
+espacio doble en agosto 2026; no queríamos que esta excepción de pago
+dejara de aplicarse por el mismo motivo.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Pegar un SQL grande con acentos/ñ en el SQL Editor de Supabase puede

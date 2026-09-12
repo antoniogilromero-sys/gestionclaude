@@ -31,13 +31,38 @@ export type Tarifa = { entrenador_id: string; disciplina: string; euros_hora: nu
 // exactas en la base de datos.
 const GRUPOS_SIN_PAGO = new Set(["martes avanzado 19h", "jueves avanzado 19h"]);
 
+// Excepción más fina que GRUPOS_SIN_PAGO: aquí no es "este grupo no se
+// paga a nadie", es "a esta persona en concreto no se le paga por dar
+// este grupo en concreto" — otro entrenador que cubra el mismo grupo sí
+// cobra lo normal. Pedido por Antón para Diego Gil Gordillo en los dos
+// grupos de Atletismo de Iniciación del lunes (1A y 1B).
+const GRUPO_ENTRENADOR_SIN_PAGO = [
+  { grupo: "atletismo 1a lunes", entrenador: "diego gil gordillo" },
+  { grupo: "atletismo 1b lunes", entrenador: "diego gil gordillo" },
+];
+
 export function tarifaDe(
   entrenadorId: string,
   disciplina: string,
   tarifas: Tarifa[],
   nombreGrupo?: string,
+  nombreEntrenador?: string,
 ) {
-  if (nombreGrupo && GRUPOS_SIN_PAGO.has(nombreGrupo.trim().toLowerCase())) return 0;
+  // Colapsa espacios de más además de mayúsculas — "Diego Gil  Gordillo"
+  // (con doble espacio, que es justo el fallo que ya dio problemas en
+  // Deportistas) tiene que seguir encajando con "Diego Gil Gordillo".
+  const normaliza = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+  const grupoClave = nombreGrupo ? normaliza(nombreGrupo) : undefined;
+  const entrenadorClave = nombreEntrenador ? normaliza(nombreEntrenador) : undefined;
+
+  if (grupoClave && GRUPOS_SIN_PAGO.has(grupoClave)) return 0;
+  if (
+    grupoClave &&
+    entrenadorClave &&
+    GRUPO_ENTRENADOR_SIN_PAGO.some((x) => x.grupo === grupoClave && x.entrenador === entrenadorClave)
+  ) {
+    return 0;
+  }
 
   const propia = tarifas.find(
     (t) => t.entrenador_id === entrenadorId && t.disciplina === disciplina,
