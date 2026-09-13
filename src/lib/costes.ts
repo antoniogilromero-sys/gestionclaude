@@ -31,15 +31,13 @@ export type Tarifa = { entrenador_id: string; disciplina: string; euros_hora: nu
 // exactas en la base de datos.
 const GRUPOS_SIN_PAGO = new Set(["martes avanzado 19h", "jueves avanzado 19h"]);
 
-// Excepción más fina que GRUPOS_SIN_PAGO: aquí no es "este grupo no se
-// paga a nadie", es "a esta persona en concreto no se le paga por dar
-// este grupo en concreto" — otro entrenador que cubra el mismo grupo sí
-// cobra lo normal. Pedido por Antón para Diego Gil Gordillo en los dos
-// grupos de Atletismo de Iniciación del lunes (1A y 1B).
-const GRUPO_ENTRENADOR_SIN_PAGO = [
-  { grupo: "atletismo 1a lunes", entrenador: "diego gil gordillo" },
-  { grupo: "atletismo 1b lunes", entrenador: "diego gil gordillo" },
-];
+// Excepción más amplia que GRUPOS_SIN_PAGO: aquí no es "este grupo no
+// se paga a nadie", es "a esta persona no se le paga NINGÚN grupo que
+// dé en este día" — otro entrenador que cubra el mismo grupo ese mismo
+// día sí cobra lo normal. Pedido por Antón: Diego Gil Gordillo no cobra
+// ningún lunes, sea cual sea el grupo (empezó siendo solo Atletismo
+// 1A/1B, pero pidió ampliarlo a "todo lo del lunes").
+const ENTRENADOR_DIA_SIN_PAGO = [{ entrenador: "diego gil gordillo", dia: "lunes" }];
 
 export function tarifaDe(
   entrenadorId: string,
@@ -47,6 +45,7 @@ export function tarifaDe(
   tarifas: Tarifa[],
   nombreGrupo?: string,
   nombreEntrenador?: string,
+  diasGrupo?: string[],
 ) {
   // Colapsa espacios de más además de mayúsculas — "Diego Gil  Gordillo"
   // (con doble espacio, que es justo el fallo que ya dio problemas en
@@ -54,12 +53,14 @@ export function tarifaDe(
   const normaliza = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
   const grupoClave = nombreGrupo ? normaliza(nombreGrupo) : undefined;
   const entrenadorClave = nombreEntrenador ? normaliza(nombreEntrenador) : undefined;
+  const diasClave = (diasGrupo ?? []).map((d) => normaliza(d));
 
   if (grupoClave && GRUPOS_SIN_PAGO.has(grupoClave)) return 0;
   if (
-    grupoClave &&
     entrenadorClave &&
-    GRUPO_ENTRENADOR_SIN_PAGO.some((x) => x.grupo === grupoClave && x.entrenador === entrenadorClave)
+    diasClave.some((d) =>
+      ENTRENADOR_DIA_SIN_PAGO.some((x) => x.entrenador === entrenadorClave && x.dia === d),
+    )
   ) {
     return 0;
   }
@@ -119,7 +120,7 @@ export function calcularFilas(
     let completo = true;
     for (const g of gruposDe) {
       const h = horasSemanales(g);
-      const t = tarifaDe(e.id, g.disciplina, tarifas, g.nombre, e.nombre);
+      const t = tarifaDe(e.id, g.disciplina, tarifas, g.nombre, e.nombre, g.dias);
       if (h == null || t == null) {
         completo = false;
         continue;

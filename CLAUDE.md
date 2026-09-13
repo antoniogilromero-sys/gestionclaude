@@ -908,19 +908,31 @@ añaden al `Set` `GRUPOS_SIN_PAGO` en `src/lib/costes.ts` — no hace
 falta ninguna migración de base de datos para esto, es una constante en
 el código.
 
-**Excepción más fina, misma semana**: además del caso anterior (grupo
-entero a 0€ sea quien sea), Antón pidió que **Diego Gil Gordillo en
-concreto** no cobre por dar **Atletismo 1A Lunes** ni **Atletismo 1B
-Lunes** — pero si otro entrenador cubre esos mismos grupos, cobra la
-tarifa normal. Es "persona + grupo", no "grupo entero" ni "persona en
-cualquier grupo", así que hizo falta una lista aparte:
-`GRUPO_ENTRENADOR_SIN_PAGO` en `src/lib/costes.ts`, comparando por
-nombre de grupo Y nombre de entrenador (`tarifaDe` ahora acepta un
-quinto argumento opcional, `nombreEntrenador`). La comparación colapsa
-espacios de más además de mayúsculas — a propósito, porque "Diego Gil
-Gordillo" es justo el nombre que ya causó una ficha duplicada por un
-espacio doble en agosto 2026; no queríamos que esta excepción de pago
-dejara de aplicarse por el mismo motivo.
+**Excepción por persona + día (ampliada dos veces)**: primero Antón
+pidió que **Diego Gil Gordillo** no cobrara por dar Atletismo 1A/1B
+Lunes en concreto (persona + grupo exacto); al comprobarlo dijo que la
+idea real era más amplia — que **no cobre ningún lunes**, sea cual sea
+el grupo que le toque ese día. Se cambió de "persona + nombre de grupo"
+a "persona + día de la semana": `ENTRENADOR_DIA_SIN_PAGO` en
+`src/lib/costes.ts` (`{ entrenador: "diego gil gordillo", dia: "lunes"
+}`), y `tarifaDe` ahora recibe también `diasGrupo` (el array `dias` del
+propio grupo, ej. `['lunes']`) para poder comprobarlo. Sigue sin afectar
+a otro entrenador que cubra un grupo del lunes — es "esta persona, ese
+día", no "ese día para todos". Misma comparación tolerante a espacios
+de más que las excepciones anteriores.
+
+**Si esta excepción no aplica y Diego sigue saliendo con coste el
+lunes**, lo primero a comprobar es que su nombre de **entrenador**
+(`perfiles.nombre`, la cuenta con la que inicia sesión — puede ser
+distinto del nombre en `deportistas` si hay alguna variación) coincide,
+una vez sin acentos/mayúsculas/espacios de más, con "diego gil
+gordillo":
+```sql
+select id, nombre, rol from perfiles where rol = 'entrenador' and unaccent(lower(nombre)) like '%gil%gordillo%';
+```
+Si el nombre real difiere del literal usado en el código, hay que
+actualizar `ENTRENADOR_DIA_SIN_PAGO` para que coincida exactamente
+(normalizado) con lo que hay en `perfiles.nombre`.
 
 ## Ampliación de alcance: coste semanal visible + corte mensual
 
