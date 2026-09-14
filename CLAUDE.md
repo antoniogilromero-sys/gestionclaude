@@ -974,6 +974,21 @@ aplicando ya las excepciones de grupo y de grupo+entrenador a 0€.
 
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
+- **Un `update grupos set nombre = X where nombre = 'Y'` con acento en
+  `Y` puede no encontrar ninguna fila y no avisar de nada** — un UPDATE
+  que no encaja con ninguna fila en Postgres no da error, simplemente no
+  cambia nada. Pasó en septiembre 2026: la migración que debía renombrar
+  "Carrera Iniciación/Medio/Adultos" a "Atletismo 1A/2/3 Lunes" nunca
+  encontró esos nombres exactos (probablemente por un acento mal escrito
+  al pegar), así que los grupos de verdad se quedaron con otro nombre
+  distinto ("Lunes Atletismo Peques/Medio/Adultos") y nadie se dio
+  cuenta hasta que se intentó cargar deportistas en el nombre que se
+  creía correcto y no encajó con nada. **Lección**: después de cualquier
+  `update` de nombres por texto exacto, comprobar con un `select` que el
+  número de filas afectadas es el esperado — no dar por hecho que "no
+  dio error" significa "funcionó". Para casos así, mejor comparar por
+  `unaccent(lower(trim(...)))` en el propio UPDATE, no por igualdad
+  literal.
 - **Pegar un SQL grande con acentos/ñ en el SQL Editor de Supabase puede
   corromper esos caracteres** (mojibake: "García" se guarda como
   "GarcÃa", "Gómez" como "GÃ³mez"). Pasó al cargar el histórico de
