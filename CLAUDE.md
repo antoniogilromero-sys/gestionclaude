@@ -1085,3 +1085,47 @@ Antón dándome el orden que quería ver:
 - Ocultó (`activo = false`) los grupos de natación de la temporada pasada
   (`Escuela jueves`, `Peques`, `Intermedio`, `Avanzado`) **solo si no
   tenían a nadie apuntado**.
+
+## Atletismo Lunes: de 3 grupos a 4 de verdad (septiembre 2026)
+
+Antón pidió volver a dividir en dos el grupo `Lunes Atletismo Peques`
+(la fusión de `1A`+`1B` que hizo `migracion_orden_grupos.sql`, ver arriba)
+porque en la práctica siguen siendo dos grupos con demasiada gente para
+uno solo. Quedan 4 grupos reales los lunes: **Peques A**, **Peques B**,
+**Medio**, **Adultos** (`docs/arreglo_grupos_atletismo_lunes.sql`,
+confirmado ejecutado y verificado — Adultos=28, Medio=14, Peques A=13,
+Peques B=5 en la primera carga).
+
+Después llegó una hoja de Excel actualizada con más deportistas para
+Peques A/B/Medio (Adultos no se tocó, Antón lo pidió explícitamente
+excluido). Cargarla costó varias rondas porque:
+
+- La primera pasada (`docs/actualizar_atletismo_1a_1b_2.sql`) no dejó
+  limpio del todo lo viejo en Peques B (gente de la carga original que
+  ya no estaba en la hoja nueva se quedó enganchada) — probablemente el
+  DELETE del script no llegó a ejecutarse entero, o se pegó solo una
+  parte. **Lección**: cuando un recuento no cuadra, pedir siempre la
+  lista de nombres real (`select d.nombre from deportista_grupo... `),
+  no solo el número — el número solo no dice qué sobra o qué falta.
+- **"david de lorenzo Macías" acabó duplicado como dos deportistas**
+  distintos (mismo nombre, dos filas de `deportistas`) — probablemente
+  de la carga original más la nueva creando cada una su propia fila
+  porque en algún punto el nombre no coincidió exactamente. Se fusionó
+  con `fusionar_deportistas`, mismo patrón que el caso de Diego Gil
+  Gordillo de agosto.
+- **Dos nombres estaban en dos grupos a la vez por error de la hoja**,
+  no porque fueran dos personas de verdad: "Martín Arribas del Amo"
+  (Peques A y B) y "Alba García Palacios" (Peques B y Medio). Antón
+  confirmó que se quedan **solo en Peques B** los dos.
+- **Dos personas de la carga original casi se pierden**: "Guillermo
+  González Serralta" y "JAIME CONTRERAS LOPEZ" no estaban en la
+  captura de la hoja nueva que se usó para reconstruir Medio (la
+  captura no incluía las primeras filas de esa columna) — se
+  recuperaron al pedir la columna completa de la hoja.
+
+Roster final (`docs/reconciliacion_final_atletismo_lunes.sql`, el que
+hay que usar si algo de esto se vuelve a descuadrar — es idempotente,
+se puede repetir): **Peques A: 12, Peques B: 14, Medio: 15** (Adultos
+sigue en 28, sin tocar). Incluye también la reactivación de "Arán
+Fernández Martín" (`activo = true` — está en el club de forma temporal,
+había sido dado de baja antes).
