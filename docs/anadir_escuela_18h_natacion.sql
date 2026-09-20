@@ -1,20 +1,23 @@
 -- =====================================================================
---  Añade un grupo nuevo al horario de Escuela: natación de 18:00 a 19:00
---  los martes en el Colegio Gredos San Diego (Guadarrama) — se suma al
---  que ya había de 19:00 a 20:00, no lo sustituye.
+--  Añade dos grupos nuevos al horario de Escuela: natación de 18:00 a
+--  19:00 los martes y los jueves en el Colegio GSD Guadarrama — se suman
+--  a los de 19:00 a 20:00 que ya había, no los sustituyen.
+--  Se puede ejecutar aunque ya se hubiera puesto el del martes: no
+--  duplica nada.
 --  Pegar en Supabase > SQL Editor > Run.
 -- =====================================================================
 
 insert into horarios_entrenamiento (categoria, dia, disciplina, hora_inicio, hora_fin, lugar, notas)
-select 'Escuela', 'martes', 'Natación', '18:00', '19:00', 'Colegio GSD Guadarrama', null
+select 'Escuela', d.dia, 'Natación', '18:00', '19:00', 'Colegio GSD Guadarrama', null
+from (values ('martes'), ('jueves')) as d(dia)
 where not exists (
-  select 1 from horarios_entrenamiento
-  where categoria = 'Escuela' and dia = 'martes' and disciplina = 'Natación'
-    and hora_inicio = '18:00'
+  select 1 from horarios_entrenamiento h
+  where h.categoria = 'Escuela' and h.dia = d.dia and h.disciplina = 'Natación'
+    and h.hora_inicio = '18:00'
 );
 
--- Comprobación: debe salir Escuela + martes + Natación dos veces (18h y 19h)
+-- Comprobación: debe salir martes y jueves con dos franjas cada uno (18h y 19h)
 select categoria, dia, disciplina, hora_inicio, hora_fin, lugar
 from horarios_entrenamiento
-where categoria = 'Escuela' and dia = 'martes' and disciplina = 'Natación'
-order by hora_inicio;
+where categoria = 'Escuela' and disciplina = 'Natación'
+order by dia, hora_inicio;
