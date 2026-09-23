@@ -89,3 +89,54 @@ export async function borrarDocumentoPedido(id: number, storagePath: string): Pr
   if (error) return { error: error.message };
   return { ok: true };
 }
+
+// ------------------------------------------------------------ STOCK
+// Inventario que el club ya tiene guardado, sin ligar a un deportista
+// concreto — distinto de un pedido al proveedor.
+
+export async function crearStock(input: {
+  tipo: "algodon" | "tecnica";
+  genero: "hombre" | "mujer" | "unisex";
+  talla: string;
+  cantidad: number;
+  notas: string;
+}): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+
+  if (!input.talla.trim()) return { error: "Falta la talla" };
+  if (input.cantidad < 0) return { error: "La cantidad no puede ser negativa" };
+
+  const { error } = await r.supabase.from("stock_ropa").insert({
+    tipo: input.tipo,
+    genero: input.genero,
+    talla: input.talla.trim(),
+    cantidad: input.cantidad,
+    notas: input.notas.trim() || null,
+    actualizado_por: r.userId,
+  });
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+export async function actualizarCantidadStock(id: number, cantidad: number): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+  if (cantidad < 0) return { error: "La cantidad no puede ser negativa" };
+
+  const { error } = await r.supabase
+    .from("stock_ropa")
+    .update({ cantidad, actualizado_por: r.userId, actualizado_en: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+export async function borrarStock(id: number): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+
+  const { error } = await r.supabase.from("stock_ropa").delete().eq("id", id);
+  if (error) return { error: error.message };
+  return { ok: true };
+}

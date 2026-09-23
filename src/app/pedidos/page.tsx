@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { PedidosList } from "./PedidosList";
 import { DocumentosPedido } from "./DocumentosPedido";
+import { StockList } from "./StockList";
 
 export default async function PedidosPage() {
   const supabase = await createClient();
@@ -19,7 +20,7 @@ export default async function PedidosPage() {
     .single();
   if (!perfil || perfil.rol !== "director") redirect("/");
 
-  const [{ data: pedidos, error }, { data: documentos }] = await Promise.all([
+  const [{ data: pedidos, error }, { data: documentos }, { data: stock }] = await Promise.all([
     supabase
       .from("pedidos")
       .select("id, articulo, talla, cantidad, creado_en, deportistas(nombre)")
@@ -28,7 +29,22 @@ export default async function PedidosPage() {
       .from("pedidos_documentos")
       .select("id, nombre, storage_path, creado_en")
       .order("creado_en", { ascending: false }),
+    supabase
+      .from("stock_ropa")
+      .select("id, tipo, genero, talla, cantidad, notas")
+      .order("tipo")
+      .order("genero")
+      .order("talla"),
   ]);
+
+  const stockLimpio = (stock ?? []).map((s) => ({
+    id: s.id as number,
+    tipo: s.tipo as "algodon" | "tecnica",
+    genero: s.genero as "hombre" | "mujer" | "unisex",
+    talla: s.talla as string,
+    cantidad: s.cantidad as number,
+    notas: s.notas as string | null,
+  }));
 
   const pedidosLimpios = (pedidos ?? []).map((p) => {
     const d = p.deportistas as unknown as { nombre: string } | { nombre: string }[] | null;
@@ -56,6 +72,9 @@ export default async function PedidosPage() {
           + Nuevo
         </Link>
       </div>
+
+      <StockList items={stockLimpio} />
+      <div className="lane mb-5" />
 
       {error && (
         <div className="bg-surf border border-run/40 rounded-[10px] p-3.5 mb-4">

@@ -993,6 +993,24 @@ compartían el mismo fallo: **Registrar test**, **Deportistas**,
 se añade una caja de búsqueda nueva en el futuro, usar `sinAcentos()` de
 `@/lib/texto` en vez de comparar el texto tal cual.
 
+## Ampliación de alcance: stock de camisetas
+
+`/pedidos` (septiembre 2026) tiene ahora una sección de **Stock**
+además de los pedidos de siempre — son dos cosas distintas a propósito:
+
+- `pedidos` = un encargo concreto al proveedor para un deportista
+  concreto (ya existía).
+- `stock_ropa` (nueva, `docs/migracion_stock_ropa.sql`) = lo que el
+  club ya tiene guardado físicamente, sin ligar a nadie — sobrantes,
+  tallas de repuesto para altas de última hora. Tipo (algodón/técnica) ×
+  género (hombre/mujer/unisex) × talla × cantidad, con botones +/− para
+  ajustar cantidad sin tener que borrar y volver a crear la fila.
+
+Carga inicial en `docs/seed_stock_ropa_inicial.sql` con los datos que
+dio Antón — en "hombre L" y "mujer L" no dio cantidad explícita, se
+asumió 1 unidad cada una (se puede corregir directamente con los
+botones +/− en la pantalla, sin SQL).
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Un `update grupos set nombre = X where nombre = 'Y'` con acento en
