@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toISODateLocal } from "@/lib/date";
+import { sinAcentos } from "@/lib/texto";
 
 type TipoTest = {
   id: number;
@@ -110,11 +111,11 @@ export function TestsClient({
     })
     .filter((d) => {
       if (soloPendientes && resultados[d.id]) return false;
-      const q = busqueda.trim().toLowerCase();
+      const q = sinAcentos(busqueda.trim().toLowerCase());
       if (!q) return true;
       return (
-        d.nombre.toLowerCase().includes(q) ||
-        (d.grupoNombre ?? "").toLowerCase().includes(q)
+        sinAcentos(d.nombre.toLowerCase()).includes(q) ||
+        sinAcentos((d.grupoNombre ?? "").toLowerCase()).includes(q)
       );
     });
 

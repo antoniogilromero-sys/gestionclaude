@@ -972,6 +972,27 @@ aplicando ya las excepciones de grupo y de grupo+entrenador a 0€.
   mirando**, no por "mes calendario actual" fijo — si navegas a una
   semana de otro mes, el corte cambia también a ese mes.
 
+## Bug encontrado: las búsquedas de la app no ignoraban acentos
+
+Antón no encontraba a "Martín Arribas del Amo" buscando "martin" (sin
+tilde) en Registrar test — el deportista sí estaba bien dado de alta,
+el fallo estaba en la propia caja de búsqueda: comparaba el texto letra
+por letra con `.toLowerCase().includes(...)`, sin quitar acentos, así
+que una tilde de diferencia hacía que no apareciera aunque estuviera en
+la lista. Es justo el mismo tipo de problema que ya se resolvía con
+`unaccent()` en todo el SQL de este proyecto, pero nunca se había hecho
+el equivalente en las búsquedas del navegador (JS).
+
+Arreglado con una función compartida, `sinAcentos()` en
+`src/lib/texto.ts` (usa `normalize("NFD")` + quitar diacríticos, el
+mismo truco que ya usaba `normalizarNombre` en
+`src/lib/inscripciones.ts` para el mismo problema en el lado del
+servidor). Se aplicó en las 4 cajas de búsqueda que tenía la app y que
+compartían el mismo fallo: **Registrar test**, **Deportistas**,
+**Pedidos** (buscador de deportista al crear uno nuevo) y **Rutas**. Si
+se añade una caja de búsqueda nueva en el futuro, usar `sinAcentos()` de
+`@/lib/texto` en vez de comparar el texto tal cual.
+
 ## Cosas que se rompen en este proyecto (aprendidas revisando)
 
 - **Un `update grupos set nombre = X where nombre = 'Y'` con acento en

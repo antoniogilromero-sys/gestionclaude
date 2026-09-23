@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { altaDeportista, cambiarActivo, actualizarGrupos, actualizarDatos } from "./actions";
+import { sinAcentos } from "@/lib/texto";
 
 type Deportista = {
   id: number;
@@ -44,11 +45,12 @@ export function DeportistasList({
   );
 
   const filtrados = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
+    const q = sinAcentos(busqueda.trim().toLowerCase());
     if (!q) return deportistas;
     return deportistas.filter(
       (d) =>
-        d.nombre.toLowerCase().includes(q) || (d.ref ?? "").toLowerCase().includes(q),
+        sinAcentos(d.nombre.toLowerCase()).includes(q) ||
+        sinAcentos((d.ref ?? "").toLowerCase()).includes(q),
     );
   }, [deportistas, busqueda]);
 

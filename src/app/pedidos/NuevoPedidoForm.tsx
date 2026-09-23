@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { crearPedido } from "./actions";
 import { TALLAS_INFANTIL, TALLAS_ADULTO } from "./tallas";
+import { sinAcentos } from "@/lib/texto";
 
 type Deportista = { id: number; nombre: string; categoria: string | null };
 
@@ -18,9 +19,9 @@ export function NuevoPedidoForm({ deportistas }: { deportistas: Deportista[] }) 
   const [error, setError] = useState<string | null>(null);
 
   const filtrados = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
+    const q = sinAcentos(busqueda.trim().toLowerCase());
     if (!q) return deportistas;
-    return deportistas.filter((d) => d.nombre.toLowerCase().includes(q));
+    return deportistas.filter((d) => sinAcentos(d.nombre.toLowerCase()).includes(q));
   }, [deportistas, busqueda]);
 
   const deportista = deportistas.find((d) => d.id === deportistaId) ?? null;

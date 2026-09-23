@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { sincronizarRutas } from "./actions";
+import { sinAcentos } from "@/lib/texto";
 
 type Ruta = {
   id: number;
@@ -108,10 +109,10 @@ export function RutasClient({ rutas, esDirector }: { rutas: Ruta[]; esDirector: 
   const [error, setError] = useState<string | null>(null);
 
   const filtradas = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
+    const q = sinAcentos(busqueda.trim().toLowerCase());
     return rutas.filter((r) => {
       if (tipo !== "todas" && r.tipo !== tipo) return false;
-      if (q && !r.nombre.toLowerCase().includes(q)) return false;
+      if (q && !sinAcentos(r.nombre.toLowerCase()).includes(q)) return false;
       return true;
     });
   }, [rutas, tipo, busqueda]);
