@@ -7,6 +7,7 @@ type NavItem = { href: string; label: string; tambien?: string[] };
 
 const DIRECTOR_ITEMS: NavItem[] = [
   { href: "/reparto", label: "Reparto" },
+  { href: "/lesionados", label: "Lesionados" },
   { href: "/publicar", label: "Publicar" },
   { href: "/entrenamientos", label: "Entrenamientos" },
   { href: "/entrenamiento-diario", label: "Entreno diario" },
@@ -18,7 +19,6 @@ const DIRECTOR_ITEMS: NavItem[] = [
   { href: "/competiciones", label: "Competiciones" },
   { href: "/resultados", label: "Resultados" },
   { href: "/analisis", label: "Análisis" },
-  { href: "/lesionados", label: "Lesionados" },
   { href: "/equipo", label: "Equipo" },
   { href: "/deportistas", label: "Deportistas" },
   {
@@ -40,13 +40,13 @@ const DIRECTOR_ITEMS: NavItem[] = [
 
 const ENTRENADOR_ITEMS: NavItem[] = [
   { href: "/reparto", label: "Reparto" },
+  { href: "/lesionados", label: "Lesionados" },
   { href: "/entrenamientos", label: "Entrenamientos" },
   { href: "/publicar", label: "Publicar" },
   { href: "/entrenamiento-diario", label: "Entreno diario" },
   { href: "/tests", label: "Registrar test" },
   { href: "/grupos", label: "Grupos" },
   { href: "/deportistas", label: "Deportistas" },
-  { href: "/lesionados", label: "Lesionados" },
   { href: "/competiciones", label: "Competiciones" },
   { href: "/rankings", label: "Rankings" },
   { href: "/rutas", label: "Rutas" },
