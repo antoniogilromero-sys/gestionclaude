@@ -1165,7 +1165,26 @@ cómo evoluciona).
   colapsadas detrás de un "Ver recuperadas (N)", mismo criterio que "Ya
   pasadas" en Competiciones/Próximas — no se borran al recuperarse, se
   mantiene el histórico.
-- Añadido a `DIRECTOR_ITEMS` y `ENTRENADOR_ITEMS` en `NavBar.tsx`.
+- Añadido a `DIRECTOR_ITEMS` y `ENTRENADOR_ITEMS` en `NavBar.tsx`, cerca
+  del principio de la barra (justo después de "Reparto") a petición de
+  Antón, para que se vea sin tener que desplazar la barra superior.
+
+**Documentos por lesión** (mismo día): cada lesión puede llevar PDFs o
+imágenes adjuntas (informe del fisio, radiografía, alta médica...),
+mismo patrón de Storage que ya usaban `/pedidos` y `/jornadas`
+(`docs/migracion_lesiones_documentos.sql`, bucket privado
+`lesiones-documentos`, subida directa desde el navegador, nunca por una
+server action, `createSignedUrl` a 2 minutos para verlos — ver la
+sección "Histórico de documentos de pedidos" más arriba para el porqué
+de cada decisión de ese patrón). Única diferencia respecto a esos dos:
+aquí cada documento va ligado a una lesión concreta (`lesion_id`), no es
+un histórico suelto del apartado — y la **lectura es para director y
+entrenador** (`aprobado()`), no solo director, porque el entrenador
+puede necesitar ver ese informe; subir y borrar sigue siendo solo del
+director. El bloque vive dentro de cada tarjeta de lesión en
+`LesionadosClient.tsx` (no es un componente aparte como
+`DocumentosPedido.tsx`, porque aquí siempre cuelga de una lesión
+concreta, nunca de una lista global).
 
 ## Atletismo Lunes: de 3 grupos a 4 de verdad (septiembre 2026)
 

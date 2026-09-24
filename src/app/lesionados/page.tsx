@@ -19,7 +19,7 @@ export default async function LesionadosPage() {
 
   const esDirector = perfil.rol === "director";
 
-  const [{ data: lesiones, error }, { data: seguimientos }, { data: deportistas }] =
+  const [{ data: lesiones, error }, { data: seguimientos }, { data: documentos }, { data: deportistas }] =
     await Promise.all([
       supabase
         .from("lesiones")
@@ -29,6 +29,10 @@ export default async function LesionadosPage() {
         .from("lesion_seguimiento")
         .select("id, lesion_id, fecha, nota, creado_en")
         .order("fecha", { ascending: false }),
+      supabase
+        .from("lesion_documentos")
+        .select("id, lesion_id, nombre, storage_path, creado_en")
+        .order("creado_en", { ascending: false }),
       esDirector
         ? supabase.from("deportistas").select("id, nombre").eq("activo", true).order("nombre")
         : Promise.resolve({ data: [] as { id: number; nombre: string }[] }),
@@ -48,6 +52,14 @@ export default async function LesionadosPage() {
       seguimiento: (seguimientos ?? [])
         .filter((s) => s.lesion_id === l.id)
         .map((s) => ({ id: s.id as number, fecha: s.fecha as string, nota: s.nota as string })),
+      documentos: (documentos ?? [])
+        .filter((d) => d.lesion_id === l.id)
+        .map((d) => ({
+          id: d.id as number,
+          nombre: d.nombre as string,
+          storagePath: d.storage_path as string,
+          creadoEn: d.creado_en as string,
+        })),
     };
   });
 

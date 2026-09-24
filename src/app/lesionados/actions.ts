@@ -102,3 +102,34 @@ export async function borrarSeguimiento(id: number): Promise<Resultado> {
   if (error) return { error: error.message };
   return { ok: true };
 }
+
+export async function crearDocumentoLesion(input: {
+  lesionId: number;
+  nombre: string;
+  storagePath: string;
+}): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+
+  if (!input.nombre.trim()) return { error: "Falta el nombre del documento" };
+  if (!input.storagePath.trim()) return { error: "Falta la ruta del archivo" };
+
+  const { error } = await r.supabase.from("lesion_documentos").insert({
+    lesion_id: input.lesionId,
+    nombre: input.nombre.trim(),
+    storage_path: input.storagePath,
+    subido_por: r.userId,
+  });
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+export async function borrarDocumentoLesion(id: number, storagePath: string): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+
+  await r.supabase.storage.from("lesiones-documentos").remove([storagePath]);
+  const { error } = await r.supabase.from("lesion_documentos").delete().eq("id", id);
+  if (error) return { error: error.message };
+  return { ok: true };
+}

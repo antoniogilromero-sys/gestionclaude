@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   crearLesion,
@@ -8,11 +8,15 @@ import {
   borrarLesion,
   anadirSeguimiento,
   borrarSeguimiento,
+  crearDocumentoLesion,
+  borrarDocumentoLesion,
 } from "./actions";
+import { createClient } from "@/lib/supabase/client";
 import { sinAcentos } from "@/lib/texto";
 import { toISODateLocal } from "@/lib/date";
 
 type Nota = { id: number; fecha: string; nota: string };
+type Documento = { id: number; nombre: string; storagePath: string; creadoEn: string };
 type Lesion = {
   id: number;
   deportistaNombre: string;
@@ -22,6 +26,7 @@ type Lesion = {
   estado: "activa" | "recuperado";
   fechaRecuperacion: string | null;
   seguimiento: Nota[];
+  documentos: Documento[];
 };
 type Deportista = { id: number; nombre: string };
 
@@ -271,6 +276,58 @@ function LesionCard({
   const [fechaNota, setFechaNota] = useState(() => toISODateLocal(new Date()));
   const [nota, setNota] = useState("");
   const [enviandoNota, setEnviandoNota] = useState(false);
+  const inputDocRef = useRef<HTMLInputElement>(null);
+  const [subiendoDoc, setSubiendoDoc] = useState(false);
+  const [abriendoDocId, setAbriendoDocId] = useState<number | null>(null);
+  const [borrandoDocId, setBorrandoDocId] = useState<number | null>(null);
+
+  async function onSubirDoc(file: File) {
+    onError("");
+    setSubiendoDoc(true);
+    const supabase = createClient();
+    const ruta = `${lesion.id}/${Date.now()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
+
+    const { error: errorSubida } = await supabase.storage
+      .from("lesiones-documentos")
+      .upload(ruta, file, { contentType: file.type || "application/pdf" });
+    if (errorSubida) {
+      onError(errorSubida.message);
+      setSubiendoDoc(false);
+      return;
+    }
+
+    const resultado = await crearDocumentoLesion({ lesionId: lesion.id, nombre: file.name, storagePath: ruta });
+    setSubiendoDoc(false);
+    if ("error" in resultado) {
+      onError(resultado.error);
+      return;
+    }
+    if (inputDocRef.current) inputDocRef.current.value = "";
+    router.refresh();
+  }
+
+  async function onVerDoc(doc: Documento) {
+    setAbriendoDocId(doc.id);
+    onError("");
+    const supabase = createClient();
+    const { data, error: errorUrl } = await supabase.storage
+      .from("lesiones-documentos")
+      .createSignedUrl(doc.storagePath, 120);
+    setAbriendoDocId(null);
+    if (errorUrl || !data) {
+      onError(errorUrl?.message ?? "No se ha podido abrir el documento");
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
+  }
+
+  async function onBorrarDoc(doc: Documento) {
+    setBorrandoDocId(doc.id);
+    const resultado = await borrarDocumentoLesion(doc.id, doc.storagePath);
+    setBorrandoDocId(null);
+    if ("error" in resultado) onError(resultado.error);
+    else router.refresh();
+  }
 
   async function onAnadirNota() {
     if (!nota.trim()) {
@@ -324,7 +381,59 @@ function LesionCard({
             {lesion.descripcion}
           </p>
 
-          <span className="font-display text-[11px] tracking-[.08em] uppercase text-mute block mb-1.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="font-display text-[11px] tracking-[.08em] uppercase text-mute">
+              Documentos
+            </span>
+            {esDirector && (
+              <label className="font-display text-[11px] tracking-[.08em] uppercase text-signal cursor-pointer">
+                {subiendoDoc ? "Subiendo…" : "+ Subir"}
+                <input
+                  ref={inputDocRef}
+                  type="file"
+                  accept="application/pdf,image/*"
+                  className="hidden"
+                  disabled={subiendoDoc}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) onSubirDoc(file);
+                  }}
+                />
+              </label>
+            )}
+          </div>
+          {lesion.documentos.length === 0 ? (
+            <p className="text-mute text-xs mb-2.5">Sin documentos.</p>
+          ) : (
+            lesion.documentos.map((doc) => (
+              <div
+                key={doc.id}
+                className="flex items-center justify-between gap-2 bg-deep border border-edge rounded-lg p-2.5 mb-1.5"
+              >
+                <span className="text-sm truncate min-w-0">{doc.nombre}</span>
+                <div className="shrink-0 flex items-center gap-1.5">
+                  <button
+                    onClick={() => onVerDoc(doc)}
+                    disabled={abriendoDocId === doc.id}
+                    className="min-h-[36px] px-2.5 rounded-lg border border-edge text-chalk font-display text-[11px] tracking-[.06em] uppercase cursor-pointer disabled:opacity-60"
+                  >
+                    {abriendoDocId === doc.id ? "…" : "Ver"}
+                  </button>
+                  {esDirector && (
+                    <button
+                      onClick={() => onBorrarDoc(doc)}
+                      disabled={borrandoDocId === doc.id}
+                      className="min-h-[36px] px-2.5 rounded-lg border border-edge text-mute font-display text-[11px] tracking-[.06em] uppercase cursor-pointer disabled:opacity-60"
+                    >
+                      {borrandoDocId === doc.id ? "…" : "Borrar"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+
+          <span className="font-display text-[11px] tracking-[.08em] uppercase text-mute block mb-1.5 mt-3">
             Seguimiento
           </span>
           {lesion.seguimiento.length === 0 ? (
