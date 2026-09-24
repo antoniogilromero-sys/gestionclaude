@@ -1125,6 +1125,48 @@ Antón dándome el orden que quería ver:
   (`Escuela jueves`, `Peques`, `Intermedio`, `Avanzado`) **solo si no
   tenían a nadie apuntado**.
 
+## Ampliación de alcance: seguimiento de lesiones
+
+`/lesionados` (septiembre 2026) es una sección nueva para llevar el
+seguimiento de las lesiones de los deportistas — quién, desde cuándo,
+qué zona y cómo va evolucionando. Dos tablas nuevas
+(`docs/migracion_lesiones.sql`, Antón la ejecuta a mano en Supabase):
+`lesiones` (una fila por lesión: deportista, fecha, zona, descripción,
+estado activa/recuperado) y `lesion_seguimiento` (el "subapartado de
+programación" que pidió — notas de texto libre por fecha, un diario de
+cómo evoluciona).
+
+- **Visibilidad confirmada explícitamente por Antón**: director y
+  entrenadores ven la sección (los entrenadores están a pie de
+  pista/piscina a diario y necesitan saber qué puede o no puede hacer
+  cada deportista), pero **solo el director gestiona** — da de alta la
+  lesión, la marca como recuperada, añade y borra notas de seguimiento.
+  El entrenador es de solo lectura: `LesionadosClient` recibe
+  `esDirector` y oculta con esa condición el formulario de alta, el
+  formulario de nota nueva y los botones de marcar
+  recuperado/reactivar/borrar — mismo patrón que `DeportistasList.tsx`.
+- **Seguimiento en texto libre por fecha, no fases estructuradas**:
+  Antón, preguntado explícitamente, prefirió notas simples ("reposo",
+  "empieza fisio", "vuelta progresiva...") a un modelo con fases fijas.
+  Si algún día pide fases/hitos estructurados, es un cambio de modelo de
+  datos, no está construido así ahora.
+- RLS: lectura para `aprobado()` (ambos roles), escritura
+  (insert/update/delete) solo `es_director()` en las dos tablas —
+  `lesiones` con políticas separadas por operación (mismo estilo que
+  `facturas`), `lesion_seguimiento` con una única política `for all`
+  porque ahí no hace falta distinguir update de insert/delete.
+  `actions.ts` usa el `requireDirector()` de siempre como defensa en
+  profundidad de la UI, no como única barrera.
+- `page.tsx` solo pide la lista de deportistas activos (para el
+  desplegable de "nueva lesión") **si `esDirector`** — el entrenador no
+  la necesita, así que se le manda `[]` en vez de gastar esa consulta de
+  balde.
+- Las lesiones activas se listan primero; las recuperadas quedan
+  colapsadas detrás de un "Ver recuperadas (N)", mismo criterio que "Ya
+  pasadas" en Competiciones/Próximas — no se borran al recuperarse, se
+  mantiene el histórico.
+- Añadido a `DIRECTOR_ITEMS` y `ENTRENADOR_ITEMS` en `NavBar.tsx`.
+
 ## Atletismo Lunes: de 3 grupos a 4 de verdad (septiembre 2026)
 
 Antón pidió volver a dividir en dos el grupo `Lunes Atletismo Peques`

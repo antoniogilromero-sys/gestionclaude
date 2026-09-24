@@ -18,6 +18,7 @@ const DIRECTOR_ITEMS: NavItem[] = [
   { href: "/competiciones", label: "Competiciones" },
   { href: "/resultados", label: "Resultados" },
   { href: "/analisis", label: "Análisis" },
+  { href: "/lesionados", label: "Lesionados" },
   { href: "/equipo", label: "Equipo" },
   { href: "/deportistas", label: "Deportistas" },
   {
@@ -45,6 +46,7 @@ const ENTRENADOR_ITEMS: NavItem[] = [
   { href: "/tests", label: "Registrar test" },
   { href: "/grupos", label: "Grupos" },
   { href: "/deportistas", label: "Deportistas" },
+  { href: "/lesionados", label: "Lesionados" },
   { href: "/competiciones", label: "Competiciones" },
   { href: "/rankings", label: "Rankings" },
   { href: "/rutas", label: "Rutas" },
