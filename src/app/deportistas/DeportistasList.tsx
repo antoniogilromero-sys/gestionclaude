@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { altaDeportista, cambiarActivo, actualizarGrupos, actualizarDatos } from "./actions";
+import { altaDeportista, cambiarActivo, actualizarGrupos, actualizarDatos, quitarStrava } from "./actions";
 import { sinAcentos } from "@/lib/texto";
 
 type Deportista = {
@@ -20,13 +20,18 @@ export function DeportistasList({
   deportistas,
   grupos,
   esDirector,
+  stravaIds,
 }: {
   deportistas: Deportista[];
   grupos: Grupo[];
   esDirector: boolean;
+  stravaIds: number[];
 }) {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
+  const [soloStrava, setSoloStrava] = useState(false);
+  const [confirmandoStravaId, setConfirmandoStravaId] = useState<number | null>(null);
+  const conStrava = useMemo(() => new Set(stravaIds), [stravaIds]);
   const [cargando, setCargando] = useState<number | null>(null);
   const [copiadoId, setCopiadoId] = useState<number | null>(null);
   const [editandoGrupos, setEditandoGrupos] = useState<number | null>(null);
@@ -46,13 +51,24 @@ export function DeportistasList({
 
   const filtrados = useMemo(() => {
     const q = sinAcentos(busqueda.trim().toLowerCase());
-    if (!q) return deportistas;
-    return deportistas.filter(
+    const base = soloStrava ? deportistas.filter((d) => conStrava.has(d.id)) : deportistas;
+    if (!q) return base;
+    return base.filter(
       (d) =>
         sinAcentos(d.nombre.toLowerCase()).includes(q) ||
         sinAcentos((d.ref ?? "").toLowerCase()).includes(q),
     );
-  }, [deportistas, busqueda]);
+  }, [deportistas, busqueda, soloStrava, conStrava]);
+
+  async function onQuitarStrava(id: number) {
+    setCargando(id);
+    setError(null);
+    const resultado = await quitarStrava(id);
+    if ("error" in resultado) setError(resultado.error);
+    else router.refresh();
+    setCargando(null);
+    setConfirmandoStravaId(null);
+  }
 
   async function onGuardarGrupos(id: number, grupoIds: number[]) {
     setCargando(id);
@@ -182,6 +198,16 @@ export function DeportistasList({
         onChange={(e) => setBusqueda(e.target.value)}
         className="w-full bg-deep border border-edge text-chalk rounded-lg p-[11px] text-sm mb-2"
       />
+      {esDirector && (
+        <button
+          onClick={() => setSoloStrava((v) => !v)}
+          className={`mb-2.5 min-h-[36px] px-3 rounded-full border font-display text-xs tracking-[.06em] uppercase cursor-pointer ${
+            soloStrava ? "bg-signal text-[#160800] border-signal font-semibold" : "text-mute border-edge"
+          }`}
+        >
+          Con Strava conectado ({stravaIds.length})
+        </button>
+      )}
       {error && <p className="text-run text-sm mb-3.5">{error}</p>}
 
       {filtrados.map((d) => (
@@ -216,6 +242,24 @@ export function DeportistasList({
                 >
                   {copiadoId === d.id ? "Copiado ✓" : "Enlace Strava"}
                 </button>
+                {conStrava.has(d.id) &&
+                  (confirmandoStravaId === d.id ? (
+                    <button
+                      disabled={cargando === d.id}
+                      onClick={() => onQuitarStrava(d.id)}
+                      className="bg-transparent border border-run text-run rounded-lg min-h-[44px] px-2.5 flex items-center justify-center font-display text-xs tracking-[.04em] cursor-pointer disabled:opacity-60"
+                    >
+                      {cargando === d.id ? "…" : "¿Seguro? Quitar"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmandoStravaId(d.id)}
+                      title="Desconectar Strava y liberar el hueco"
+                      className="bg-transparent border border-edge text-mute rounded-lg min-h-[44px] px-2.5 flex items-center justify-center font-display text-xs tracking-[.04em] cursor-pointer"
+                    >
+                      Quitar Strava
+                    </button>
+                  ))}
                 <button
                   disabled={cargando === d.id}
                   onClick={() => onCambiarActivo(d.id, !d.activo)}

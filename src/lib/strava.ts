@@ -93,6 +93,26 @@ async function tokenValido(deportistaId: number): Promise<string | null> {
   return refrescarToken(conexion);
 }
 
+// Revoca el acceso en Strava (libera el hueco del límite de atletas de la
+// app, que Strava cuenta en su lado) y borra la conexión guardada. Si el
+// token ya no vale porque el deportista lo revocó por su cuenta, se borra
+// la fila igualmente.
+export async function desconectarStrava(deportistaId: number): Promise<void> {
+  try {
+    const token = await tokenValido(deportistaId);
+    if (token) {
+      await fetch("https://www.strava.com/oauth/deauthorize", {
+        method: "POST",
+        body: new URLSearchParams({ access_token: token }),
+      });
+    }
+  } catch {
+    // Sin token utilizable: nada que revocar en Strava, seguimos al borrado.
+  }
+  const supabase = createAdminClient();
+  await supabase.from("strava_conexiones").delete().eq("deportista_id", deportistaId);
+}
+
 // Mismas 3 disciplinas que usa el resto de la app (COLOR_DISC en
 // AnalisisClient): así el resumen de Strava se organiza igual que
 // Tests/Análisis, en vez de mezclar natación, bici y carrera en un totall.

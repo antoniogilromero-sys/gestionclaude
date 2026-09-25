@@ -1125,6 +1125,20 @@ Antón dándome el orden que quería ver:
   (`Escuela jueves`, `Peques`, `Intermedio`, `Avanzado`) **solo si no
   tenían a nadie apuntado**.
 
+## Quitar Strava a un deportista (límite de atletas de la app)
+
+La app de Strava tiene un tope de atletas conectados que Antón no puede
+ampliar (septiembre 2026). **Borrar la fila de `strava_conexiones` por
+SQL NO libera el hueco**: el cupo lo cuenta Strava en su lado, hay que
+revocar el acceso allí. Por eso `/deportistas` (solo director) tiene el
+botón "Quitar Strava" (con confirmación "¿Seguro?") en cada deportista
+conectado, y un filtro "Con Strava conectado (N)" para repasarlos. Llama
+a `desconectarStrava` (`src/lib/strava.ts`): POST a
+`https://www.strava.com/oauth/deauthorize` con su token y luego borra la
+conexión (si el token ya no vale, borra igualmente). Las actividades ya
+sincronizadas en `strava_actividades` se conservan. Para volver a
+conectarle, se le manda de nuevo su enlace `/strava-conectar/[id]`.
+
 ## Ampliación de alcance: seguimiento de lesiones
 
 `/lesionados` (septiembre 2026) es una sección nueva para llevar el

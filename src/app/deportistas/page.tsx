@@ -18,13 +18,16 @@ export default async function DeportistasPage() {
   if (!perfil || perfil.rol === "pendiente") redirect("/");
   const esDirector = perfil.rol === "director";
 
-  const [{ data: deportistas }, { data: grupos }, { data: depGrupos }] = await Promise.all([
+  const [{ data: deportistas }, { data: grupos }, { data: depGrupos }, { data: conexiones }] = await Promise.all([
     supabase
       .from("deportistas")
       .select("id, ref, nombre, categoria, activo")
       .order("nombre"),
     supabase.from("grupos").select("id, nombre").eq("activo", true).order("orden").order("id"),
     supabase.from("deportista_grupo").select("deportista_id, grupo_id"),
+    esDirector
+      ? supabase.from("strava_conexiones").select("deportista_id")
+      : Promise.resolve({ data: [] as { deportista_id: number }[] }),
   ]);
 
   const gruposPorDeportista = new Map<number, number[]>();
@@ -45,6 +48,7 @@ export default async function DeportistasPage() {
         deportistas={deportistasConGrupos}
         grupos={grupos ?? []}
         esDirector={esDirector}
+        stravaIds={(conexiones ?? []).map((c) => c.deportista_id)}
       />
     </AppShell>
   );

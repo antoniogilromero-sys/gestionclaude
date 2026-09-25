@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { desconectarStrava } from "@/lib/strava";
 
 type Resultado = { error: string } | { ok: true };
 type DirectorCheck =
@@ -23,6 +24,13 @@ async function requireDirector(): Promise<DirectorCheck> {
     return { ok: false, error: "Solo el director puede hacer esto" };
   }
   return { ok: true, supabase };
+}
+
+export async function quitarStrava(deportistaId: number): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+  await desconectarStrava(deportistaId);
+  return { ok: true };
 }
 
 export async function actualizarGrupos(deportistaId: number, grupoIds: number[]): Promise<Resultado> {
