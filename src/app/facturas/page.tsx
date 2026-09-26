@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
+import { DocumentosFactura } from "./DocumentosFactura";
 
 export default async function FacturasPage() {
   const supabase = await createClient();
@@ -24,6 +25,11 @@ export default async function FacturasPage() {
 
   const total = (facturas ?? []).reduce((s, f) => s + Number(f.importe), 0);
 
+  const { data: documentos, error: errorDocs } = await supabase
+    .from("facturas_documentos")
+    .select("id, nombre, storage_path, creado_en")
+    .order("creado_en", { ascending: false });
+
   return (
     <AppShell nombre={perfil.nombre} rol={perfil.rol}>
       <div className="flex items-center justify-between mb-2.5">
@@ -37,6 +43,15 @@ export default async function FacturasPage() {
           + Nueva
         </Link>
       </div>
+
+      {errorDocs ? (
+        <p className="text-sm text-mute mb-5">
+          Para guardar facturas subidas falta ejecutar la migración de documentos de facturas en
+          Supabase.
+        </p>
+      ) : (
+        <DocumentosFactura documentos={documentos ?? []} />
+      )}
 
       {error && (
         <div className="bg-surf border border-run/40 rounded-[10px] p-3.5 mb-4">

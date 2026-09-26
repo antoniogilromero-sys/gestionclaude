@@ -46,3 +46,50 @@ export async function emitirFactura(input: {
   if (error) return { error: error.message };
   return { numero: data.numero as number };
 }
+
+// ------------------------------------------------ ARCHIVO DE DOCUMENTOS
+// PDF/imágenes de facturas guardadas aparte de las que emite la app. El
+// archivo se sube directo desde el navegador al bucket; aquí solo se
+// registra el nombre y la ruta.
+
+type ResultadoDoc = { error: string } | { ok: true };
+
+async function directorDoc() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "No autenticado" } as const;
+  const { data: perfil } = await supabase.from("perfiles").select("rol").eq("id", user.id).single();
+  if (!perfil || perfil.rol !== "director") {
+    return { ok: false, error: "Solo el director puede hacer esto" } as const;
+  }
+  return { ok: true, supabase, userId: user.id } as const;
+}
+
+export async function crearDocumentoFactura(input: {
+  nombre: string;
+  storagePath: string;
+}): Promise<ResultadoDoc> {
+  const r = await directorDoc();
+  if (!r.ok) return { error: r.error };
+  if (!input.nombre.trim() || !input.storagePath.trim()) {
+    return { error: "Falta el nombre o la ruta del archivo" };
+  }
+  const { error } = await r.supabase.from("facturas_documentos").insert({
+    nombre: input.nombre.trim(),
+    storage_path: input.storagePath,
+    subido_por: r.userId,
+  });
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+export async function borrarDocumentoFactura(id: number, storagePath: string): Promise<ResultadoDoc> {
+  const r = await directorDoc();
+  if (!r.ok) return { error: r.error };
+  await r.supabase.storage.from("facturas-documentos").remove([storagePath]);
+  const { error } = await r.supabase.from("facturas_documentos").delete().eq("id", id);
+  if (error) return { error: error.message };
+  return { ok: true };
+}

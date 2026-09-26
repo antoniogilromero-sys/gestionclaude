@@ -1125,6 +1125,19 @@ Antón dándome el orden que quería ver:
   (`Escuela jueves`, `Peques`, `Intermedio`, `Avanzado`) **solo si no
   tenían a nadie apuntado**.
 
+## Archivo de facturas subidas (septiembre 2026)
+
+`/facturas` tiene arriba un bloque "Facturas guardadas" para subir PDF o
+foto de facturas (`DocumentosFactura.tsx`,
+`docs/migracion_facturas_documentos.sql`, bucket privado
+`facturas-documentos`) — mismo patrón y mismo criterio (solo director,
+subida directa desde el navegador, URL firmada de 2 minutos) que
+`/pedidos` y `/jornadas`. Es un archivo **aparte** de la tabla
+`facturas`: sirve para guardar facturas recibidas, escaneadas o emitidas
+fuera de la app; las que emite la app siguen numeradas y sin editar como
+siempre. Si falta ejecutar la migración, la página no se rompe: muestra
+un aviso en vez del bloque.
+
 ## Quitar Strava a un deportista (límite de atletas de la app)
 
 La app de Strava tiene un tope de atletas conectados que Antón no puede
