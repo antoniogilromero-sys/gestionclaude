@@ -1295,3 +1295,13 @@ guardando y un check verde (✓) un instante en cuanto el servidor
 confirma — sin cambiar el patrón de guardado automático por uno de
 "seleccionar y luego guardar", que habría sido un paso extra
 innecesario dado que ya se guardaba solo.
+
+Segunda ronda (mismo día): `setAsignacion` (`reparto/actions.ts`) ahora
+**vuelve a leer la fila** después de insertar/borrar y devuelve error si
+la base de datos no ha quedado como se pedía — un DELETE bloqueado por
+RLS no da error en Supabase, solo no borra nada, y el botón habría
+cambiado de color igualmente. También llama a `revalidatePath("/reparto")`
+(y `copiarSemanaAnterior` igual) para que volver atrás o desde otra
+pantalla no enseñe la versión de antes. El error de un botón se muestra
+dentro de la tarjeta de su grupo, no solo arriba del todo (no se veía si
+estabas más abajo en la lista).

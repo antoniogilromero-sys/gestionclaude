@@ -105,12 +105,16 @@ export function RepartoGrid({
   // Confirmación visual: cuando el servidor confirma el guardado, el botón
   // muestra un check verde un momento y luego desaparece solo.
   const [recienGuardado, setRecienGuardado] = useState<Set<string>>(new Set());
+  // Error de guardado dentro de la tarjeta del grupo afectado: arriba del
+  // todo no se veía si estabas más abajo en la lista.
+  const [errorGrupo, setErrorGrupo] = useState<{ grupoId: number; mensaje: string } | null>(null);
 
   function toggle(grupoId: number, entrenadorId: string) {
     const k = key(grupoId, entrenadorId);
     if (guardando.has(k)) return;
     const yaAsignado = asignado.has(k);
     setError(null);
+    setErrorGrupo(null);
     setGuardando((prev) => new Set(prev).add(k));
     setAsignado((prev) => {
       const next = new Set(prev);
@@ -127,7 +131,7 @@ export function RepartoGrid({
           else next.delete(k);
           return next;
         });
-        setError(resultado.error);
+        setErrorGrupo({ grupoId, mensaje: resultado.error });
       } else {
         setRecienGuardado((prev) => new Set(prev).add(k));
         setTimeout(() => {
@@ -334,6 +338,9 @@ export function RepartoGrid({
                     })
                   )}
                 </div>
+                {errorGrupo?.grupoId === g.id && (
+                  <p className="text-run text-[13px] mt-2">{errorGrupo.mensaje}</p>
+                )}
               </article>
             );
           })}

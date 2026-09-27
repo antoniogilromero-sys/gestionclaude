@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 // Next.js oculta el mensaje real de cualquier `throw` dentro de una server
@@ -28,6 +29,30 @@ export async function setAsignacion(
       .eq("entrenador_id", entrenadorId);
     if (error) return { error: error.message };
   }
+
+  // Comprobación final: se vuelve a leer la base de datos para confirmar
+  // que el cambio ha quedado guardado de verdad. Supabase no da error
+  // cuando un permiso impide borrar (simplemente no borra nada), así que
+  // sin esto el botón podía cambiar de color sin que se guardara nada.
+  const { data: fila, error: errorLectura } = await supabase
+    .from("asignaciones")
+    .select("grupo_id")
+    .eq("semana", semana)
+    .eq("grupo_id", grupoId)
+    .eq("entrenador_id", entrenadorId)
+    .maybeSingle();
+  if (errorLectura) return { error: errorLectura.message };
+  if (Boolean(fila) !== asignar) {
+    return {
+      error: asignar
+        ? "No se ha podido guardar esta asignación. Vuelve a intentarlo."
+        : "No se ha podido quitar esta asignación. Vuelve a intentarlo.",
+    };
+  }
+
+  // Sin esto, al volver a /reparto con "atrás" o desde otra pantalla, el
+  // navegador podía enseñar la versión de antes del cambio.
+  revalidatePath("/reparto");
   return { ok: true };
 }
 
@@ -47,5 +72,6 @@ export async function copiarSemanaAnterior(
   });
   if (error) return { error: error.message };
 
+  revalidatePath("/reparto");
   return { copiado: (filas ?? 0) > 0, filas: filas ?? 0 };
 }
