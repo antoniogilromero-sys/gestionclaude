@@ -98,11 +98,20 @@ export function RepartoGrid({
   const [asignado, setAsignado] = useState<Set<string>>(
     () => new Set(asignacionesIniciales.map((a) => key(a.grupo_id, a.entrenador_id))),
   );
+  // Mientras un clic todavía se está guardando, se bloquea ese mismo botón
+  // (no toda la pantalla) para que un segundo clic rápido antes de que
+  // responda el servidor no lo alterne dos veces y acabe sin guardarse.
+  const [guardando, setGuardando] = useState<Set<string>>(new Set());
+  // Confirmación visual: cuando el servidor confirma el guardado, el botón
+  // muestra un check verde un momento y luego desaparece solo.
+  const [recienGuardado, setRecienGuardado] = useState<Set<string>>(new Set());
 
   function toggle(grupoId: number, entrenadorId: string) {
     const k = key(grupoId, entrenadorId);
+    if (guardando.has(k)) return;
     const yaAsignado = asignado.has(k);
     setError(null);
+    setGuardando((prev) => new Set(prev).add(k));
     setAsignado((prev) => {
       const next = new Set(prev);
       if (yaAsignado) next.delete(k);
@@ -119,7 +128,21 @@ export function RepartoGrid({
           return next;
         });
         setError(resultado.error);
+      } else {
+        setRecienGuardado((prev) => new Set(prev).add(k));
+        setTimeout(() => {
+          setRecienGuardado((prev) => {
+            const next = new Set(prev);
+            next.delete(k);
+            return next;
+          });
+        }, 1200);
       }
+      setGuardando((prev) => {
+        const next = new Set(prev);
+        next.delete(k);
+        return next;
+      });
     });
   }
 
@@ -283,19 +306,29 @@ export function RepartoGrid({
                     )
                   ) : (
                     entrenadores.map((e) => {
-                      const activo = asignado.has(key(g.id, e.id));
+                      const k = key(g.id, e.id);
+                      const activo = asignado.has(k);
+                      const pendiente = guardando.has(k);
+                      const guardado = recienGuardado.has(k);
                       return (
                         <button
                           key={e.id}
                           onClick={() => toggle(g.id, e.id)}
+                          disabled={pendiente}
                           aria-pressed={activo}
-                          className={`min-h-[44px] px-4 rounded-full border text-[14px] cursor-pointer select-none ${
+                          className={`min-h-[44px] px-4 rounded-full border text-[14px] cursor-pointer select-none disabled:cursor-wait flex items-center gap-1.5 ${
                             activo
                               ? "bg-signal text-[#160800] border-signal font-semibold"
                               : "bg-deep text-mute border-edge"
-                          }`}
+                          } ${pendiente ? "opacity-60" : ""}`}
                         >
                           {e.nombre}
+                          {pendiente && <span aria-hidden="true">…</span>}
+                          {guardado && (
+                            <span className="text-ok" aria-label="Guardado">
+                              ✓
+                            </span>
+                          )}
                         </button>
                       );
                     })

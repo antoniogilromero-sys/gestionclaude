@@ -1256,3 +1256,42 @@ se puede repetir): **Peques A: 12, Peques B: 14, Medio: 15** (Adultos
 sigue en 28, sin tocar). Incluye también la reactivación de "Arán
 Fernández Martín" (`activo = true` — está en el club de forma temporal,
 había sido dado de baja antes).
+
+## Bug encontrado en /reparto: selecciones que "no se guardaban" (septiembre 2026)
+
+Antón reportó que al marcar entrenadores en `/reparto` algunas
+selecciones no acababan de quedar guardadas. Cada botón de entrenador
+**ya guardaba al momento** (`setAsignacion` en `RepartoGrid.tsx` inserta
+o borra directo en `asignaciones` en cuanto se pulsa, no hay ni ha
+habido nunca un botón de "Guardar" aparte) — el fallo real eran dos
+condiciones de carrera distintas, no la falta de un guardado explícito:
+
+1. **Doble clic rápido en el mismo botón**: `toggle()` leía si ya estaba
+   asignado directamente del estado de la última renderización. Si el
+   usuario pulsaba dos veces muy seguido antes de que React repintara
+   (fácil con muchos botones seguidos en la pantalla), el segundo clic
+   volvía a leer el mismo valor "de antes" y mandaba la misma acción que
+   el primero en vez de deshacerla — el botón podía acabar visualmente
+   marcado sin que el segundo clic hubiera hecho lo que parecía. Se
+   añadió un `Set` `guardando` que bloquea (con opacidad y `disabled`)
+   ese botón concreto mientras su propio clic todavía está de camino al
+   servidor, así un segundo toque no puede pisar al primero.
+2. **Cambiar de semana con las flechas no reiniciaba el estado**:
+   `RepartoGrid` es un componente cliente con su propio estado
+   (`asignado`, inicializado una sola vez al montar). Al navegar de
+   semana con los enlaces `←`/`→`, Next.js reutilizaba la misma
+   instancia del componente en vez de montarla de nuevo, así que el
+   estado de la semana anterior se quedaba pisando al de la nueva
+   semana durante un instante — daba la sensación de que un cambio
+   recién hecho se había perdido, cuando en realidad pertenecía a otra
+   semana. Arreglado añadiendo `key={semana}` en
+   `reparto/page.tsx` al renderizar `<RepartoGrid>`: cada semana fuerza
+   una instancia nueva del componente, con su estado limpio desde los
+   datos reales que acaba de traer el servidor.
+
+Además, a petición explícita de Antón, cada botón muestra ahora una
+confirmación visual clara: puntos suspensivos mientras se está
+guardando y un check verde (✓) un instante en cuanto el servidor
+confirma — sin cambiar el patrón de guardado automático por uno de
+"seleccionar y luego guardar", que habría sido un paso extra
+innecesario dado que ya se guardaba solo.

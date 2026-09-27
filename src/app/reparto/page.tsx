@@ -105,6 +105,7 @@ export default async function RepartoPage({
   return (
     <AppShell nombre={perfil.nombre} rol={perfil.rol}>
       <RepartoGrid
+        key={semana}
         esDirector={esDirector}
         semana={semana}
         semanaAnterior={toISODateLocal(anteriorDate)}
