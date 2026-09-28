@@ -72,10 +72,16 @@ export function tarifaDe(
   return TARIFA_GENERAL[disciplina] ?? null;
 }
 
-// Horas que supone un grupo en una semana: duración de la sesión × cuántos
-// días a la semana se hace. Un grupo sin horario fijo (ej. Ciclismo
-// Carretera del domingo) devuelve null: no se puede calcular su coste
-// hasta que tenga horas.
+// Duración de una sola sesión (una franja horaria concreta), en horas. Un
+// grupo sin horario fijo (ej. Ciclismo Carretera del domingo) devuelve
+// null: no se puede calcular su coste hasta que tenga horas.
+function duracionHoras(horaInicio: string | null, horaFin: string | null): number | null {
+  if (!horaInicio || !horaFin) return null;
+  const [h1, m1] = horaInicio.split(":").map(Number);
+  const [h2, m2] = horaFin.split(":").map(Number);
+  return (h2 * 60 + m2 - (h1 * 60 + m1)) / 60;
+}
+
 export const DISCIPLINA_LABEL: Record<string, string> = {
   natacion: "Natación",
   carrera: "Carrera",
@@ -90,14 +96,6 @@ export const DISCIPLINA_TAG: Record<string, string> = {
   fuerza: "bg-signal/15 text-signal",
 };
 
-export function horasSemanales(g: Grupo) {
-  if (!g.hora_inicio || !g.hora_fin) return null;
-  const [h1, m1] = g.hora_inicio.split(":").map(Number);
-  const [h2, m2] = g.hora_fin.split(":").map(Number);
-  const horasPorSesion = (h2 * 60 + m2 - (h1 * 60 + m1)) / 60;
-  return horasPorSesion * g.dias.length;
-}
-
 export type Asignacion = { grupo_id: number; entrenador_id: string };
 export type EntrenadorConNombre = { id: string; nombre: string };
 
@@ -105,6 +103,18 @@ export type EntrenadorConNombre = { id: string; nombre: string };
 // a cada entrenador — compartido entre /reparto y /pagos para que las
 // dos pantallas calculen exactamente igual (misma tarifa, mismas horas,
 // mismas excepciones de grupo/entrenador a 0€).
+//
+// Un entrenador puede tener asignados dos grupos distintos (ej. "Martes
+// Avanzado 19h" y "Martes Medio 19h") que en la práctica son un único
+// entrenamiento que él da a la vez a dos niveles — Antón confirmó
+// explícitamente (septiembre 2026) que eso cuenta como UNA sola hora de
+// trabajo, no dos. Por eso el cálculo no suma grupo a grupo: primero
+// abre cada grupo en sus sesiones sueltas (una por día que entrena), y
+// solo cuenta una vez cada franja horaria exacta (mismo día + misma
+// hora de inicio y fin) en la que el entrenador tenga varios grupos a
+// la vez. Si dos grupos coinciden en día pero NO en horario (ej. uno a
+// las 19h y otro a las 20h), siguen contando como dos entrenamientos
+// distintos.
 export function calcularFilas(
   grupos: Grupo[],
   entrenadores: EntrenadorConNombre[],
@@ -115,18 +125,45 @@ export function calcularFilas(
     const gruposDe = grupos.filter((g) =>
       asignaciones.some((a) => a.grupo_id === g.id && a.entrenador_id === e.id),
     );
+
+    type Sesion = {
+      disciplina: string;
+      horas: number | null;
+      tarifa: number | null;
+    };
+    const sesionesPorFranja = new Map<string, Sesion[]>();
+    for (const g of gruposDe) {
+      const horas = duracionHoras(g.hora_inicio, g.hora_fin);
+      for (const dia of g.dias) {
+        // La tarifa se calcula día a día (no para todo el grupo de
+        // golpe): un grupo que diera lunes Y otro día no debería perder
+        // el cobro entero solo porque el lunes esté exento.
+        const tarifa = tarifaDe(e.id, g.disciplina, tarifas, g.nombre, e.nombre, [dia]);
+        const clave = `${dia}|${g.hora_inicio ?? ""}|${g.hora_fin ?? ""}`;
+        const lista = sesionesPorFranja.get(clave) ?? [];
+        lista.push({ disciplina: g.disciplina, horas, tarifa });
+        sesionesPorFranja.set(clave, lista);
+      }
+    }
+
     const porDisciplina: Record<string, number> = {};
     let coste = 0;
     let completo = true;
-    for (const g of gruposDe) {
-      const h = horasSemanales(g);
-      const t = tarifaDe(e.id, g.disciplina, tarifas, g.nombre, e.nombre, g.dias);
-      if (h == null || t == null) {
+    for (const sesiones of sesionesPorFranja.values()) {
+      const validas = sesiones.filter(
+        (s): s is Sesion & { horas: number; tarifa: number } => s.horas != null && s.tarifa != null,
+      );
+      if (validas.length === 0) {
         completo = false;
         continue;
       }
-      porDisciplina[g.disciplina] = (porDisciplina[g.disciplina] ?? 0) + h;
-      coste += h * t;
+      // De varios grupos a la misma hora, se paga solo uno (el de mayor
+      // coste, para no perder nunca un cobro por casualidad del orden).
+      const elegida = validas.reduce((mejor, s) =>
+        s.horas * s.tarifa > mejor.horas * mejor.tarifa ? s : mejor,
+      );
+      porDisciplina[elegida.disciplina] = (porDisciplina[elegida.disciplina] ?? 0) + elegida.horas;
+      coste += elegida.horas * elegida.tarifa;
     }
     return { entrenador: e, porDisciplina, coste, completo };
   });

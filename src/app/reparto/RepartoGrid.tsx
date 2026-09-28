@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { setAsignacion, copiarSemanaAnterior } from "./actions";
 import {
-  tarifaDe,
-  horasSemanales,
   calcularFilas,
   DISCIPLINA_LABEL,
   DISCIPLINA_TAG,
@@ -450,24 +448,19 @@ function CosteSemanal({
   asignado: Set<string>;
   tarifas: Tarifa[];
 }) {
-  const filas = entrenadores
-    .map((e) => {
-      const gruposDe = grupos.filter((g) => asignado.has(key(g.id, e.id)));
-      let horas = 0;
-      let coste = 0;
-      let completo = true;
-      for (const g of gruposDe) {
-        const h = horasSemanales(g);
-        const t = tarifaDe(e.id, g.disciplina, tarifas, g.nombre, e.nombre, g.dias);
-        if (h == null || t == null) {
-          completo = false;
-          continue;
-        }
-        horas += h;
-        coste += h * t;
-      }
-      return { entrenador: e.nombre, horas, coste, completo };
-    })
+  // Misma función que usan /pagos y el Corte del mes de aquí abajo, para
+  // que las tres pantallas calculen siempre exactamente igual (incluida
+  // la regla de "misma hora, un solo entrenamiento").
+  const asignaciones = grupos.flatMap((g) =>
+    entrenadores.filter((e) => asignado.has(key(g.id, e.id))).map((e) => ({ grupo_id: g.id, entrenador_id: e.id })),
+  );
+  const filas = calcularFilas(grupos, entrenadores, asignaciones, tarifas)
+    .map((f) => ({
+      entrenador: f.entrenador.nombre,
+      horas: Object.values(f.porDisciplina).reduce((s, h) => s + h, 0),
+      coste: f.coste,
+      completo: f.completo,
+    }))
     .filter((f) => f.horas > 0 || f.coste > 0);
 
   const huboIncompletos = filas.some((f) => !f.completo);

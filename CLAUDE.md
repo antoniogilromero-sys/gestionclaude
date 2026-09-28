@@ -1305,3 +1305,37 @@ cambiado de color igualmente. También llama a `revalidatePath("/reparto")`
 pantalla no enseñe la versión de antes. El error de un botón se muestra
 dentro de la tarjeta de su grupo, no solo arriba del todo (no se veía si
 estabas más abajo en la lista).
+
+## Mismo entrenador, dos grupos a la vez = un solo entrenamiento (septiembre 2026)
+
+Antón detectó que el coste calculado no coincidía con lo que en la
+práctica se paga: en natación, martes y jueves de 19 a 20h, los grupos
+"Avanzado" y "Medio" son grupos distintos en la app (categorías
+distintas de nadadores) pero **los da la misma persona a la vez, en la
+misma piscina** — para el pago cuenta como un solo entrenamiento de una
+hora, no como dos.
+
+`calcularFilas` (`src/lib/costes.ts`) cambió de sumar coste grupo a
+grupo a agrupar primero las sesiones de un entrenador por **franja
+horaria exacta** (mismo día + misma hora de inicio y fin): si dos de sus
+grupos caen en la misma franja, solo se paga una vez esa hora (la de
+mayor coste entre los dos, para no perder nunca un cobro por casualidad
+del orden). Si coinciden en día pero no en horario, siguen contando como
+entrenamientos distintos. Esto es independiente de `GRUPOS_SIN_PAGO`
+(que sigue dejando el nombre concreto "Martes/Jueves Avanzado 19h" a 0€
+sin condición) — las dos reglas conviven: si algún día ese grupo se da
+solo, sin "Medio" a la vez, seguiría sin cobrarse por la regla de
+`GRUPOS_SIN_PAGO`, no por la de franja horaria.
+
+De paso, este cambio también corrige un fallo más sutil que tenía el
+cálculo antiguo: la excepción de Diego Gil Gordillo (no cobra los
+lunes) se aplicaba a la tarifa de **todo el grupo de golpe** — si algún
+grupo suyo diera lunes Y otro día distinto, el lunes le habría anulado
+el cobro del grupo entero, no solo el de ese día. Ahora la tarifa se
+calcula día a día dentro del propio grupo, así que un grupo de varios
+días con el lunes exento solo pierde el cobro de la sesión del lunes.
+
+`CosteSemanal` en `RepartoGrid.tsx` tenía su propio cálculo duplicado
+(no llamaba a `calcularFilas`) — se unificó para que las tres pantallas
+que muestran coste (`/reparto` semanal y mensual, `/pagos`) usen
+siempre la misma función y no puedan desincronizarse.
