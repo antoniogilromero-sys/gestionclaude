@@ -22,6 +22,15 @@ export default async function CuotasPage() {
     .select("id, nombre_deportista, importe, estado, creado_en")
     .order("creado_en", { ascending: false });
 
+  // Primer día del mes en curso: para saber quién ha pagado YA este mes.
+  const hoy = new Date();
+  const inicioMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-01`;
+  const { data: pagos } = await supabase
+    .from("cuotas_pagos")
+    .select("cuota_id, fecha, importe, estado")
+    .gte("fecha", inicioMes)
+    .order("fecha", { ascending: false });
+
   return (
     <AppShell nombre={perfil.nombre} rol={perfil.rol}>
       <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute mb-2.5">
@@ -43,7 +52,7 @@ export default async function CuotasPage() {
           </p>
         </div>
       ) : (
-        <CuotasList cuotas={cuotas ?? []} />
+        <CuotasList cuotas={cuotas ?? []} pagosDelMes={pagos ?? []} />
       )}
     </AppShell>
   );

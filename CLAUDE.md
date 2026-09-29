@@ -1339,3 +1339,29 @@ días con el lunes exento solo pierde el cobro de la sesión del lunes.
 (no llamaba a `calcularFilas`) — se unificó para que las tres pantallas
 que muestran coste (`/reparto` semanal y mensual, `/pagos`) usen
 siempre la misma función y no puedan desincronizarse.
+
+## Ampliación de alcance: saber quién ha pagado la cuota cada mes (septiembre 2026)
+
+Antón pidió en `/cuotas` poder ver quién ha hecho ya el pago mensual y
+quién se ha quedado sin pagar, no solo si la suscripción sigue activa.
+`cuotas_stripe` solo guardaba el **estado actual** de la suscripción
+(activa/cancelada/impago) — no había ninguna fila por cada cobro mensual
+real, así que no se podía responder "¿ha pagado YA este mes?".
+
+- Tabla nueva `cuotas_pagos` (`docs/migracion_cuotas_pagos.sql`): una
+  fila por factura de Stripe (fecha, importe, `pagado`/`pendiente`),
+  ligada a su `cuotas_stripe`. Solo lectura para el director, igual
+  criterio que el resto de cuotas.
+- **No se rellena con un webhook nuevo** (eso solo habría funcionado
+  hacia adelante, desde el día que Antón activara un evento nuevo en el
+  Dashboard de Stripe) — se trae bajo demanda con el botón "Sincronizar
+  pagos con Stripe" en `/cuotas` (`sincronizarPagosCuotas` en
+  `src/lib/stripe.ts`, pide a Stripe `invoices.list` de cada
+  suscripción). Así funciona también con los cobros de antes de crear
+  esta tabla, sin depender de configurar nada más en Stripe.
+- `/cuotas` ahora muestra un resumen "Sin pagar en {mes}" arriba, una
+  lista de quién falta, y una etiqueta verde/roja en cada fila (Pagado
+  {mes} / Sin pagar este mes) — comparando `cuotas_pagos` del mes en
+  curso contra las cuotas activas.
+- Mismo patrón que Strava/Rutas: sincronización manual con botón, no
+  automática (sin cron ni workers, planes gratuitos).
