@@ -21,6 +21,54 @@ export function stripeClient() {
   return new Stripe(key);
 }
 
+export type CobroStripe = {
+  id: string;
+  fecha: string;
+  importe: number;
+  pagador: string;
+  descripcion: string;
+  estado: "succeeded" | "pending" | "failed";
+};
+
+// Listado en directo (nada se guarda) de los cobros reales de la cuenta
+// de Stripe del club en un mes concreto — para cobros que Antón gestiona
+// él mismo dentro de Stripe (un enlace de pago, una factura manual...),
+// sin pasar por el checkout de /cuota ni por `cuotas_stripe`. Se pide a
+// Stripe cada vez que se abre la pantalla, igual que el resumen de
+// Strava: menos que mantener sincronizado, siempre al día.
+export async function listarCobrosMes(mesISO: string): Promise<CobroStripe[]> {
+  const stripe = stripeClient();
+  const [anio, mes] = mesISO.split("-").map(Number);
+  const inicio = Math.floor(new Date(anio, mes - 1, 1).getTime() / 1000);
+  const fin = Math.floor(new Date(anio, mes, 1).getTime() / 1000);
+
+  const cobros: CobroStripe[] = [];
+  let startingAfter: string | undefined;
+  // Un club de este tamaño no debería acercarse a este límite en un mes,
+  // pero por si acaso se para a las 300 para no encadenar peticiones sin
+  // fin a la API de Stripe.
+  for (let pagina = 0; pagina < 3; pagina++) {
+    const resultado = await stripe.charges.list({
+      created: { gte: inicio, lt: fin },
+      limit: 100,
+      starting_after: startingAfter,
+    });
+    for (const c of resultado.data) {
+      cobros.push({
+        id: c.id,
+        fecha: new Date(c.created * 1000).toISOString().slice(0, 10),
+        importe: c.amount / 100,
+        pagador: c.billing_details?.name || c.billing_details?.email || "Sin nombre",
+        descripcion: c.description ?? "",
+        estado: c.status === "succeeded" ? "succeeded" : c.status === "failed" ? "failed" : "pending",
+      });
+    }
+    if (!resultado.has_more) break;
+    startingAfter = resultado.data[resultado.data.length - 1]?.id;
+  }
+  return cobros.sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+}
+
 // Trae de Stripe el historial real de cobros (facturas) de cada cuota
 // guardada y lo deja en `cuotas_pagos`. Se llama bajo demanda (botón
 // "Sincronizar pagos" en /cuotas), no por webhook — así funciona también

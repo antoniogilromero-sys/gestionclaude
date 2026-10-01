@@ -2,8 +2,20 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { CuotasList } from "./CuotasList";
+import { CobrosStripe } from "./CobrosStripe";
+import { listarCobrosMes } from "@/lib/stripe";
 
-export default async function CuotasPage() {
+function sumarMes(mesISO: string, delta: number) {
+  const [anio, mes] = mesISO.split("-").map(Number);
+  const d = new Date(anio, mes - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export default async function CuotasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mes?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -16,6 +28,19 @@ export default async function CuotasPage() {
     .eq("id", user.id)
     .single();
   if (!perfil || perfil.rol !== "director") redirect("/");
+
+  const params = await searchParams;
+  const hoyISO = new Date();
+  const mes =
+    params.mes ?? `${hoyISO.getFullYear()}-${String(hoyISO.getMonth() + 1).padStart(2, "0")}`;
+
+  let cobros: Awaited<ReturnType<typeof listarCobrosMes>> = [];
+  let errorStripe: string | null = null;
+  try {
+    cobros = await listarCobrosMes(mes);
+  } catch (e) {
+    errorStripe = e instanceof Error ? e.message : "No se ha podido conectar con Stripe";
+  }
 
   const { data: cuotas, error } = await supabase
     .from("cuotas_stripe")
@@ -54,6 +79,16 @@ export default async function CuotasPage() {
       ) : (
         <CuotasList cuotas={cuotas ?? []} pagosDelMes={pagos ?? []} />
       )}
+
+      <div className="lane my-5" />
+
+      <CobrosStripe
+        mes={mes}
+        mesAnterior={sumarMes(mes, -1)}
+        mesSiguiente={sumarMes(mes, 1)}
+        cobros={cobros}
+        error={errorStripe}
+      />
     </AppShell>
   );
 }

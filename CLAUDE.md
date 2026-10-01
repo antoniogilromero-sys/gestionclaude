@@ -1365,3 +1365,30 @@ real, así que no se podía responder "¿ha pagado YA este mes?".
   curso contra las cuotas activas.
 - Mismo patrón que Strava/Rutas: sincronización manual con botón, no
   automática (sin cron ni workers, planes gratuitos).
+
+## Cobros reales de Stripe gestionados fuera de /cuota (octubre 2026)
+
+Antón tiene ingresos en su cuenta de Stripe que **no pasan por el
+checkout de `/cuota`** — los gestiona él mismo dentro del Dashboard de
+Stripe (enlace de pago, factura manual...). Por eso `cuotas_stripe`
+seguía vacía aunque ya hubiera cobros reales: esa tabla solo se rellena
+cuando alguien paga a través de nuestro checkout, y estos no lo hacían.
+
+Para poder verlos igualmente dentro de la app sin inventarse ninguna
+vinculación falsa con `cuotas_stripe`, se añadió un segundo bloque en
+`/cuotas`, **"Cobros en Stripe"** (`CobrosStripe.tsx`,
+`listarCobrosMes` en `src/lib/stripe.ts`): pide directamente a la API de
+Stripe (`charges.list`) los cobros de la cuenta en el mes que se esté
+viendo (con navegación ←/→ por mes, mismo patrón que `/pagos`), sin
+guardar nada en Supabase — se trae en directo cada vez que se abre la
+pantalla, igual criterio que el resumen ligero de Strava en
+`/entrenamiento-diario`. Es intencional que sea un listado aparte del de
+arriba (cuotas por suscripción): son dos orígenes de dinero distintos
+que no se cruzan entre sí; si algún día los cobros manuales empezaran a
+hacerse también por `/cuota`, saldrían en los dos sitios sin
+duplicarse de verdad (una es la suscripción, la otra es el cobro en sí).
+
+Solo hace falta `STRIPE_SECRET_KEY` para este bloque (no
+`STRIPE_WEBHOOK_SECRET`, que es solo para el checkout de `/cuota`). Si
+la clave no está puesta, el bloque muestra un aviso en vez de romper la
+pantalla.
