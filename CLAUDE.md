@@ -1418,3 +1418,13 @@ sin existir** (se borra y se vuelve a publicar).
   `/reparto`). Sin esto, el botón diría "borrado" sin haber borrado.
 - Un entrenador puede borrar su sesión en cualquier momento, aunque otros
   ya la hayan abierto; no hay límite de tiempo.
+
+**Cambiar la fecha de un entrenamiento (solo director, mismo día):** en
+la ficha `/entrenamientos/[id]` el director tiene un botón "Cambiar
+fecha" (`CambiarFecha.tsx`, acción `cambiarFechaSesion`). Solo cambia la
+fecha — título, contenido y grupos siguen sin poder editarse. No necesita
+migración: `p_ses_admin` ya permite al director actualizar cualquier
+sesión. La acción comprueba `rol === "director"` explícitamente aunque la
+RLS de un entrenador le deje actualizar sus propias sesiones (existe solo
+para el paso borrador→publicar), porque mover fechas de entrenamientos
+ya publicados es cosa de dirección.

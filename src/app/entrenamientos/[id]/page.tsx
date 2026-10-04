@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { MarcarVisto } from "../MarcarVisto";
 import { BorrarSesion } from "../BorrarSesion";
+import { CambiarFecha } from "../CambiarFecha";
 
 const TAG_DISC: Record<string, string> = {
   natacion: "bg-swim/15 text-swim",
@@ -72,6 +73,9 @@ export default async function EntrenamientoDetalle({
           {sesion.contenido}
         </div>
       </article>
+      {perfil.rol === "director" && (
+        <CambiarFecha key={sesion.fecha} sesionId={sesion.id} fechaActual={sesion.fecha} />
+      )}
       {(perfil.rol === "director" || sesion.autor_id === user.id) && (
         <BorrarSesion sesionId={sesion.id} />
       )}
