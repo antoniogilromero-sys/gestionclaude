@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { MarcarVisto } from "../MarcarVisto";
+import { BorrarSesion } from "../BorrarSesion";
 
 const TAG_DISC: Record<string, string> = {
   natacion: "bg-swim/15 text-swim",
@@ -32,7 +33,7 @@ export default async function EntrenamientoDetalle({
   const { data: sesion } = await supabase
     .from("sesiones")
     .select(
-      "id, fecha, titulo, disciplina, contenido, material, sesion_grupo(grupos(nombre))",
+      "id, fecha, titulo, disciplina, contenido, material, autor_id, sesion_grupo(grupos(nombre))",
     )
     .eq("id", id)
     .single();
@@ -71,6 +72,9 @@ export default async function EntrenamientoDetalle({
           {sesion.contenido}
         </div>
       </article>
+      {(perfil.rol === "director" || sesion.autor_id === user.id) && (
+        <BorrarSesion sesionId={sesion.id} />
+      )}
     </AppShell>
   );
 }

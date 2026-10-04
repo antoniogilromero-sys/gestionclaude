@@ -1392,3 +1392,29 @@ Solo hace falta `STRIPE_SECRET_KEY` para este bloque (no
 `STRIPE_WEBHOOK_SECRET`, que es solo para el checkout de `/cuota`). Si
 la clave no está puesta, el bloque muestra un aviso en vez de romper la
 pantalla.
+
+## Borrar un entrenamiento publicado (octubre 2026)
+
+Antón pidió poder borrar un entrenamiento por si un entrenador se
+equivoca al publicarlo. Esto sustituye lo que decía la sección "los
+entrenadores publican sus propios entrenamientos" más arriba ("no hay
+ningún botón de editar ni borrar"): **borrar sí existe ya, editar sigue
+sin existir** (se borra y se vuelve a publicar).
+
+- Botón "Borrar este entrenamiento" (con confirmación "¿Seguro?") al
+  final de la ficha `/entrenamientos/[id]` (`BorrarSesion.tsx`), solo si
+  eres el director o el autor de esa sesión (`sesion.autor_id`). Se
+  puso en la ficha y no en la lista porque cada tarjeta de la lista es
+  un enlace entero.
+- RLS: `docs/migracion_borrar_sesion_propia.sql` añade
+  `p_ses_borrar_propia` (`for delete using (autor_id = auth.uid())`) sin
+  tocar `p_ses_admin` del director. Se borran solas las filas de
+  `sesion_grupo` y `sesion_vista` (on delete cascade). Antón la ejecuta a
+  mano en Supabase.
+- `borrarSesion` (`entrenamientos/actions.ts`) pide de vuelta la fila
+  borrada (`.delete().select("id")`) y devuelve error si no vino ninguna:
+  un DELETE que la RLS bloquea **no da error en Supabase, simplemente no
+  borra nada** (mismo motivo que la comprobación de `setAsignacion` en
+  `/reparto`). Sin esto, el botón diría "borrado" sin haber borrado.
+- Un entrenador puede borrar su sesión en cualquier momento, aunque otros
+  ya la hayan abierto; no hay límite de tiempo.
