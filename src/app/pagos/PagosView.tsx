@@ -11,10 +11,12 @@ import {
   type Asignacion,
 } from "@/lib/costes";
 import { crearPagoExtra, borrarPagoExtra } from "./actions";
+import { PagosReales } from "./PagosReales";
 
 type Entrenador = { id: string; nombre: string; rol: "director" | "entrenador" };
 type SemanaAsignaciones = { semana: string; asignaciones: Asignacion[] };
 type PagoExtra = { id: number; entrenador_id: string; concepto: string; importe: number };
+type PagoReal = { id: number; entrenador_id: string; importe: number; nota: string | null };
 
 function formatMes(iso: string) {
   const [y, m] = iso.split("-").map(Number);
@@ -32,6 +34,8 @@ export function PagosView({
   tarifas,
   asignacionesPorSemana,
   pagosExtra,
+  pagosReales,
+  pagosRealesError,
 }: {
   mes: string;
   mesAnterior: string;
@@ -41,6 +45,8 @@ export function PagosView({
   tarifas: Tarifa[];
   asignacionesPorSemana: SemanaAsignaciones[];
   pagosExtra: PagoExtra[];
+  pagosReales: PagoReal[];
+  pagosRealesError: string | null;
 }) {
   const router = useRouter();
   const [entrenadorId, setEntrenadorId] = useState(entrenadores[0]?.id ?? "");
@@ -313,6 +319,25 @@ export function PagosView({
           para esa disciplina, así que ese coste no está completo.
         </p>
       )}
+
+      <div className="lane my-4" />
+
+      <PagosReales
+        mes={mes}
+        error={pagosRealesError}
+        filas={entrenadores.map((e) => {
+          const real = pagosReales.find((p) => p.entrenador_id === e.id);
+          return {
+            id: e.id,
+            nombre: e.nombre,
+            reparto: costeMes[e.id] ?? 0,
+            extras: extraTotalPorEntrenador[e.id] ?? 0,
+            realId: real?.id ?? null,
+            real: real ? real.importe : null,
+            nota: real?.nota ?? null,
+          };
+        })}
+      />
 
       <div className="lane my-4" />
 

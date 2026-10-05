@@ -43,6 +43,7 @@ export default async function PagosPage({
     { data: tarifas },
     { data: asignaciones },
     { data: pagosExtra, error: pagosError },
+    { data: pagosReales, error: pagosRealesError },
   ] = await Promise.all([
     supabase
       .from("grupos")
@@ -68,6 +69,7 @@ export default async function PagosPage({
       .select("id, entrenador_id, concepto, importe")
       .eq("mes", mes)
       .order("creado_en"),
+    supabase.from("pagos_reales").select("id, entrenador_id, importe, nota").eq("mes", mes),
   ]);
 
   const semanas = [...new Set((asignaciones ?? []).map((a) => a.semana))].sort();
@@ -98,6 +100,8 @@ export default async function PagosPage({
           tarifas={tarifas ?? []}
           asignacionesPorSemana={asignacionesPorSemana}
           pagosExtra={pagosExtra ?? []}
+          pagosReales={(pagosReales ?? []).map((p) => ({ ...p, importe: Number(p.importe) }))}
+          pagosRealesError={pagosRealesError?.message ?? null}
         />
       )}
     </AppShell>

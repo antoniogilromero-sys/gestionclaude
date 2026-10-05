@@ -57,3 +57,41 @@ export async function borrarPagoExtra(id: number): Promise<Resultado> {
   if (error) return { error: error.message };
   return { ok: true };
 }
+
+// Cantidad REAL que se abona a un entrenador en un mes (para compararla
+// con la estimación de la app). Una sola por entrenador y mes: si ya
+// existe, se sustituye.
+export async function guardarPagoReal(input: {
+  entrenadorId: string;
+  mes: string;
+  importe: number;
+  nota: string;
+}): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+
+  if (!input.entrenadorId) return { error: "Falta elegir el entrenador" };
+  if (!(input.importe >= 0)) return { error: "El importe no es válido" };
+
+  const { error } = await r.supabase.from("pagos_reales").upsert(
+    {
+      entrenador_id: input.entrenadorId,
+      mes: input.mes,
+      importe: input.importe,
+      nota: input.nota.trim() || null,
+      creado_por: r.userId,
+      actualizado_en: new Date().toISOString(),
+    },
+    { onConflict: "entrenador_id,mes" },
+  );
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+export async function borrarPagoReal(id: number): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+  const { error } = await r.supabase.from("pagos_reales").delete().eq("id", id);
+  if (error) return { error: error.message };
+  return { ok: true };
+}

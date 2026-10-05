@@ -1428,3 +1428,24 @@ sesión. La acción comprueba `rol === "director"` explícitamente aunque la
 RLS de un entrenador le deje actualizar sus propias sesiones (existe solo
 para el paso borrador→publicar), porque mover fechas de entrenamientos
 ya publicados es cosa de dirección.
+
+## Pagos reales frente a la estimación de la app (octubre 2026)
+
+El coste de `/pagos` se calcula al vuelo (horas del reparto × tarifa +
+pagos extra) y para septiembre 2026 no coincidía con lo que Antón de
+verdad tenía que abonar. En vez de fiarse a ciegas de uno u otro, se
+guarda lo **real** y se compara: tabla `pagos_reales`
+(`docs/migracion_pagos_reales.sql`, una fila por entrenador y mes, solo
+director) y un cuadro "Pagos reales frente a la app" en `/pagos`
+(`PagosReales.tsx`) con Reparto / Extras / App / Real / Diferencia
+(real − app) por entrenador, más un total. Los entrenadores sin cantidad
+real anotada no entran en el total: salen aparte en una línea ("Sin
+cantidad real anotada") para no inflar la diferencia.
+
+Cantidades de septiembre 2026 en
+`docs/seed_pagos_reales_septiembre_2026.sql` (Celia 377, Nimai 160 +
+Gredos, Diego 140, Héctor 80, Nacho 90, Sonia 15). **Nimai: Antón dijo
+"160 + Gredos" sin dar el importe de Gredos** — se guardó 160 con una
+nota; hay que corregirlo cuando se sepa. El objetivo es encontrar de
+dónde sale cada diferencia (grupo mal asignado, semana sin reparto
+guardado, tarifa distinta…), no tapar la diferencia.
