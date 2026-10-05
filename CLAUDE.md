@@ -1449,3 +1449,17 @@ Gredos, Diego 140, Héctor 80, Nacho 90, Sonia 15). **Nimai: Antón dijo
 nota; hay que corregirlo cuando se sepa. El objetivo es encontrar de
 dónde sale cada diferencia (grupo mal asignado, semana sin reparto
 guardado, tarifa distinta…), no tapar la diferencia.
+
+**Aviso importante sobre `perfiles.nombre` (octubre 2026):** varias
+cuentas de entrenador (Diego, Sonia, Celia, Nimai, Héctor) tienen como
+nombre su correo en vez de su nombre. Dos consecuencias reales: (1) una
+búsqueda por nombre no las encuentra, por eso el seed de pagos reales
+busca por **correo** (`personal_temporada` tiene los de todo el equipo);
+(2) la regla "Diego no cobra los lunes" (`ENTRENADOR_DIA_SIN_PAGO`)
+compara el nombre con "diego gil gordillo" y con el correo como nombre
+**nunca se le aplicaba** — causa probable de su diferencia de −40 € en
+septiembre. El seed renombra esas cuentas (solo las que aún tienen un
+correo como nombre). Pendiente de comprobar al verlo cargado: la
+excepción de tarifa de Celia (17 €/h natación/carrera, 22 €/h ciclismo,
+`migracion_reparto_entrenadores.sql`) también se insertaba buscando
+`perfiles.nombre = 'Celia'`, así que puede no haberse creado nunca.
