@@ -38,8 +38,52 @@ export default async function Home() {
 
   const semana = toISODateLocal(lunesDe(new Date()));
 
+  // Avisos de los últimos 10 días (ej. "se han subido los resultados de
+  // tal carrera"). Si la tabla aún no existe, el error se ignora: Inicio
+  // se ve igual que antes, sin el bloque.
+  const { data: avisos } = await supabase
+    .from("avisos")
+    .select("id, titulo, texto, enlace, creado_en")
+    .gte("creado_en", new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString())
+    .order("creado_en", { ascending: false })
+    .limit(5);
+
   return (
     <AppShell nombre={nombre} rol={rol}>
+      {(avisos ?? []).length > 0 && (
+        <div className="mb-5">
+          <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute mb-2.5">
+            Novedades
+          </h2>
+          {(avisos ?? []).map((a) => {
+            const contenido = (
+              <>
+                <b className="block text-[15px] font-medium">{a.titulo}</b>
+                {a.texto && <p className="text-sm text-mute leading-relaxed mt-0.5">{a.texto}</p>}
+                <span className="text-xs text-mute block mt-1">
+                  {new Date(a.creado_en).toLocaleDateString("es-ES", {
+                    day: "2-digit",
+                    month: "2-digit",
+                  })}
+                </span>
+              </>
+            );
+            return a.enlace ? (
+              <Link
+                key={a.id}
+                href={a.enlace}
+                className="block bg-surf border border-signal/40 rounded-[10px] p-3.5 mb-2"
+              >
+                {contenido}
+              </Link>
+            ) : (
+              <div key={a.id} className="bg-surf border border-signal/40 rounded-[10px] p-3.5 mb-2">
+                {contenido}
+              </div>
+            );
+          })}
+        </div>
+      )}
       {rol === "director" ? (
         <ResumenDirector semana={semana} />
       ) : (

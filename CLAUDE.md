@@ -1463,3 +1463,31 @@ correo como nombre). Pendiente de comprobar al verlo cargado: la
 excepción de tarifa de Celia (17 €/h natación/carrera, 22 €/h ciclismo,
 `migracion_reparto_entrenadores.sql`) también se insertaba buscando
 `perfiles.nombre = 'Celia'`, así que puede no haberse creado nunca.
+
+## Al cargar resultados de una competición: siempre con aviso (octubre 2026)
+
+**Instrucción permanente de Antón:** cada vez que se suba una
+clasificación nueva de una competición, se carga directamente en
+Competiciones > Resultados (tabla `competiciones`) **y se genera un
+aviso para el equipo** para que sepan que ya está subida.
+
+- El aviso es una fila en `avisos` (`docs/migracion_avisos.sql`): título,
+  texto corto y `enlace` a `/competiciones`. Inicio (`src/app/page.tsx`)
+  lo enseña a director y entrenadores como "Novedades" durante 10 días.
+  Incluir el `insert into avisos ... where not exists` en el mismo SQL
+  que carga los resultados (modelo: `docs/seed_competiciones_pinto_2026.sql`).
+- No hay acceso directo a la base de datos desde aquí: "subir" significa
+  dejar el SQL listo y que Antón lo ejecute en Supabase. Decírselo así.
+- Fuente habitual: PDFs de clasificaciones de la Federación Madrileña
+  (`triatlonmadrid.org`, secciones Clasificaciones y Escolar). **Cuidado
+  al leerlos con `pdftotext -layout`**: la columna del club sale
+  desplazada una línea y atribuye mal el club a cada nombre. Con
+  `pdftotext -raw`, los PDFs escolares dejan nombre+club en una línea y
+  dorsal/categoría/tiempo en la siguiente (fiable). Los PDFs de adultos
+  siguen mezclando el club entre filas: comprobar siempre cada nombre
+  contra las listas del club (`docs/seed_*grupos*.sql`) antes de darlo
+  por nuestro (en Pinto 2026 una corredora salía como Alpedrete en
+  `-layout` y era de otro club).
+- Solo se cargan deportistas del club, nunca el resto de la clasificación.
+  Los que no terminaron (DNS) no se registran. El SQL termina con una
+  consulta que marca "SIN FICHA" a quien no esté en Deportistas.
