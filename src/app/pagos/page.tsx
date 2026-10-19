@@ -80,6 +80,7 @@ export default async function PagosPage({
   const { data: compesMes, error: errorCompes } = await supabase
     .from("proximas_competiciones")
     .select("id")
+    .eq("es_escolar", true) // solo las del Circuito Escolar se cobran
     .gte("fecha", mes)
     .lte("fecha", mesFin);
   if (!errorCompes && (compesMes ?? []).length > 0) {

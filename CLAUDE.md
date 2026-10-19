@@ -57,7 +57,8 @@ cobrando por horas con esa tarifa. Una sesión de ciclismo sin horario fijo
 
 **Competiciones que se cobran (80 €)**: en `/reparto`, bloque "Competiciones
 de la semana" (solo director). Muestra las competiciones de Próximas
-competiciones cuya fecha cae en esa semana; el director marca quién va, y
+competiciones **marcadas como escolares (`es_escolar`)** cuya fecha cae en
+esa semana — las demás no se cobran (aclarado por Antón); el director marca quién va, y
 cada uno que va suma 80 € (`EUROS_COMPETICION` en `src/lib/costes.ts`) al
 coste semanal, al corte del mes y a `/pagos` (columna Competiciones, y
 dentro de "extras" en pagos reales). **Solo pueden aparecer Sonia, Celia,

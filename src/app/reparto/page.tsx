@@ -112,6 +112,7 @@ export default async function RepartoPage({
       supabase
         .from("proximas_competiciones")
         .select("id, nombre, fecha")
+        .eq("es_escolar", true) // solo las del Circuito Escolar se cobran
         .gte("fecha", mesInicio)
         .lte("fecha", mesFin)
         .order("fecha"),

@@ -468,8 +468,8 @@ function CompeticionesSemana({
       </h2>
       {competiciones.length === 0 ? (
         <p className="text-mute text-sm">
-          No hay ninguna competición del calendario esta semana. Se añaden en Competiciones →
-          Próximas.
+          No hay ninguna competición del Circuito Escolar esta semana. Se añaden en
+          Competiciones → Próximas, marcadas como escolares.
         </p>
       ) : (
         competiciones.map((c) => (
