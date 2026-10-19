@@ -48,6 +48,13 @@ que falta rellenar, es intencional.
 **El director es también uno de los entrenadores de la plantilla** (Toni,
 `antoniogilromero@gmail.com`) — no son dos personas distintas.
 
+**El ciclismo se paga por ENTRENAMIENTO, no por hora** (20 € la sesión,
+aclarado por Antón en octubre 2026; natación, carrera y fuerza siguen a
+15 €/h). Está en `DISCIPLINAS_POR_SESION` de `src/lib/costes.ts`. Excepción:
+quien tenga tarifa propia de ciclismo en `tarifas_entrenador` (Celia) sigue
+cobrando por horas con esa tarifa. Una sesión de ciclismo sin horario fijo
+(Carretera del domingo) ahora sí cobra, aunque sume 0 horas en la columna.
+
 ## Cuadro de personal y datos de contacto
 
 **Se quitó de `/reparto`** (agosto 2026): Antón nunca ejecutó

@@ -2,14 +2,25 @@
 // para que las dos pantallas usen siempre la misma tarifa y las mismas
 // horas — si algún día cambia una tarifa general, se cambia aquí una vez.
 
-// Sin excepción propia en tarifas_entrenador, se paga esto por hora.
-// "fuerza" a 15 €/h confirmado por Antón (no salía de ningún cálculo).
+// Sin excepción propia en tarifas_entrenador, se paga esto: por HORA en
+// natación, carrera y fuerza (fuerza a 15 €/h confirmado por Antón, no salía
+// de ningún cálculo), y por ENTRENAMIENTO en ciclismo (ver
+// DISCIPLINAS_POR_SESION). Una tarifa PROPIA en tarifas_entrenador (la
+// columna euros_hora) sigue siendo por hora, también en ciclismo.
 export const TARIFA_GENERAL: Record<string, number> = {
   natacion: 15,
   carrera: 15,
   ciclismo: 20,
   fuerza: 15,
 };
+
+// Antón aclaró (octubre 2026) que ciclismo son 20 € por entrenamiento, no
+// por hora: una salida cuesta lo mismo dure 1 h o 2 h. Por eso el coste de
+// estas disciplinas no multiplica por las horas, y una sesión sin horario
+// fijo (ej. Ciclismo Carretera del domingo) sí cobra, cosa que antes
+// quedaba fuera del cálculo con el asterisco. Excepción: Celia, que cobra
+// el ciclismo a otra tarifa (propia, por hora).
+export const DISCIPLINAS_POR_SESION = new Set(["ciclismo"]);
 
 export type Grupo = {
   id: number;
@@ -129,19 +140,30 @@ export function calcularFilas(
     type Sesion = {
       disciplina: string;
       horas: number | null;
-      tarifa: number | null;
+      // Lo que se paga por esta sesión; null si no se puede calcular
+      // (sin tarifa, o por horas y sin horario fijo).
+      coste: number | null;
     };
     const sesionesPorFranja = new Map<string, Sesion[]>();
     for (const g of gruposDe) {
       const horas = duracionHoras(g.hora_inicio, g.hora_fin);
+      // Solo la tarifa GENERAL de ciclismo es por entrenamiento. Quien
+      // tiene tarifa propia en tarifas_entrenador (Celia, que cobra el
+      // ciclismo a otra tarifa) sigue cobrando por horas como siempre.
+      const tienePropia = tarifas.some(
+        (t) => t.entrenador_id === e.id && t.disciplina === g.disciplina,
+      );
+      const porSesion = DISCIPLINAS_POR_SESION.has(g.disciplina) && !tienePropia;
       for (const dia of g.dias) {
         // La tarifa se calcula día a día (no para todo el grupo de
         // golpe): un grupo que diera lunes Y otro día no debería perder
         // el cobro entero solo porque el lunes esté exento.
         const tarifa = tarifaDe(e.id, g.disciplina, tarifas, g.nombre, e.nombre, [dia]);
+        const coste =
+          tarifa == null ? null : porSesion ? tarifa : horas == null ? null : horas * tarifa;
         const clave = `${dia}|${g.hora_inicio ?? ""}|${g.hora_fin ?? ""}`;
         const lista = sesionesPorFranja.get(clave) ?? [];
-        lista.push({ disciplina: g.disciplina, horas, tarifa });
+        lista.push({ disciplina: g.disciplina, horas, coste });
         sesionesPorFranja.set(clave, lista);
       }
     }
@@ -151,7 +173,7 @@ export function calcularFilas(
     let completo = true;
     for (const sesiones of sesionesPorFranja.values()) {
       const validas = sesiones.filter(
-        (s): s is Sesion & { horas: number; tarifa: number } => s.horas != null && s.tarifa != null,
+        (s): s is Sesion & { coste: number } => s.coste != null,
       );
       if (validas.length === 0) {
         completo = false;
@@ -159,11 +181,11 @@ export function calcularFilas(
       }
       // De varios grupos a la misma hora, se paga solo uno (el de mayor
       // coste, para no perder nunca un cobro por casualidad del orden).
-      const elegida = validas.reduce((mejor, s) =>
-        s.horas * s.tarifa > mejor.horas * mejor.tarifa ? s : mejor,
-      );
-      porDisciplina[elegida.disciplina] = (porDisciplina[elegida.disciplina] ?? 0) + elegida.horas;
-      coste += elegida.horas * elegida.tarifa;
+      const elegida = validas.reduce((mejor, s) => (s.coste > mejor.coste ? s : mejor));
+      // Las horas son informativas (columna HORAS): una sesión por
+      // entrenamiento sin horario fijo cobra, pero suma 0 horas.
+      porDisciplina[elegida.disciplina] = (porDisciplina[elegida.disciplina] ?? 0) + (elegida.horas ?? 0);
+      coste += elegida.coste;
     }
     return { entrenador: e, porDisciplina, coste, completo };
   });
