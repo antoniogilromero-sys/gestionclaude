@@ -21,7 +21,8 @@ create policy p_compent_admin on competicion_entrenador
 
 -- Las cuatro personas que pueden ir a competiciones, identificadas por
 -- email (el nombre de perfil a veces es el propio email). El nombre que se
--- enseña es el del cuadro de personal (Sonia, Héctor, Celia, Toni).
+-- enseña va escrito aquí (Sonia, Héctor, Celia, Toni) para no depender de
+-- que exista la tabla personal_temporada.
 create or replace function entrenadores_competicion()
 returns table (id uuid, nombre text)
 language sql
@@ -29,9 +30,14 @@ stable
 security definer
 set search_path = public
 as $$
-  select p.id, coalesce(pt.nombre, p.nombre) as nombre
+  select p.id,
+         case lower(p.email)
+           when 'soniacesteros@gmail.com'          then 'Sonia'
+           when 'llitomtb@gmail.com'               then 'Héctor'
+           when 'c.calderonsantamaria@gmail.com'   then 'Celia'
+           when 'antoniogilromero@gmail.com'       then 'Toni'
+         end as nombre
   from perfiles p
-  left join personal_temporada pt on lower(pt.email) = lower(p.email)
   where es_director()
     and p.activo
     and lower(p.email) in (
@@ -40,7 +46,7 @@ as $$
       'c.calderonsantamaria@gmail.com',
       'antoniogilromero@gmail.com'
     )
-  order by coalesce(pt.nombre, p.nombre);
+  order by 2;
 $$;
 
 revoke all on function entrenadores_competicion() from public;
