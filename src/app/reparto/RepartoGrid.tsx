@@ -3,17 +3,21 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { setAsignacion, copiarSemanaAnterior } from "./actions";
+import { setAsignacion, copiarSemanaAnterior, setCompeticionEntrenador } from "./actions";
 import {
   calcularFilas,
+  costeCompeticiones,
   DISCIPLINA_LABEL,
   DISCIPLINA_TAG,
+  EUROS_COMPETICION,
+  type AsignacionCompeticion,
   type Grupo,
   type Tarifa,
 } from "@/lib/costes";
 
 type Entrenador = { id: string; nombre: string };
 type Asignacion = { grupo_id: number; entrenador_id: string };
+type Competicion = { id: number; nombre: string; fecha: string | null };
 
 function key(grupoId: number, entrenadorId: string) {
   return `${grupoId}:${entrenadorId}`;
@@ -76,6 +80,10 @@ export function RepartoGrid({
   asignacionesIniciales,
   tarifas,
   asignacionesPorSemanaMes,
+  competicionesMes,
+  asignacionesCompeticion,
+  entrenadoresCompeticion,
+  errorCompeticiones,
 }: {
   esDirector: boolean;
   semana: string;
@@ -87,9 +95,50 @@ export function RepartoGrid({
   asignacionesIniciales: Asignacion[];
   tarifas: Tarifa[];
   asignacionesPorSemanaMes: { semana: string; asignaciones: Asignacion[] }[];
+  competicionesMes: Competicion[];
+  asignacionesCompeticion: AsignacionCompeticion[];
+  entrenadoresCompeticion: Entrenador[];
+  errorCompeticiones: string | null;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
+  // Quién va a qué competición (del mes entero; la semana se filtra por
+  // fecha). Se actualiza al momento al pulsar y se revierte si falla.
+  const [compAsignado, setCompAsignado] = useState<AsignacionCompeticion[]>(asignacionesCompeticion);
+  const [errorComp, setErrorComp] = useState<string | null>(null);
+
+  function toggleCompeticion(competicionId: number, entrenadorId: string) {
+    const yaVa = compAsignado.some(
+      (a) => a.competicion_id === competicionId && a.entrenador_id === entrenadorId,
+    );
+    setErrorComp(null);
+    const quitar = (lista: AsignacionCompeticion[]) =>
+      lista.filter((a) => !(a.competicion_id === competicionId && a.entrenador_id === entrenadorId));
+    const poner = (lista: AsignacionCompeticion[]) => [
+      ...quitar(lista),
+      { competicion_id: competicionId, entrenador_id: entrenadorId },
+    ];
+    setCompAsignado((prev) => (yaVa ? quitar(prev) : poner(prev)));
+    startTransition(async () => {
+      const resultado = await setCompeticionEntrenador(competicionId, entrenadorId, !yaVa);
+      if ("error" in resultado) {
+        setCompAsignado((prev) => (yaVa ? poner(prev) : quitar(prev)));
+        setErrorComp(resultado.error);
+      }
+    });
+  }
+
+  // Competiciones cuya fecha cae en esta semana (lunes a domingo).
+  const finSemana = (() => {
+    const [y, m, d] = semana.split("-").map(Number);
+    const f = new Date(y, m - 1, d + 6);
+    return `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, "0")}-${String(f.getDate()).padStart(2, "0")}`;
+  })();
+  const competicionesSemana = competicionesMes.filter(
+    (c) => c.fecha != null && c.fecha >= semana && c.fecha <= finSemana,
+  );
+  const idsSemana = new Set(competicionesSemana.map((c) => c.id));
+  const compAsignadoSemana = compAsignado.filter((a) => idsSemana.has(a.competicion_id));
   const [copiando, setCopiando] = useState(false);
   const [avisoCopia, setAvisoCopia] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -346,7 +395,24 @@ export function RepartoGrid({
       ))}
 
       {esDirector && (
-        <CosteSemanal grupos={grupos} entrenadores={entrenadores} asignado={asignado} tarifas={tarifas} />
+        <CompeticionesSemana
+          competiciones={competicionesSemana}
+          quienes={entrenadoresCompeticion}
+          asignado={compAsignado}
+          error={errorComp ?? errorCompeticiones}
+          sinMigrar={errorCompeticiones != null}
+          onToggle={toggleCompeticion}
+        />
+      )}
+
+      {esDirector && (
+        <CosteSemanal
+          grupos={grupos}
+          entrenadores={entrenadores}
+          asignado={asignado}
+          tarifas={tarifas}
+          costeCompeticion={costeCompeticiones(compAsignadoSemana)}
+        />
       )}
       {esDirector && (
         <CosteMensual
@@ -354,8 +420,89 @@ export function RepartoGrid({
           entrenadores={entrenadores}
           tarifas={tarifas}
           asignacionesPorSemanaMes={asignacionesPorSemanaMes}
+          costeCompeticion={costeCompeticiones(compAsignado)}
         />
       )}
+    </div>
+  );
+}
+
+const fmtFechaCorta = (iso: string) => iso.split("-").reverse().slice(0, 2).join("/");
+
+// Competiciones del calendario (Próximas competiciones) que caen en esta
+// semana. Solo Sonia, Celia, Héctor y Toni pueden aparecer, y cada uno que
+// vaya cobra 80 € por competición, que se suman al coste de la semana.
+function CompeticionesSemana({
+  competiciones,
+  quienes,
+  asignado,
+  error,
+  sinMigrar,
+  onToggle,
+}: {
+  competiciones: Competicion[];
+  quienes: Entrenador[];
+  asignado: AsignacionCompeticion[];
+  error: string | null;
+  sinMigrar: boolean;
+  onToggle: (competicionId: number, entrenadorId: string) => void;
+}) {
+  if (sinMigrar) {
+    return (
+      <div className="mt-4 bg-surf border border-run/40 rounded-[10px] p-3.5">
+        <b className="block text-[15px] font-medium mb-1 text-run">
+          No se han podido cargar las competiciones
+        </b>
+        <p className="text-sm text-mute leading-relaxed">
+          Puede que falte ejecutar docs/migracion_competiciones_entrenadores.sql en Supabase.
+          Detalle técnico: {error}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4">
+      <h2 className="font-display text-[14px] tracking-[.14em] uppercase text-mute mb-2.5">
+        Competiciones de la semana
+      </h2>
+      {competiciones.length === 0 ? (
+        <p className="text-mute text-sm">
+          No hay ninguna competición del calendario esta semana. Se añaden en Competiciones →
+          Próximas.
+        </p>
+      ) : (
+        competiciones.map((c) => (
+          <article key={c.id} className="bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5">
+            <div className="flex items-baseline justify-between gap-2 mb-2.5">
+              <b className="text-[15px] font-medium">{c.nombre}</b>
+              {c.fecha && <span className="text-xs text-mute shrink-0">{fmtFechaCorta(c.fecha)}</span>}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {quienes.map((e) => {
+                const va = asignado.some((a) => a.competicion_id === c.id && a.entrenador_id === e.id);
+                return (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => onToggle(c.id, e.id)}
+                    aria-pressed={va}
+                    className={`min-h-[44px] px-4 rounded-full border text-[14px] cursor-pointer select-none ${
+                      va
+                        ? "bg-signal text-[#160800] border-signal font-semibold"
+                        : "bg-deep text-mute border-edge"
+                    }`}
+                  >
+                    {e.nombre}
+                    {va && <span className="font-normal"> · {EUROS_COMPETICION} €</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </article>
+        ))
+      )}
+      {error && <p className="text-run text-[13px] mt-1">{error}</p>}
     </div>
   );
 }
@@ -369,14 +516,14 @@ function CosteMensual({
   entrenadores,
   tarifas,
   asignacionesPorSemanaMes,
+  costeCompeticion,
 }: {
   grupos: Grupo[];
   entrenadores: Entrenador[];
   tarifas: Tarifa[];
   asignacionesPorSemanaMes: { semana: string; asignaciones: Asignacion[] }[];
+  costeCompeticion: Record<string, number>;
 }) {
-  if (asignacionesPorSemanaMes.length === 0) return null;
-
   const costeMes: Record<string, number> = {};
   let huboIncompletos = false;
   for (const { asignaciones } of asignacionesPorSemanaMes) {
@@ -385,6 +532,9 @@ function CosteMensual({
       costeMes[f.entrenador.id] = (costeMes[f.entrenador.id] ?? 0) + f.coste;
       if (!f.completo) huboIncompletos = true;
     }
+  }
+  for (const [id, euros] of Object.entries(costeCompeticion)) {
+    costeMes[id] = (costeMes[id] ?? 0) + euros;
   }
 
   const filas = entrenadores
@@ -430,8 +580,9 @@ function CosteMensual({
         </table>
       </div>
       <p className="text-xs text-mute mt-2">
-        Suma de todas las semanas guardadas del mes en el que cae la semana que estás viendo.
-        {huboIncompletos && " * Algún grupo sin horario fijo o sin tarifa no entra en el cálculo."}
+        Suma de todas las semanas guardadas del mes en el que cae la semana que estás viendo,
+        más las competiciones de ese mes.
+        {huboIncompletos && " * Algún grupo sin tarifa o sin horario (en las disciplinas que se pagan por hora) no entra en el cálculo."}
       </p>
     </div>
   );
@@ -442,11 +593,13 @@ function CosteSemanal({
   entrenadores,
   asignado,
   tarifas,
+  costeCompeticion,
 }: {
   grupos: Grupo[];
   entrenadores: Entrenador[];
   asignado: Set<string>;
   tarifas: Tarifa[];
+  costeCompeticion: Record<string, number>;
 }) {
   // Misma función que usan /pagos y el Corte del mes de aquí abajo, para
   // que las tres pantallas calculen siempre exactamente igual (incluida
@@ -458,7 +611,8 @@ function CosteSemanal({
     .map((f) => ({
       entrenador: f.entrenador.nombre,
       horas: Object.values(f.porDisciplina).reduce((s, h) => s + h, 0),
-      coste: f.coste,
+      // Incluye lo que cobra por ir a competiciones esta semana.
+      coste: f.coste + (costeCompeticion[f.entrenador.id] ?? 0),
       completo: f.completo,
     }))
     .filter((f) => f.horas > 0 || f.coste > 0);
@@ -514,8 +668,8 @@ function CosteSemanal({
       </div>
       {huboIncompletos && (
         <p className="text-xs text-mute mt-2">
-          * Algún grupo de este entrenador no tiene horario fijo (por ejemplo, ciclismo de
-          carretera), así que no entra en el cálculo hasta que se sepa cuánto dura.
+          * Algún grupo de este entrenador no tiene tarifa, o se paga por hora y no tiene horario
+          fijo, así que no entra en el cálculo hasta que se sepa.
         </p>
       )}
     </div>

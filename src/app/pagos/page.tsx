@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { toISODateLocal, parseLocalDate } from "@/lib/date";
+import { costeCompeticiones } from "@/lib/costes";
 import { PagosView } from "./PagosView";
 
 function primerDiaMes(d: Date) {
@@ -72,6 +73,26 @@ export default async function PagosPage({
     supabase.from("pagos_reales").select("id, entrenador_id, importe, nota").eq("mes", mes),
   ]);
 
+  // Competiciones del calendario a las que ha ido cada entrenador este mes
+  // (80 € cada una). Si todavía no se ha ejecutado la migración, se ignora
+  // en silencio: /pagos tiene que seguir funcionando igual que antes.
+  let costeCompeticion: Record<string, number> = {};
+  const { data: compesMes, error: errorCompes } = await supabase
+    .from("proximas_competiciones")
+    .select("id")
+    .gte("fecha", mes)
+    .lte("fecha", mesFin);
+  if (!errorCompes && (compesMes ?? []).length > 0) {
+    const { data: vanA } = await supabase
+      .from("competicion_entrenador")
+      .select("competicion_id, entrenador_id")
+      .in(
+        "competicion_id",
+        (compesMes ?? []).map((c) => c.id),
+      );
+    costeCompeticion = costeCompeticiones(vanA ?? []);
+  }
+
   const semanas = [...new Set((asignaciones ?? []).map((a) => a.semana))].sort();
   const asignacionesPorSemana = semanas.map((semana) => ({
     semana,
@@ -99,6 +120,7 @@ export default async function PagosPage({
           entrenadores={entrenadores ?? []}
           tarifas={tarifas ?? []}
           asignacionesPorSemana={asignacionesPorSemana}
+          costeCompeticion={costeCompeticion}
           pagosExtra={pagosExtra ?? []}
           pagosReales={(pagosReales ?? []).map((p) => ({ ...p, importe: Number(p.importe) }))}
           pagosRealesError={pagosRealesError?.message ?? null}

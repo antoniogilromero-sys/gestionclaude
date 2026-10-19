@@ -55,6 +55,19 @@ quien tenga tarifa propia de ciclismo en `tarifas_entrenador` (Celia) sigue
 cobrando por horas con esa tarifa. Una sesión de ciclismo sin horario fijo
 (Carretera del domingo) ahora sí cobra, aunque sume 0 horas en la columna.
 
+**Competiciones que se cobran (80 €)**: en `/reparto`, bloque "Competiciones
+de la semana" (solo director). Muestra las competiciones de Próximas
+competiciones cuya fecha cae en esa semana; el director marca quién va, y
+cada uno que va suma 80 € (`EUROS_COMPETICION` en `src/lib/costes.ts`) al
+coste semanal, al corte del mes y a `/pagos` (columna Competiciones, y
+dentro de "extras" en pagos reales). **Solo pueden aparecer Sonia, Celia,
+Héctor y Toni** (pedido explícito de Antón): lo garantiza la función
+`entrenadores_competicion()` (lista fija de 4 emails) y la acción
+`setCompeticionEntrenador` lo vuelve a comprobar en el servidor. Tabla
+`competicion_entrenador`, `docs/migracion_competiciones_entrenadores.sql`.
+Antes esto se apuntaba a mano como pago extra "competiciones" en `/pagos`:
+no duplicar.
+
 ## Cuadro de personal y datos de contacto
 
 **Se quitó de `/reparto`** (agosto 2026): Antón nunca ejecutó

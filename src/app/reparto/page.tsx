@@ -77,6 +77,13 @@ export default async function RepartoPage({
 
   let tarifas: { entrenador_id: string; disciplina: string; euros_hora: number }[] = [];
   let asignacionesPorSemanaMes: { semana: string; asignaciones: { grupo_id: number; entrenador_id: string }[] }[] = [];
+  // Competiciones del calendario del mes que se está viendo (el coste de
+  // cada una cae en la semana de su fecha), quién va a cada una, y las
+  // cuatro personas que pueden aparecer. Solo para el director: es dinero.
+  let competicionesMes: { id: number; nombre: string; fecha: string | null }[] = [];
+  let asignacionesCompeticion: { competicion_id: number; entrenador_id: string }[] = [];
+  let entrenadoresCompeticion: { id: string; nombre: string }[] = [];
+  let errorCompeticiones: string | null = null;
   if (esDirector) {
     const { data } = await supabase
       .from("tarifas_entrenador")
@@ -100,6 +107,31 @@ export default async function RepartoPage({
       semana: s,
       asignaciones: (asignacionesMes ?? []).filter((a) => a.semana === s),
     }));
+
+    const [compes, quienes] = await Promise.all([
+      supabase
+        .from("proximas_competiciones")
+        .select("id, nombre, fecha")
+        .gte("fecha", mesInicio)
+        .lte("fecha", mesFin)
+        .order("fecha"),
+      supabase.rpc("entrenadores_competicion"),
+    ]);
+    if (compes.error || quienes.error) {
+      // Lo más probable: falta ejecutar docs/migracion_competiciones_entrenadores.sql
+      errorCompeticiones = (compes.error ?? quienes.error)?.message ?? null;
+    } else {
+      competicionesMes = compes.data ?? [];
+      entrenadoresCompeticion = quienes.data ?? [];
+      const ids = competicionesMes.map((c) => c.id);
+      if (ids.length > 0) {
+        const { data } = await supabase
+          .from("competicion_entrenador")
+          .select("competicion_id, entrenador_id")
+          .in("competicion_id", ids);
+        asignacionesCompeticion = data ?? [];
+      }
+    }
   }
 
   return (
@@ -116,6 +148,10 @@ export default async function RepartoPage({
         asignacionesIniciales={asignaciones ?? []}
         tarifas={tarifas}
         asignacionesPorSemanaMes={asignacionesPorSemanaMes}
+        competicionesMes={competicionesMes}
+        asignacionesCompeticion={asignacionesCompeticion}
+        entrenadoresCompeticion={entrenadoresCompeticion}
+        errorCompeticiones={errorCompeticiones}
       />
     </AppShell>
   );

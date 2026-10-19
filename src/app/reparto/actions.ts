@@ -56,6 +56,47 @@ export async function setAsignacion(
   return { ok: true };
 }
 
+// Marca (o desmarca) que un entrenador va a una competición del calendario.
+// Solo el director, y solo las cuatro personas que pueden cobrar
+// competiciones: se comprueba aquí en el servidor, no solo en la pantalla.
+export async function setCompeticionEntrenador(
+  competicionId: number,
+  entrenadorId: string,
+  asignar: boolean,
+): Promise<{ error: string } | { ok: true }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+  const { data: perfil } = await supabase.from("perfiles").select("rol").eq("id", user.id).single();
+  if (!perfil || perfil.rol !== "director") return { error: "Solo el director puede hacer esto" };
+
+  const { data: permitidos, error: errorPermitidos } = await supabase.rpc("entrenadores_competicion");
+  if (errorPermitidos) return { error: errorPermitidos.message };
+  if (!(permitidos ?? []).some((p: { id: string }) => p.id === entrenadorId)) {
+    return { error: "Solo Sonia, Celia, Héctor y Toni pueden ir a competiciones" };
+  }
+
+  if (asignar) {
+    const { error } = await supabase
+      .from("competicion_entrenador")
+      .insert({ competicion_id: competicionId, entrenador_id: entrenadorId });
+    if (error && error.code !== "23505") return { error: error.message };
+  } else {
+    const { error } = await supabase
+      .from("competicion_entrenador")
+      .delete()
+      .eq("competicion_id", competicionId)
+      .eq("entrenador_id", entrenadorId);
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath("/reparto");
+  revalidatePath("/pagos");
+  return { ok: true };
+}
+
 export async function copiarSemanaAnterior(
   semanaDestino: string,
   semanaOrigen: string,

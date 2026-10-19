@@ -22,6 +22,24 @@ export const TARIFA_GENERAL: Record<string, number> = {
 // el ciclismo a otra tarifa (propia, por hora).
 export const DISCIPLINAS_POR_SESION = new Set(["ciclismo"]);
 
+// Lo que cobra cada entrenador por ir a una competición del calendario.
+// Solo Sonia, Celia, Héctor y Toni pueden aparecer (ver la función
+// entrenadores_competicion en docs/migracion_competiciones_entrenadores.sql).
+export const EUROS_COMPETICION = 80;
+
+export type AsignacionCompeticion = { competicion_id: number; entrenador_id: string };
+
+// Euros por entrenador a partir de quién va a qué competición.
+export function costeCompeticiones(
+  asignaciones: AsignacionCompeticion[],
+): Record<string, number> {
+  const coste: Record<string, number> = {};
+  for (const a of asignaciones) {
+    coste[a.entrenador_id] = (coste[a.entrenador_id] ?? 0) + EUROS_COMPETICION;
+  }
+  return coste;
+}
+
 export type Grupo = {
   id: number;
   nombre: string;

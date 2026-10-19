@@ -33,6 +33,7 @@ export function PagosView({
   entrenadores,
   tarifas,
   asignacionesPorSemana,
+  costeCompeticion,
   pagosExtra,
   pagosReales,
   pagosRealesError,
@@ -44,6 +45,7 @@ export function PagosView({
   entrenadores: Entrenador[];
   tarifas: Tarifa[];
   asignacionesPorSemana: SemanaAsignaciones[];
+  costeCompeticion: Record<string, number>;
   pagosExtra: PagoExtra[];
   pagosReales: PagoReal[];
   pagosRealesError: string | null;
@@ -93,8 +95,13 @@ export function PagosView({
   }
 
   function totalDe(entrenadorId: string) {
-    return (costeMes[entrenadorId] ?? 0) + (extraTotalPorEntrenador[entrenadorId] ?? 0);
+    return (
+      (costeMes[entrenadorId] ?? 0) +
+      (extraTotalPorEntrenador[entrenadorId] ?? 0) +
+      (costeCompeticion[entrenadorId] ?? 0)
+    );
   }
+  const hayCompeticiones = Object.keys(costeCompeticion).length > 0;
 
   const directores = entrenadores.filter((e) => e.rol === "director");
   const totalConTodos = entrenadores.reduce((s, e) => s + totalDe(e.id), 0);
@@ -261,6 +268,11 @@ export function PagosView({
               <th className="text-right py-2 pr-3 font-display text-[11px] tracking-[.08em] uppercase text-mute">
                 Total
               </th>
+              {hayCompeticiones && (
+                <th className="text-right py-2 pr-3 font-display text-[11px] tracking-[.08em] uppercase text-mute">
+                  Competiciones
+                </th>
+              )}
               {conceptosExtra.map((c) => (
                 <th
                   key={c}
@@ -283,6 +295,11 @@ export function PagosView({
                 <td className="py-2 pr-3 text-right font-display font-semibold tabular-nums">
                   {totalDe(e.id).toFixed(2)} €{!completoMes[e.id] && "*"}
                 </td>
+                {hayCompeticiones && (
+                  <td className="py-2 pr-3 text-right tabular-nums text-mute">
+                    {costeCompeticion[e.id] ? `${costeCompeticion[e.id].toFixed(0)} €` : "—"}
+                  </td>
+                )}
                 {conceptosExtra.map((c) => (
                   <td key={c} className="py-2 pr-3 text-right tabular-nums text-mute">
                     {extraPorEntrenadorConcepto[e.id]?.[c]
@@ -315,8 +332,8 @@ export function PagosView({
       </div>
       {huboIncompletos && (
         <p className="text-xs text-mute mb-4">
-          * Hay algún grupo sin horario fijo (ej. Ciclismo Carretera) o sin tarifa definida
-          para esa disciplina, así que ese coste no está completo.
+          * Hay algún grupo sin tarifa definida para su disciplina, o que se paga por hora y no
+          tiene horario fijo, así que ese coste no está completo.
         </p>
       )}
 
@@ -331,7 +348,9 @@ export function PagosView({
             id: e.id,
             nombre: e.nombre,
             reparto: costeMes[e.id] ?? 0,
-            extras: extraTotalPorEntrenador[e.id] ?? 0,
+            // Las competiciones del calendario cuentan como extra: es donde
+            // ya se apuntaban a mano ("gsd, competiciones").
+            extras: (extraTotalPorEntrenador[e.id] ?? 0) + (costeCompeticion[e.id] ?? 0),
             realId: real?.id ?? null,
             real: real ? real.importe : null,
             nota: real?.nota ?? null,
