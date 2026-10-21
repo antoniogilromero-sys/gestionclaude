@@ -137,7 +137,13 @@ export async function POST(request: NextRequest) {
       const { data: deportistaId, error: errorFn } = await supabase.rpc("deportista_id_o_alta", {
         p_nombre: fila.nombreCompleto,
       });
-      if (!errorFn && deportistaId) {
+      if (errorFn) {
+        // Antes esto fallaba en silencio: si falta la función en Supabase
+        // (docs/migracion_matching_deportistas.sql), la inscripción se
+        // guardaba pero el deportista nunca se daba de alta y no quedaba
+        // ningún rastro del motivo.
+        console.error("deportista_id_o_alta falló para", fila.nombreCompleto, errorFn);
+      } else if (deportistaId) {
         await supabase.from("inscripciones").update({ deportista_id: deportistaId }).eq("id", id);
       }
     } catch (e) {
