@@ -28,7 +28,7 @@ export default async function PruebaEquiposPage({
 
   const { data: prueba } = await supabase
     .from("pruebas_equipos")
-    .select("id, nombre, fecha, lugar")
+    .select("id, nombre, fecha, lugar, tramos")
     .eq("id", pruebaId)
     .maybeSingle();
   if (!prueba) notFound();
@@ -36,7 +36,7 @@ export default async function PruebaEquiposPage({
   const [{ data: equipos }, { data: deportistas }, { data: tipo }] = await Promise.all([
     supabase
       .from("prueba_equipo")
-      .select("id, nombre, orden, prueba_equipo_miembro(id, deportista_id, nombre, orden, club, tiempo_s)")
+      .select("id, nombre, orden, tiempo_total_s, prueba_equipo_miembro(id, deportista_id, nombre, orden, club, tiempo_s, media_100_s, tramos_nadados)")
       .eq("prueba_id", pruebaId)
       .order("orden")
       .order("id"),
@@ -47,6 +47,7 @@ export default async function PruebaEquiposPage({
   type EquipoCrudo = {
     id: number;
     nombre: string;
+    tiempo_total_s: number | string | null;
     prueba_equipo_miembro: {
       id: number;
       deportista_id: number | null;
@@ -54,6 +55,8 @@ export default async function PruebaEquiposPage({
       orden: number;
       club: string | null;
       tiempo_s: number | string | null;
+      media_100_s: number | string | null;
+      tramos_nadados: number | null;
     }[];
   };
   const crudos = (equipos ?? []) as unknown as EquipoCrudo[];
@@ -84,6 +87,7 @@ export default async function PruebaEquiposPage({
   const equiposListos = crudos.map((e) => ({
     id: e.id,
     nombre: e.nombre,
+    tiempoTotal: e.tiempo_total_s != null ? Number(e.tiempo_total_s) : null,
     miembros: [...e.prueba_equipo_miembro]
       .sort((a, b) => a.orden - b.orden || a.id - b.id)
       .map((m) => ({
@@ -91,6 +95,8 @@ export default async function PruebaEquiposPage({
         deportistaId: m.deportista_id,
         nombre: m.nombre,
         club: m.club,
+        media100: m.media_100_s != null ? Number(m.media_100_s) : null,
+        tramosNadados: m.tramos_nadados,
         // El tiempo puesto a mano manda; si no hay, el mejor 200 m de sus tests.
         tiempoManual: m.tiempo_s != null ? Number(m.tiempo_s) : null,
         tiempoTest: m.deportista_id != null ? (mejor.get(m.deportista_id) ?? null) : null,
@@ -109,6 +115,7 @@ export default async function PruebaEquiposPage({
       </p>
       <EquiposEditor
         pruebaId={prueba.id}
+        tramos={prueba.tramos ?? 100}
         equipos={equiposListos}
         deportistas={deportistas ?? []}
       />

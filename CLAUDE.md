@@ -1535,3 +1535,9 @@ ese primer caso está en `docs/seed_equipos_villanueva_2026.sql`).
   `2:10`, `2:34,7` y `2.10` (así escribe Antón 2 min 10 s). `club` guarda el
   club de quien NO es del nuestro (ej. GSD: Armando y Dani GSD, que no tienen
   ficha ni test y entran con 2:10 a mano).
+- **Resultado de la prueba (octubre 2026):** tras la carrera, cada nadador guarda
+  su **media por 100 m** y **cuántos 100 m nadó** (`media_100_s`, `tramos_nadados`),
+  y cada equipo su **tiempo total** (`prueba_equipo.tiempo_total_s`; la media
+  del equipo = total / `pruebas_equipos.tramos`, 100 en un 100x100). Antón pasa
+  una **foto con los tiempos** y Claude calcula la media de cada nadador y deja
+  el SQL listo para que Antón lo ejecute (no hay acceso directo a la base de datos).

@@ -33,10 +33,22 @@ create table if not exists prueba_equipo_miembro (
   orden         int not null default 0
 );
 
--- Por si la tabla ya se había creado antes de existir estas dos columnas.
+-- Por si la tabla ya se había creado antes de existir estas columnas.
 alter table prueba_equipo_miembro
   add column if not exists club     text,
   add column if not exists tiempo_s numeric(8,2);
+
+-- Resultado de cada nadador en la prueba: media de sus 100 m y cuántos nadó.
+alter table prueba_equipo_miembro
+  add column if not exists media_100_s    numeric(8,2),
+  add column if not exists tramos_nadados int;
+
+-- Resultado de la prueba: tiempo TOTAL del equipo (la media por tramo sale de
+-- dividirlo entre `tramos`, 100 en un 100x100).
+alter table pruebas_equipos
+  add column if not exists tramos int not null default 100;
+alter table prueba_equipo
+  add column if not exists tiempo_total_s numeric(10,2);
 
 create index if not exists prueba_equipo_prueba_idx on prueba_equipo (prueba_id);
 create index if not exists prueba_miembro_equipo_idx on prueba_equipo_miembro (equipo_id);

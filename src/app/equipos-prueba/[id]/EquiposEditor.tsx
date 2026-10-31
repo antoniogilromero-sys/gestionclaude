@@ -8,6 +8,8 @@ import {
   moverMiembro,
   crearEquipo,
   ponerTiempoMiembro,
+  ponerTiempoEquipo,
+  ponerResultadoMiembro,
 } from "../actions";
 
 type Miembro = {
@@ -17,8 +19,10 @@ type Miembro = {
   club: string | null;
   tiempoManual: number | null;
   tiempoTest: number | null;
+  media100: number | null;
+  tramosNadados: number | null;
 };
-type Equipo = { id: number; nombre: string; miembros: Miembro[] };
+type Equipo = { id: number; nombre: string; tiempoTotal: number | null; miembros: Miembro[] };
 type Deportista = { id: number; nombre: string };
 type Accion = () => Promise<{ error: string } | { ok: true }>;
 
@@ -27,6 +31,28 @@ function fmt(segundos: number) {
   const m = Math.floor(total / 60);
   const s = String(total % 60).padStart(2, "0");
   return `${m}:${s}`;
+}
+
+// Total largo: 3:05:20 o 3:05:20,4. Media con décimas: 1:52,35.
+function fmtTotal(segundos: number) {
+  const total = Math.round(segundos);
+  const h = Math.floor(total / 3600);
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+  const s = String(total % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${m}:${s}` : `${Number(m)}:${s}`;
+}
+function fmtMedia(segundos: number) {
+  const centesimas = Math.round(segundos * 100);
+  const m = Math.floor(centesimas / 6000);
+  const s = String(Math.floor((centesimas % 6000) / 100)).padStart(2, "0");
+  const c = String(centesimas % 100).padStart(2, "0");
+  return `${m}:${s},${c}`;
+}
+function parseTotal(texto: string): number | null {
+  const t = texto.trim().replace(",", ".");
+  const m = t.match(/^(d+):(d{1,2}):(d{1,2})(.d+)?$/);
+  if (m) return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) + (m[4] ? Number(m[4]) : 0);
+  return parseTiempo(t);
 }
 
 // Acepta "2:10", "2:34,7", "2.10" (así lo escribe Antón: 2 min 10 s) o los
@@ -44,10 +70,12 @@ function parseTiempo(texto: string): number | null {
 
 export function EquiposEditor({
   pruebaId,
+  tramos,
   equipos,
   deportistas,
 }: {
   pruebaId: number;
+  tramos: number;
   equipos: Equipo[];
   deportistas: Deportista[];
 }) {
@@ -76,6 +104,7 @@ export function EquiposEditor({
         <EquipoCard
           key={e.id}
           equipo={e}
+          tramos={tramos}
           otros={equipos.filter((x) => x.id !== e.id)}
           deportistas={deportistas}
           ejecutar={ejecutar}
@@ -106,12 +135,14 @@ export function EquiposEditor({
 
 function EquipoCard({
   equipo,
+  tramos,
   otros,
   deportistas,
   ejecutar,
   avisar,
 }: {
   equipo: Equipo;
+  tramos: number;
   otros: Equipo[];
   deportistas: Deportista[];
   ejecutar: (accion: Accion) => Promise<void>;
@@ -124,6 +155,13 @@ function EquipoCard({
   const conTiempo = equipo.miembros.filter((m) => tiempoDe(m) != null);
   const suma = conTiempo.reduce((s, m) => s + (tiempoDe(m) ?? 0), 0);
   const sinTiempo = equipo.miembros.length - conTiempo.length;
+  // Media del equipo en la prueba: cada media pesa por los 100 m que nadó.
+  const conMedia = equipo.miembros.filter((m) => m.media100 != null && (m.tramosNadados ?? 0) > 0);
+  const tramosTotales = conMedia.reduce((s, m) => s + (m.tramosNadados ?? 0), 0);
+  const mediaEquipo =
+    tramosTotales > 0
+      ? conMedia.reduce((s, m) => s + (m.media100 ?? 0) * (m.tramosNadados ?? 0), 0) / tramosTotales
+      : 0;
 
   async function anadir() {
     const limpio = texto.trim();
@@ -142,6 +180,11 @@ function EquipoCard({
         <b className="font-display text-[15px] tracking-[.06em] uppercase">{equipo.nombre}</b>
         <span className="text-xs text-mute">{equipo.miembros.length} nadadores</span>
       </div>
+      {conMedia.length > 0 && (
+        <p className="text-xs text-signal mb-1.5">
+          Prueba: media {fmtMedia(mediaEquipo)} por 100 m · {tramosTotales} tramos nadados
+        </p>
+      )}
       {conTiempo.length > 0 && (
         <p className="text-xs text-mute mb-2.5">
           200 m: suma {fmt(suma)} · media {fmt(suma / conTiempo.length)}
@@ -149,12 +192,20 @@ function EquipoCard({
         </p>
       )}
 
+      <ResultadoEquipo
+        key={`${equipo.id}-${equipo.tiempoTotal}`}
+        equipo={equipo}
+        tramos={tramos}
+        ejecutar={ejecutar}
+        avisar={avisar}
+      />
+
       {equipo.miembros.length === 0 && (
         <p className="text-mute text-sm py-2">Todavía no hay nadie en este equipo.</p>
       )}
       {equipo.miembros.map((m) => (
         <FilaMiembro
-          key={`${m.id}-${m.tiempoManual}-${m.tiempoTest}`}
+          key={`${m.id}-${m.tiempoManual}-${m.tiempoTest}-${m.media100}-${m.tramosNadados}`}
           miembro={m}
           otros={otros}
           ejecutar={ejecutar}
@@ -223,8 +274,31 @@ function FilaMiembro({
     await ejecutar(() => ponerTiempoMiembro(m.id, segundos));
   }
 
+  const [mediaTxt, setMediaTxt] = useState(m.media100 != null ? fmtMedia(m.media100) : "");
+  const [nTxt, setNTxt] = useState(m.tramosNadados != null ? String(m.tramosNadados) : "");
+
+  async function guardarResultado() {
+    const mediaOriginal = m.media100 != null ? fmtMedia(m.media100) : "";
+    const nOriginal = m.tramosNadados != null ? String(m.tramosNadados) : "";
+    if (mediaTxt.trim() === mediaOriginal && nTxt.trim() === nOriginal) return;
+    if (mediaTxt.trim() === "" && nTxt.trim() === "") {
+      await ejecutar(() => ponerResultadoMiembro(m.id, null, null));
+      return;
+    }
+    const media = parseTiempo(mediaTxt);
+    const n = Number(nTxt);
+    if (media == null || !Number.isInteger(n) || n < 1) {
+      avisar(`Para ${m.nombre} pon la media (1:52,35) y cuántos 100 m nadó (un número).`);
+      setMediaTxt(mediaOriginal);
+      setNTxt(nOriginal);
+      return;
+    }
+    await ejecutar(() => ponerResultadoMiembro(m.id, media, n));
+  }
+
   return (
-    <div className="flex items-center gap-2 py-2 border-t border-edge/60 text-sm">
+    <div className="py-2 border-t border-edge/60 text-sm">
+    <div className="flex items-center gap-2">
       <span className="flex-1 min-w-0 truncate">
         {m.nombre}
         {m.club && (
@@ -280,6 +354,113 @@ function FilaMiembro({
       >
         ✕
       </button>
+    </div>
+    <div className="flex items-center gap-2 mt-1.5 pl-0.5 text-[11px] text-mute">
+      <span>En la prueba: media 100 m</span>
+      <input
+        value={mediaTxt}
+        onChange={(e) => setMediaTxt(e.target.value)}
+        onBlur={guardarResultado}
+        onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+        placeholder="m:ss,cc"
+        inputMode="decimal"
+        aria-label={`Media por 100 m de ${m.nombre}`}
+        className="w-[78px] bg-deep border border-edge text-chalk rounded-lg px-2 py-1 text-xs text-center font-display tabular-nums"
+      />
+      <span>×</span>
+      <input
+        value={nTxt}
+        onChange={(e) => setNTxt(e.target.value)}
+        onBlur={guardarResultado}
+        onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+        placeholder="nº"
+        inputMode="numeric"
+        aria-label={`Cuántos 100 m nadó ${m.nombre}`}
+        className="w-[44px] bg-deep border border-edge text-chalk rounded-lg px-2 py-1 text-xs text-center font-display tabular-nums"
+      />
+      <span>tramos</span>
+    </div>
+    </div>
+  );
+}
+
+// Resultado de la prueba: el tiempo total del equipo y, a partir de él, el
+// tiempo medio de cada 100 m (total / tramos). Se puede rellenar cualquiera
+// de los dos; el otro se calcula.
+function ResultadoEquipo({
+  equipo,
+  tramos,
+  ejecutar,
+  avisar,
+}: {
+  equipo: Equipo;
+  tramos: number;
+  ejecutar: (accion: Accion) => Promise<void>;
+  avisar: (mensaje: string | null) => void;
+}) {
+  const total = equipo.tiempoTotal;
+  const [totalTxt, setTotalTxt] = useState(total != null ? fmtTotal(total) : "");
+  const [mediaTxt, setMediaTxt] = useState(total != null ? fmtMedia(total / tramos) : "");
+
+  async function guardar(segundos: number | null) {
+    await ejecutar(() => ponerTiempoEquipo(equipo.id, segundos));
+  }
+  async function alSalirTotal() {
+    if (totalTxt.trim() === (total != null ? fmtTotal(total) : "")) return;
+    if (totalTxt.trim() === "") return guardar(null);
+    const s = parseTotal(totalTxt);
+    if (s == null) {
+      avisar(`No entiendo el tiempo total "${totalTxt}". Escríbelo como 3:05:20.`);
+      setTotalTxt(total != null ? fmtTotal(total) : "");
+      return;
+    }
+    await guardar(s);
+  }
+  async function alSalirMedia() {
+    if (mediaTxt.trim() === (total != null ? fmtMedia(total / tramos) : "")) return;
+    if (mediaTxt.trim() === "") return guardar(null);
+    const s = parseTiempo(mediaTxt);
+    if (s == null) {
+      avisar(`No entiendo el tiempo medio "${mediaTxt}". Escríbelo como 1:52,35.`);
+      setMediaTxt(total != null ? fmtMedia(total / tramos) : "");
+      return;
+    }
+    await guardar(s * tramos);
+  }
+
+  const campo =
+    "w-full bg-deep border border-edge text-chalk rounded-lg px-2 py-1.5 text-sm text-center font-display tabular-nums";
+  return (
+    <div className="bg-deep border border-edge rounded-lg p-2.5 mb-2.5">
+      <p className="font-display text-[11px] tracking-[.1em] uppercase text-mute mb-1.5">
+        Resultado de la prueba · {tramos} tramos
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="text-[11px] text-mute">
+          Tiempo total
+          <input
+            value={totalTxt}
+            onChange={(e) => setTotalTxt(e.target.value)}
+            onBlur={alSalirTotal}
+            onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+            placeholder="h:mm:ss"
+            inputMode="decimal"
+            className={campo}
+          />
+        </label>
+        <label className="text-[11px] text-mute">
+          Media por 100 m
+          <input
+            value={mediaTxt}
+            onChange={(e) => setMediaTxt(e.target.value)}
+            onBlur={alSalirMedia}
+            onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+            placeholder="m:ss,cc"
+            inputMode="decimal"
+            className={campo}
+          />
+        </label>
+      </div>
     </div>
   );
 }

@@ -63,6 +63,41 @@ export async function borrarPrueba(id: number): Promise<Resultado> {
   return { ok: true };
 }
 
+// Resultado de un nadador en la prueba: media de sus 100 m y cuántos nadó.
+export async function ponerResultadoMiembro(
+  id: number,
+  media: number | null,
+  tramos: number | null,
+): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+  if (media != null && !(media >= 20 && media < 1200)) return { error: "La media no es válida" };
+  if (tramos != null && !(Number.isInteger(tramos) && tramos >= 1 && tramos <= 100)) {
+    return { error: "El número de 100 m tiene que estar entre 1 y 100" };
+  }
+  const { error } = await r.supabase
+    .from("prueba_equipo_miembro")
+    .update({ media_100_s: media, tramos_nadados: tramos })
+    .eq("id", id);
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+// Pone (o quita, con null) el tiempo TOTAL de un equipo en la prueba.
+export async function ponerTiempoEquipo(equipoId: number, segundos: number | null): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+  if (segundos != null && !(segundos >= 60 && segundos < 86400)) {
+    return { error: "El tiempo no es válido" };
+  }
+  const { error } = await r.supabase
+    .from("prueba_equipo")
+    .update({ tiempo_total_s: segundos })
+    .eq("id", equipoId);
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
 export async function crearEquipo(pruebaId: number, nombre: string): Promise<Resultado> {
   const r = await requireDirector();
   if (!r.ok) return { error: r.error };
