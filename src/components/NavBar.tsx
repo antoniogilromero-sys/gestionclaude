@@ -34,6 +34,7 @@ const DIRECTOR_ITEMS: NavItem[] = [
       "/horarios",
       "/inscripciones",
       "/prevision-entrenadores",
+      "/equipos-prueba",
     ],
   },
 ];

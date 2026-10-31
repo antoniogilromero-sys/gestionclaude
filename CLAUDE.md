@@ -1512,3 +1512,19 @@ aviso para el equipo** para que sepan que ya está subida.
 - Solo se cargan deportistas del club, nunca el resto de la clasificación.
   Los que no terminaron (DNS) no se registran. El SQL termina con una
   consulta que marca "SIN FICHA" a quien no esté en Deportistas.
+
+## Equipos de prueba (octubre 2026)
+
+`/equipos-prueba` (Administración, solo director) guarda los equipos de una
+prueba por equipos — el primer caso fue el **100x100 de natación de
+Villanueva de la Cañada 2026**: dos equipos de 10 que Antón montó a mano
+con los 200 m de cada nadador. Tablas `pruebas_equipos`, `prueba_equipo` y
+`prueba_equipo_miembro` (`docs/migracion_equipos_prueba.sql`; la carga de
+ese primer caso está en `docs/seed_equipos_villanueva_2026.sql`).
+
+- Un miembro puede no tener ficha (`deportista_id` null, solo nombre): así
+  entraron Armando GSD y Dani GSD, de los que no se sabía el nombre
+  completo. Si hay ficha, la pantalla enseña su **mejor 200 m de natación**
+  (el menor tiempo del test `200 m natacion`) y la suma/media por equipo.
+- Los equipos no se calculan solos: Antón los decide y se mueven con el
+  selector "Mover…". La app solo guarda y suma.
