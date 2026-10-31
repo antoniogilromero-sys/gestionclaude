@@ -3,10 +3,11 @@
 --
 --   pruebas_equipos         la prueba (nombre, fecha, lugar)
 --   prueba_equipo           los equipos de esa prueba (Equipo 1, Equipo 2...)
---   prueba_equipo_miembro   quién va en cada equipo. `deportista_id` puede ser
---                           null: sirve para alguien que aún no tiene ficha
---                           (se guarda solo el nombre). Si hay ficha, la
---                           pantalla enseña su mejor 200 m de natación.
+--   prueba_equipo_miembro   quién va en cada equipo:
+--     deportista_id  null si no tiene ficha (alguien de otro club, o aún sin ficha)
+--     club           club de origen si NO es del nuestro (ej. GSD)
+--     tiempo_s       tiempo de 200 m puesto a mano; si está vacío, la pantalla usa
+--                    su mejor 200 m de natación registrado en Tests
 
 create table if not exists pruebas_equipos (
   id        bigint generated always as identity primary key,
@@ -31,6 +32,11 @@ create table if not exists prueba_equipo_miembro (
   nombre        text not null,
   orden         int not null default 0
 );
+
+-- Por si la tabla ya se había creado antes de existir estas dos columnas.
+alter table prueba_equipo_miembro
+  add column if not exists club     text,
+  add column if not exists tiempo_s numeric(8,2);
 
 create index if not exists prueba_equipo_prueba_idx on prueba_equipo (prueba_id);
 create index if not exists prueba_miembro_equipo_idx on prueba_equipo_miembro (equipo_id);

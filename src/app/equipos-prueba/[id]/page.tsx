@@ -36,7 +36,7 @@ export default async function PruebaEquiposPage({
   const [{ data: equipos }, { data: deportistas }, { data: tipo }] = await Promise.all([
     supabase
       .from("prueba_equipo")
-      .select("id, nombre, orden, prueba_equipo_miembro(id, deportista_id, nombre, orden)")
+      .select("id, nombre, orden, prueba_equipo_miembro(id, deportista_id, nombre, orden, club, tiempo_s)")
       .eq("prueba_id", pruebaId)
       .order("orden")
       .order("id"),
@@ -47,7 +47,14 @@ export default async function PruebaEquiposPage({
   type EquipoCrudo = {
     id: number;
     nombre: string;
-    prueba_equipo_miembro: { id: number; deportista_id: number | null; nombre: string; orden: number }[];
+    prueba_equipo_miembro: {
+      id: number;
+      deportista_id: number | null;
+      nombre: string;
+      orden: number;
+      club: string | null;
+      tiempo_s: number | string | null;
+    }[];
   };
   const crudos = (equipos ?? []) as unknown as EquipoCrudo[];
 
@@ -83,7 +90,10 @@ export default async function PruebaEquiposPage({
         id: m.id,
         deportistaId: m.deportista_id,
         nombre: m.nombre,
-        tiempo: m.deportista_id != null ? (mejor.get(m.deportista_id) ?? null) : null,
+        club: m.club,
+        // El tiempo puesto a mano manda; si no hay, el mejor 200 m de sus tests.
+        tiempoManual: m.tiempo_s != null ? Number(m.tiempo_s) : null,
+        tiempoTest: m.deportista_id != null ? (mejor.get(m.deportista_id) ?? null) : null,
       })),
   }));
 

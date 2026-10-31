@@ -82,10 +82,26 @@ export async function crearEquipo(pruebaId: number, nombre: string): Promise<Res
   return { ok: true };
 }
 
+// Pone (o quita, con null) el tiempo de 200 m escrito a mano de un nadador.
+export async function ponerTiempoMiembro(id: number, segundos: number | null): Promise<Resultado> {
+  const r = await requireDirector();
+  if (!r.ok) return { error: r.error };
+  if (segundos != null && !(segundos > 0 && segundos < 3600)) {
+    return { error: "El tiempo no es válido" };
+  }
+  const { error } = await r.supabase
+    .from("prueba_equipo_miembro")
+    .update({ tiempo_s: segundos })
+    .eq("id", id);
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
 export async function anadirMiembro(
   equipoId: number,
   deportistaId: number | null,
   nombre: string,
+  club?: string,
 ): Promise<Resultado> {
   const r = await requireDirector();
   if (!r.ok) return { error: r.error };
@@ -100,7 +116,13 @@ export async function anadirMiembro(
   const orden = (ultimo?.[0]?.orden ?? 0) + 1;
   const { error } = await r.supabase
     .from("prueba_equipo_miembro")
-    .insert({ equipo_id: equipoId, deportista_id: deportistaId, nombre: limpio, orden });
+    .insert({
+      equipo_id: equipoId,
+      deportista_id: deportistaId,
+      nombre: limpio,
+      orden,
+      club: club?.trim() || null,
+    });
   if (error) return { error: error.message };
   return { ok: true };
 }

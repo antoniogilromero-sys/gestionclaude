@@ -1528,3 +1528,10 @@ ese primer caso está en `docs/seed_equipos_villanueva_2026.sql`).
   (el menor tiempo del test `200 m natacion`) y la suma/media por equipo.
 - Los equipos no se calculan solos: Antón los decide y se mueven con el
   selector "Mover…". La app solo guarda y suma.
+
+- **Casilla de tiempo y club (octubre 2026):** cada nadador de un equipo tiene
+  una casilla de 200 m. El tiempo escrito a mano (`prueba_equipo_miembro.tiempo_s`)
+  manda; si está vacío se usa su mejor 200 m de natación de Tests. Acepta
+  `2:10`, `2:34,7` y `2.10` (así escribe Antón 2 min 10 s). `club` guarda el
+  club de quien NO es del nuestro (ej. GSD: Armando y Dani GSD, que no tienen
+  ficha ni test y entran con 2:10 a mano).
