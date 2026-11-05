@@ -69,6 +69,17 @@ export type Tarifa = { entrenador_id: string; disciplina: string; euros_hora: nu
 // falta dejar ningún grupo a 0€.
 const GRUPOS_SIN_PAGO = new Set<string>();
 
+// Parejas de grupos que son UN solo entreno a efectos de pago: Medio y
+// Avanzado de las 19h, martes y jueves (dos grupos de nadadores distintos,
+// pero un solo entrenamiento que da generalmente una persona). Se paga una
+// vez: a quien tenga marcado el Medio y, si nadie lo tiene, a quien tenga
+// marcado el Avanzado. Si dos entrenadores distintos tienen uno cada uno,
+// cobra solo el del Medio. En el reparto los dos grupos siguen separados.
+const PARES_UN_SOLO_ENTRENO = [
+  { principal: "martes medio 19h", secundario: "martes avanzado 19h" },
+  { principal: "jueves medio 19h", secundario: "jueves avanzado 19h" },
+];
+
 // Excepción más amplia que GRUPOS_SIN_PAGO: aquí no es "este grupo no
 // se paga a nadie", es "a esta persona no se le paga NINGÚN grupo que
 // dé en este día" — otro entrenador que cubra el mismo grupo ese mismo
@@ -159,6 +170,23 @@ export function calcularFilas(
   asignaciones: Asignacion[],
   tarifas: Tarifa[],
 ) {
+  // Para cada pareja Medio/Avanzado de las 19h: quién tiene marcado el
+  // grupo principal (Medio) esa semana. Si otro entrenador ya lo tiene,
+  // el Avanzado de quien no tenga el Medio no se vuelve a pagar.
+  const normaliza = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+  const paresResueltos = PARES_UN_SOLO_ENTRENO.map((p) => {
+    const principal = grupos.find((g) => normaliza(g.nombre) === p.principal);
+    const secundario = grupos.find((g) => normaliza(g.nombre) === p.secundario);
+    return {
+      secundarioId: secundario?.id,
+      entrenadoresPrincipal: new Set(
+        principal
+          ? asignaciones.filter((a) => a.grupo_id === principal.id).map((a) => a.entrenador_id)
+          : [],
+      ),
+    };
+  });
+
   return entrenadores.map((e) => {
     const gruposDe = grupos.filter((g) =>
       asignaciones.some((a) => a.grupo_id === g.id && a.entrenador_id === e.id),
@@ -181,13 +209,28 @@ export function calcularFilas(
         (t) => t.entrenador_id === e.id && t.disciplina === g.disciplina,
       );
       const porSesion = DISCIPLINAS_POR_SESION.has(g.disciplina) && !tienePropia;
+      // Avanzado de las 19h de quien NO tiene el Medio, cuando el Medio ya
+      // lo tiene otro entrenador: ese entreno ya se paga a la otra persona.
+      const yaPagadoAOtro = paresResueltos.some(
+        (p) =>
+          p.secundarioId === g.id &&
+          !p.entrenadoresPrincipal.has(e.id) &&
+          p.entrenadoresPrincipal.size > 0,
+      );
       for (const dia of g.dias) {
         // La tarifa se calcula día a día (no para todo el grupo de
         // golpe): un grupo que diera lunes Y otro día no debería perder
         // el cobro entero solo porque el lunes esté exento.
         const tarifa = tarifaDe(e.id, g.disciplina, tarifas, g.nombre, e.nombre, [dia]);
-        const coste =
-          tarifa == null ? null : porSesion ? tarifa : horas == null ? null : horas * tarifa;
+        const coste = yaPagadoAOtro
+          ? 0
+          : tarifa == null
+            ? null
+            : porSesion
+              ? tarifa
+              : horas == null
+                ? null
+                : horas * tarifa;
         const clave = `${dia}|${g.hora_inicio ?? ""}|${g.hora_fin ?? ""}`;
         const lista = sesionesPorFranja.get(clave) ?? [];
         lista.push({ disciplina: g.disciplina, horas, coste });
