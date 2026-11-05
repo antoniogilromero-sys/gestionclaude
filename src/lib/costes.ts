@@ -52,13 +52,22 @@ export type Grupo = {
 
 export type Tarifa = { entrenador_id: string; disciplina: string; euros_hora: number };
 
-// Grupos que Antón pidió explícitamente dejar a 0€/hora para quien sea
-// que los cubra, sin excepción de entrenador — no es una tarifa general
-// ni una tarifa por entrenador, es una tarifa por GRUPO concreto (algo
-// que hasta ahora no hacía falta modelar). Comparación en minúsculas
+// Grupos que se pagan a 0€/hora para quien sea que los cubra, sin
+// excepción de entrenador — no es una tarifa general ni una tarifa por
+// entrenador, es una tarifa por GRUPO concreto. Comparación en minúsculas
 // para no depender de que el nombre esté escrito con las mayúsculas
 // exactas en la base de datos.
-const GRUPOS_SIN_PAGO = new Set(["martes avanzado 19h", "jueves avanzado 19h"]);
+//
+// Está VACÍO a propósito desde noviembre 2026. Antes tenía "martes
+// avanzado 19h" y "jueves avanzado 19h", que era la forma de no pagar
+// dos veces el mismo entrenamiento (Medio y Avanzado de las 19h son un
+// solo entreno, con dos grupos de nadadores distintos, que da casi
+// siempre el mismo entrenador). Pero esa regla dejaba a 0€ a quien solo
+// tuviera marcado el Avanzado (le pasó a Celia: 4 horas sin cobrar). Ahora
+// "un solo entreno" lo garantiza calcularFilas, que cuenta una sola vez
+// cada franja (mismo día y misma hora) por entrenador, así que ya no hace
+// falta dejar ningún grupo a 0€.
+const GRUPOS_SIN_PAGO = new Set<string>();
 
 // Excepción más amplia que GRUPOS_SIN_PAGO: aquí no es "este grupo no
 // se paga a nadie", es "a esta persona no se le paga NINGÚN grupo que

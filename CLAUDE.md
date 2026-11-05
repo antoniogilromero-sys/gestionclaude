@@ -929,6 +929,21 @@ añaden al `Set` `GRUPOS_SIN_PAGO` en `src/lib/costes.ts` — no hace
 falta ninguna migración de base de datos para esto, es una constante en
 el código.
 
+**Actualización (noviembre 2026): `GRUPOS_SIN_PAGO` está vacío otra vez.**
+Martes/Jueves Avanzado 19h dejaron de estar a 0€. Motivo real de aquella
+regla: Medio y Avanzado de las 19h son **un solo entreno** (dos grupos
+de nadadores distintos, casi siempre el mismo entrenador) y no había que
+pagarlo dos veces. Pero dejar el Avanzado a 0€ penalizaba a quien tenía
+marcado solo el Avanzado: a Celia le salían 4 horas al mes sin cobrar
+(355 € en vez de 423 €; sus tarifas propias son 17/17/22 €/h).
+`calcularFilas` ya cuenta una sola vez cada franja (mismo día y misma
+hora) por entrenador, y eso basta. Antón lo pidió así: para facturar y
+pagar, ese entreno cuenta como uno aunque operativamente haya dos
+grupos. Consecuencia a tener presente: si dos entrenadores DISTINTOS
+tienen marcado uno cada uno (Medio uno, Avanzado otro), los dos cobran;
+si algún día eso se quiere evitar, hay que añadir la lógica cruzada entre
+entrenadores, hoy no existe.
+
 **Excepción por persona + día (ampliada dos veces)**: primero Antón
 pidió que **Diego Gil Gordillo** no cobrara por dar Atletismo 1A/1B
 Lunes en concreto (persona + grupo exacto); al comprobarlo dijo que la
