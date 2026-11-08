@@ -1556,3 +1556,9 @@ ese primer caso está en `docs/seed_equipos_villanueva_2026.sql`).
   del equipo = total / `pruebas_equipos.tramos`, 100 en un 100x100). Antón pasa
   una **foto con los tiempos** y Claude calcula la media de cada nadador y deja
   el SQL listo para que Antón lo ejecute (no hay acceso directo a la base de datos).
+
+- **Análisis > Ficha: opción "Todos los tests" (noviembre 2026).** Primera entrada
+  del desplegable de pruebas (`testId` 0): en vez del gráfico de una prueba,
+  enseña todas las pruebas con marcas de ese deportista (mejor, última,
+  cambio desde la primera y la lista de marcas con fecha). `TodosLosTests` en
+  `AnalisisClient.tsx`.

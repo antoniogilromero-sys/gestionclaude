@@ -182,6 +182,88 @@ export function AnalisisClient({
   );
 }
 
+type FilaTodas = {
+  fecha: string;
+  tipo_test_id: number;
+  tiempo_s: number | null;
+  distancia_m: number | null;
+  potencia_w: number | null;
+};
+
+// Todas las marcas de un deportista, prueba por prueba: la mejor, la última,
+// cuánto ha cambiado desde la primera, y la lista de marcas con su fecha.
+function TodosLosTests({ filas, tiposTest }: { filas: FilaTodas[]; tiposTest: TipoTest[] }) {
+  const bloques = tiposTest
+    .map((t) => {
+      const marcas = filas
+        .filter((f) => f.tipo_test_id === t.id)
+        .map((f) => ({ fecha: f.fecha, valor: valorDe(f, t.metrica) }))
+        .filter((m): m is { fecha: string; valor: number } => m.valor != null);
+      return { t, marcas };
+    })
+    .filter((b) => b.marcas.length > 0);
+
+  if (bloques.length === 0) {
+    return (
+      <div className="text-center py-9 px-5 text-mute text-sm leading-relaxed">
+        <b className="block text-chalk text-base mb-[5px] font-medium">Sin tests todavía</b>
+        Cuando este deportista tenga resultados de cualquier prueba, aparecerán aquí.
+      </div>
+    );
+  }
+
+  const total = bloques.reduce((s, b) => s + b.marcas.length, 0);
+  return (
+    <div>
+      <p className="text-xs text-mute mb-3">
+        {bloques.length} {bloques.length === 1 ? "prueba" : "pruebas"} · {total} {total === 1 ? "marca" : "marcas"}
+      </p>
+      {bloques.map(({ t, marcas }) => {
+        const valores = marcas.map((m) => m.valor);
+        const mejor = t.mejor_es === "menor" ? Math.min(...valores) : Math.max(...valores);
+        const ultima = valores[valores.length - 1];
+        const diferencia = ultima - valores[0];
+        const mejora = t.mejor_es === "menor" ? -diferencia : diferencia;
+        const color = COLOR_DISC[t.disciplina] ?? COLOR_DEFECTO;
+        return (
+          <div key={t.id} className="bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <b className="text-[15px] font-medium flex items-center gap-1.5 min-w-0">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                <span className="truncate">{t.nombre}</span>
+              </b>
+              {marcas.length > 1 && (
+                <span
+                  className={`font-display text-xs shrink-0 ${mejora > 0 ? "text-ok" : mejora < 0 ? "text-run" : "text-mute"}`}
+                >
+                  {mejora > 0 ? "▲" : mejora < 0 ? "▼" : "="}{" "}
+                  {formatValor(Math.abs(diferencia), t.metrica)}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-4 mb-2 text-xs text-mute">
+              <span>
+                Mejor <b className="text-chalk font-display text-sm">{formatValor(mejor, t.metrica)}</b>
+              </span>
+              <span>
+                Última <b className="text-chalk font-display text-sm">{formatValor(ultima, t.metrica)}</b>
+              </span>
+              <span>{marcas.length} {marcas.length === 1 ? "marca" : "marcas"}</span>
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-mute">
+              {marcas.map((m, i) => (
+                <span key={i} className="tabular-nums">
+                  {fmtFecha(m.fecha)} · <span className="text-chalk">{formatValor(m.valor, t.metrica)}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function FichaIndividual({
   deportistas,
   tiposTest,
@@ -193,9 +275,13 @@ function FichaIndividual({
   const [testId, setTestId] = useState<number | undefined>(tiposTest[0]?.id);
   const [filas, setFilas] = useState<FilaCalc[]>([]);
   const [filasKey, setFilasKey] = useState<string | null>(null);
+  const [todasFilas, setTodasFilas] = useState<FilaTodas[]>([]);
+  const [todasKey, setTodasKey] = useState<number | null>(null);
   const [strava, setStrava] = useState<ResumenStrava | null>(null);
   const [stravaCargando, setStravaCargando] = useState(false);
 
+  // testId 0 = "Todos los tests": en vez de una prueba, todas las marcas del deportista.
+  const verTodos = testId === 0;
   const test = tiposTest.find((t) => t.id === testId);
   const clave = deportistaId && testId ? `${deportistaId}:${testId}` : null;
   const cargando = clave !== null && clave !== filasKey;
@@ -215,6 +301,20 @@ function FichaIndividual({
         setFilasKey(clave);
       });
   }, [deportistaId, testId]);
+
+  useEffect(() => {
+    if (!deportistaId || !verTodos) return;
+    const supabase = createClient();
+    supabase
+      .from("resultados_calc")
+      .select("fecha, tipo_test_id, tiempo_s, distancia_m, potencia_w")
+      .eq("deportista_id", deportistaId)
+      .order("fecha", { ascending: true })
+      .then(({ data }) => {
+        setTodasFilas((data ?? []) as FilaTodas[]);
+        setTodasKey(deportistaId);
+      });
+  }, [deportistaId, verTodos]);
 
   useEffect(() => {
     if (!deportistaId) return;
@@ -280,6 +380,7 @@ function FichaIndividual({
           onChange={(e) => setTestId(Number(e.target.value))}
           className="w-full bg-deep border border-edge text-chalk rounded-lg p-[11px] text-sm"
         >
+          <option value={0}>Todos los tests</option>
           {tiposTest.map((t) => (
             <option key={t.id} value={t.id}>
               {t.nombre}
@@ -319,7 +420,13 @@ function FichaIndividual({
         </>
       )}
 
-      {cargando ? (
+      {verTodos ? (
+        todasKey !== deportistaId ? (
+          <p className="text-mute text-sm py-6 text-center">Cargando…</p>
+        ) : (
+          <TodosLosTests filas={todasFilas} tiposTest={tiposTest} />
+        )
+      ) : cargando ? (
         <p className="text-mute text-sm py-6 text-center">Cargando…</p>
       ) : datosGrafico.length === 0 ? (
         <div className="text-center py-9 px-5 text-mute text-sm leading-relaxed">
