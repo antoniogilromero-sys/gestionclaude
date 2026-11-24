@@ -97,6 +97,25 @@ export async function setCompeticionEntrenador(
   return { ok: true };
 }
 
+// El director manda el reparto de esa semana por correo a los entrenadores
+// ahora mismo (el automático sale los domingos a las 22h). Permite reenviar.
+export async function enviarRepartoPorEmail(
+  semana: string,
+): Promise<{ error: string } | { ok: true; enviados: number }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+  const { data: perfil } = await supabase.from("perfiles").select("rol").eq("id", user.id).single();
+  if (!perfil || perfil.rol !== "director") return { error: "Solo el director puede hacer esto" };
+
+  const { enviarRepartoSemana } = await import("@/lib/emailReparto");
+  const resultado = await enviarRepartoSemana(semana, { origen: "manual", permitirReenvio: true });
+  if (!resultado.ok) return { error: resultado.error };
+  return { ok: true, enviados: resultado.enviados };
+}
+
 export async function copiarSemanaAnterior(
   semanaDestino: string,
   semanaOrigen: string,

@@ -1562,3 +1562,25 @@ ese primer caso está en `docs/seed_equipos_villanueva_2026.sql`).
   enseña todas las pruebas con marcas de ese deportista (mejor, última,
   cambio desde la primera y la lista de marcas con fecha). `TodosLosTests` en
   `AnalisisClient.tsx`.
+
+## Correo semanal del reparto a los entrenadores (noviembre 2026)
+
+Cada **domingo a las 22h (hora de Madrid)** la app manda por correo el reparto
+de la semana siguiente a todos los entrenadores y al director (pedido de
+Antón). Solo lleva el horario (quién da cada grupo + "tus grupos"), nunca
+costes ni datos de contacto.
+
+- Cron: `vercel.json` → `/api/cron/reparto-semanal`, dos entradas (20h y 21h
+  UTC) porque Vercel va en UTC y no entiende el horario de verano; la ruta
+  comprueba que en Madrid sean de verdad las 22h de un domingo. **En el plan
+  gratuito el cron puede llegar en cualquier minuto de esa hora** (22:00-22:59).
+- Envío: `src/lib/emailReparto.ts` con nodemailer y Gmail SMTP. Variables en
+  Vercel: `GMAIL_USER`, `GMAIL_APP_PASSWORD` (contraseña de aplicación de
+  Google) y `CRON_SECRET` (cualquier texto largo; Vercel lo manda solo en el
+  cron). Los destinatarios son los `perfiles` activos con rol director o
+  entrenador.
+- `envios_reparto` (`docs/migracion_envios_reparto.sql`) guarda qué semanas ya
+  salieron, para no duplicar. Si la semana no tiene reparto guardado, no manda
+  nada.
+- Botón "Enviar este reparto por correo a los entrenadores" en `/reparto` (solo
+  director): manda esa semana ahora, permite reenviar, y sirve para probar.

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { setAsignacion, copiarSemanaAnterior, setCompeticionEntrenador } from "./actions";
+import { setAsignacion, copiarSemanaAnterior, setCompeticionEntrenador, enviarRepartoPorEmail } from "./actions";
 import {
   calcularFilas,
   costeCompeticiones,
@@ -141,6 +141,9 @@ export function RepartoGrid({
   const compAsignadoSemana = compAsignado.filter((a) => idsSemana.has(a.competicion_id));
   const [copiando, setCopiando] = useState(false);
   const [avisoCopia, setAvisoCopia] = useState<string | null>(null);
+  const [enviandoEmail, setEnviandoEmail] = useState(false);
+  const [confirmarEmail, setConfirmarEmail] = useState(false);
+  const [avisoEmail, setAvisoEmail] = useState<{ texto: string; error: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asignado, setAsignado] = useState<Set<string>>(
     () => new Set(asignacionesIniciales.map((a) => key(a.grupo_id, a.entrenador_id))),
@@ -195,6 +198,20 @@ export function RepartoGrid({
         return next;
       });
     });
+  }
+
+  async function enviarEmail() {
+    setEnviandoEmail(true);
+    setAvisoEmail(null);
+    const resultado = await enviarRepartoPorEmail(semana);
+    setEnviandoEmail(false);
+    setConfirmarEmail(false);
+    if ("error" in resultado) setAvisoEmail({ texto: resultado.error, error: true });
+    else
+      setAvisoEmail({
+        texto: `Reparto enviado por correo a ${resultado.enviados} ${resultado.enviados === 1 ? "persona" : "personas"}.`,
+        error: false,
+      });
   }
 
   async function copiarAnterior() {
@@ -296,6 +313,36 @@ export function RepartoGrid({
             {copiando ? "Copiando…" : "Copiar reparto de la semana anterior"}
           </button>
           {avisoCopia && <p className="text-mute text-[13px] -mt-2.5 mb-4">{avisoCopia}</p>}
+          {confirmarEmail ? (
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={enviarEmail}
+                disabled={enviandoEmail}
+                className="flex-1 bg-signal text-[#160800] rounded-[9px] py-2.5 font-display text-sm tracking-[.05em] uppercase font-semibold cursor-pointer disabled:opacity-60"
+              >
+                {enviandoEmail ? "Enviando…" : "Sí, enviar ahora"}
+              </button>
+              <button
+                onClick={() => setConfirmarEmail(false)}
+                disabled={enviandoEmail}
+                className="flex-1 bg-transparent border border-edge text-chalk rounded-[9px] py-2.5 font-display text-sm tracking-[.05em] uppercase cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmarEmail(true)}
+              className="w-full bg-transparent border border-edge text-chalk rounded-[9px] py-2.5 font-display text-sm tracking-[.05em] uppercase cursor-pointer mb-4"
+            >
+              Enviar este reparto por correo a los entrenadores
+            </button>
+          )}
+          {avisoEmail && (
+            <p className={`text-[13px] -mt-2.5 mb-4 ${avisoEmail.error ? "text-run" : "text-ok"}`}>
+              {avisoEmail.texto}
+            </p>
+          )}
           {error && <p className="text-run text-[13px] -mt-2.5 mb-4">{error}</p>}
         </>
       )}

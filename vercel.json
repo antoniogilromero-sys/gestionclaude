@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/cron/reparto-semanal", "schedule": "0 20 * * 0" },
+    { "path": "/api/cron/reparto-semanal", "schedule": "0 21 * * 0" }
+  ]
+}
