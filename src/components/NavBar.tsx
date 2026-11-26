@@ -35,6 +35,7 @@ const DIRECTOR_ITEMS: NavItem[] = [
       "/inscripciones",
       "/prevision-entrenadores",
       "/equipos-prueba",
+      "/duatlon",
     ],
   },
 ];

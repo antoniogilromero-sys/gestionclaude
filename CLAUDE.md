@@ -1584,3 +1584,17 @@ costes ni datos de contacto.
   nada.
 - Botón "Enviar este reparto por correo a los entrenadores" en `/reparto` (solo
   director): manda esa semana ahora, permite reenviar, y sirve para probar.
+
+## Organización Duatlón (noviembre 2026)
+
+`/duatlon` (Administración, solo director) es el cuaderno de la organización
+del I Duatlón Cross Escolar Alpedrete (28/02/2027): Antón quería un sitio
+donde ir subiendo cosas. Cada entrada de `duatlon_items` puede llevar nota,
+enlace y/o archivo, y marcarse como tarea (pendiente/hecha), ordenadas por
+apartado (la lista de apartados es fija, `CATEGORIAS` en `DuatlonClient.tsx`).
+
+- `docs/migracion_duatlon_organizacion.sql` crea la tabla, el almacén privado
+  `duatlon` y carga los enlaces y tareas iniciales. Antón la ejecuta a mano.
+- Los archivos se suben directos desde el navegador al almacén (mismo patrón
+  que `/pedidos`); se abren con URL firmada de 1 hora.
+- La fecha de la prueba (cuenta atrás) está fija en `duatlon/page.tsx`.

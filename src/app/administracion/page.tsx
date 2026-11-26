@@ -120,6 +120,16 @@ export default async function AdministracionPage() {
           va en cada uno, con su 200 m y la suma de cada equipo.
         </span>
       </Link>
+      <Link
+        href="/duatlon"
+        className="block bg-surf border border-edge rounded-[10px] p-3.5 mb-2.5"
+      >
+        <b className="block text-[16px] font-semibold mb-[3px]">Organización Duatlón</b>
+        <span className="text-sm text-mute">
+          I Duatlón Cross Escolar Alpedrete (28 feb 2027): documentos, enlaces,
+          notas y tareas pendientes.
+        </span>
+      </Link>
       <p className="text-xs text-mute leading-relaxed mt-4 pt-3 border-t border-edge">
         Este apartado irá creciendo con más gestiones administrativas del
         club (campamentos...) según haga falta.
